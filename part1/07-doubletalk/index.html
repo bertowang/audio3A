@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 07 章 · 双讲检测、时延漂移与路径突变 | 音频 3A 处理：从自适应滤波到神经增强</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<script src="../../assets/toc.js" defer></script>
+<script src="../../assets/app.js" defer></script>
+</head>
+<body data-root="../../" data-chapter="07">
+<aside id="sidebar"></aside>
+<main class="book-page">
+<nav class="breadcrumb" data-autofill>总目录</nav>
+<header class="chapter-head">
+<span class="kicker">第一篇 · 信号、系统与自适应滤波基础 · 上卷 · 传统算法（Model-based）</span>
+<h1><span class="ch-num">第 07 章</span>双讲检测、时延漂移与路径突变</h1>
+<p class="lede">自适应滤波器最怕的三件事：标签被污染、延迟在走、真值突然换了。</p>
+<div class="meta">
+<span class="badge done">已完稿</span>
+<span class="badge s2">基础 · 自适应</span>
+<span class="badge traditional">上卷 · 传统算法</span>
+<span>建议 3 学时</span>
+<span>1 个 Python 实验 · 2 张图 · 3 段试听</span>
+<span>音频 3A 处理：从自适应滤波到神经增强</span>
+</div></header>
+<p class="bridge"><strong>本章位置：</strong><a href='../06-fdaf/index.html'>第 06 章 · 频域自适应滤波：FDAF、分块 MDF 与收敛</a> 让滤波器在频域收敛，本章保护它不被带跑；<a href='../../part2/09-aec-architecture/index.html'>第 09 章 · AEC 总体结构：参考信号、线性滤波与残余抑制</a> 把检测与线性滤波装进 AEC 总体结构，<a href='../../part2/11-residual-echo/index.html'>第 11 章 · 残余回声抑制与 WebRTC AEC3 结构</a> 用 AEC3 结构收口。</p>
+<div class="analogy"><span class="card-label">给程序员的翻译</span><p style="margin-bottom:0">双讲检测是给在线训练加一个 <code>if label_is_clean:</code> 守卫；时延漂移是数据管道的两个时钟域没做 CDC；路径突变则是训练集分布突然换了。<strong>三者都不是『调小学习率』能解决的。</strong></p></div>
+<div class="card objectives"><span class="card-label">学习目标</span><ul>
+<li>能说明双讲为何让 NLMS 的梯度混入不相关近端语音。</li>
+<li>能用归一化互相关构造双讲检测量并给出帧级检测率与虚警率。</li>
+<li>能解释时钟漂移与路径突变对已收敛滤波器的不同破坏方式。</li>
+<li>能运行实验，对照冻结与不冻结更新时的权重误差与可听残差。</li>
+</ul></div>
+<section id="map"><h2><span class="sec-num">§</span>知识点地图</h2>
+<p class="code-hint">每个知识点都配了 1～2 个扩展学习链接；本章完整资源清单见 <a href="#extra-links">扩展学习</a>。</p>
+<table><thead><tr><th style="width:44px">#</th><th style="width:26%">知识点</th><th>扩展学习</th><th style="width:100px">状态</th></tr></thead><tbody>
+<tr><td>1</td><td>双讲与近端语音</td><td><a href="https://www.itu.int/rec/T-REC-G.168/en" target="_blank" rel="noopener noreferrer">ITU-T G.168 ↗</a> · <a href="https://github.com/microsoft/AEC-Challenge" target="_blank" rel="noopener noreferrer">Microsoft AEC Challenge ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>2</td><td>Geigel / NCC 检测量</td><td><a href="https://www.itu.int/rec/T-REC-G.168/en" target="_blank" rel="noopener noreferrer">ITU-T G.168 ↗</a> · <a href="https://github.com/microsoft/AEC-Challenge" target="_blank" rel="noopener noreferrer">Microsoft AEC Challenge ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>3</td><td>检测阈值与驻留时间</td><td><a href="https://www.itu.int/rec/T-REC-G.168/en" target="_blank" rel="noopener noreferrer">ITU-T G.168 ↗</a> · <a href="https://github.com/microsoft/AEC-Challenge" target="_blank" rel="noopener noreferrer">Microsoft AEC Challenge ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>4</td><td>系数冻结与阴影滤波器</td><td><a href="https://www.itu.int/rec/T-REC-G.168/en" target="_blank" rel="noopener noreferrer">ITU-T G.168 ↗</a> · <a href="https://github.com/microsoft/AEC-Challenge" target="_blank" rel="noopener noreferrer">Microsoft AEC Challenge ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>5</td><td>时延漂移 ppm</td><td><a href="https://www.itu.int/rec/T-REC-G.168/en" target="_blank" rel="noopener noreferrer">ITU-T G.168 ↗</a> · <a href="https://github.com/microsoft/AEC-Challenge" target="_blank" rel="noopener noreferrer">Microsoft AEC Challenge ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>6</td><td>互相关峰值跟踪</td><td><a href="https://www.itu.int/rec/T-REC-G.168/en" target="_blank" rel="noopener noreferrer">ITU-T G.168 ↗</a> · <a href="https://github.com/microsoft/AEC-Challenge" target="_blank" rel="noopener noreferrer">Microsoft AEC Challenge ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>7</td><td>路径突变与重收敛</td><td><a href="https://en.wikipedia.org/wiki/Least_mean_squares_filter" target="_blank" rel="noopener noreferrer">Least mean squares filter ↗</a> · <a href="https://numpy.org/doc/stable/" target="_blank" rel="noopener noreferrer">NumPy 文档 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>8</td><td>检测率与虚警率</td><td><a href="https://www.itu.int/rec/T-REC-G.168/en" target="_blank" rel="noopener noreferrer">ITU-T G.168 ↗</a> · <a href="https://github.com/microsoft/AEC-Challenge" target="_blank" rel="noopener noreferrer">Microsoft AEC Challenge ↗</a></td><td>正文已覆盖</td></tr>
+</tbody></table></section>
+<section id="s7-1"><h2><span class="sec-num">§7.1</span>双讲不是噪声变大，是标签被污染</h2>
+<p class="eq">e[n] = d[n] + h*x[n] + v[n] − ŷ[n]　；单讲时 d[n]≈0，双讲时 d[n] 与 x[n] 不相关</p>
+<p>NLMS 把 <code>e[n]</code> 当成『回声没抵消干净的部分』去修正 w。双讲时 <code>e[n]</code> 里主要是近端语音，它与参考 <code>x[n]</code> 统计独立，于是梯度 <code>e·x</code> 变成零均值大方差噪声：系数被推离 h，双讲结束后 ERLE 塌陷，需要几十到几百毫秒重收敛。</p>
+<table><thead><tr><th style="width:18%">场景</th><th style="width:30%">误差 e[n] 主要成分</th><th style="width:22%">与 x 相关吗</th><th style="width:30%">该不该更新 w</th></tr></thead><tbody>
+<tr><td>远端单讲</td><td>h−ŵ 造成的残余回声</td><td>强相关</td><td>更新（正是要学的时候）</td></tr>
+<tr><td>近端单讲</td><td>近端语音 + 噪声</td><td>不相关</td><td>冻结</td></tr>
+<tr><td>双讲</td><td>残余回声 + 近端语音</td><td>混合</td><td>冻结或大幅降 μ</td></tr>
+<tr><td>双方静音</td><td>量化 / 环境噪声</td><td>不相关</td><td>冻结（输入能量不足）</td></tr>
+</tbody></table>
+<div class="card note"><span class="card-label">工业做法</span><p style="margin-bottom:0">WebRTC AEC3 用『主滤波器 + 阴影滤波器』：阴影滤波器一直自由更新，只有明显优于主滤波器时才替换，避免一次误判毁掉已收敛的 h。本章实验用理想检测上界演示冻结的作用。</p></div>
+</section>
+<section id="s7-2"><h2><span class="sec-num">§7.2</span>一个可用的检测量：归一化互相关</h2>
+<p class="eq">ρ = Σ ŷ[i]·y[i] / √(Σ ŷ[i]² · Σ y[i]²)　，逐帧计算；ρ &lt; τ 判双讲</p>
+<p><code>ŷ</code> 是线性滤波器预测的回声。单讲时 <code>y ≈ ŷ</code>，ρ 接近 1；双讲时 <code>y = ŷ + d</code>，分母多出近端能量而分子几乎不变，ρ 明显下降。阈值 τ 决定检测率与虚警率的折中；工程上还要加<strong>驻留时间（hangover）</strong>，避免音节间隙把一次双讲切成几十段。</p>
+<p class="eq">若近端与预测回声功率比为 q，则 ρ ≈ 1 / √(1+q)　（可手算校核阈值）</p>
+<p>本实验 q≈1.5 时 ρ≈0.63，取 τ=0.80 即可把双讲帧与单讲帧干净分开；把近端调小到 q≈0.2，ρ≈0.91 就会漏检——<strong>阈值必须跟着电平标定</strong>。</p>
+</section>
+<section id="s7-3"><h2><span class="sec-num">§7.3</span>另外两种『路径变了』</h2>
+<ul>
+<li><strong>时延漂移</strong>：播放与采集用不同晶振，ppm 级采样率偏差让缓冲对齐缓慢滑移；表现为互相关峰值逐帧平移，而不是 h 的形状改变。对策是周期性重估延迟 + 重采样 / 缓冲对齐。</li>
+<li><strong>路径突变</strong>：有人挪动笔记本、手掌挡住麦克风，h 在几十毫秒内整体改变；表现为 ‖w−h‖ 突然跳大、ERLE 断崖。对策是突变检测后提高 μ 或重置阴影滤波器。</li>
+<li><strong>非线性失真</strong>：扬声器削波让回声不再是 x 的线性卷积，线性滤波器无解，只能交给 <a href='../../part2/11-residual-echo/index.html'>第 11 章 · 残余回声抑制与 WebRTC AEC3 结构</a> 的残余抑制。</li>
+</ul>
+</section>
+<section id="lab"><h2><span class="sec-num">§</span>Python 实验</h2>
+<h3>实验 7-1 · NCC 双讲检测、冻结更新与互相关时延跟踪</h3>
+<pre class="code" data-file="code/07-doubletalk.py" data-lang="Python 3 · 标准库"><code>#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""逐帧计算归一化互相关做双讲判决，对照冻结/不冻结的权重误差，并用互相关峰值估计时延漂移。
+
+全部语音 / 噪声 / 房间冲激响应均为代码合成信号，仅用于教学演示机制与量级。
+"""
+from __future__ import annotations
+
+import math
+import pathlib
+import random
+import statistics
+import sys
+import time
+
+_here = pathlib.Path(__file__).resolve()
+for _p in _here.parents:
+    if (_p / "tools" / "dsp.py").exists():
+        sys.path.insert(0, str(_p / "tools"))
+        break
+from dsp import (SAMPLE_RATE, fft, hann, stft, istft, magnitude_db, spectrum,
+                 white_noise, tone, chirp, synthetic_speech, rir, convolve,
+                 fft_convolve, delay, clip, normalize_peak, rms, rolling_rms,
+                 smooth, db, energy_db, snr_db, erle_db, seg_snr_db,
+                 scale_align, si_sdr_db, lufs_approx,
+                 write_wav, read_wav, wav_info)
+from chart import Chart, heatmap, BLUE, RED, GREEN, AMBER
+
+FIG = _here.parents[1] / "fig"
+AUDIO = _here.parents[1] / "audio"
+FIG.mkdir(exist_ok=True)
+AUDIO.mkdir(exist_ok=True)
+
+random.seed(7)
+
+# ---- 参数区 ----
+N, L, FRAME = 4096, 64, 256
+DT0, DT1 = 1536, 2560       # 双讲区间（样本）
+THRESH = 0.90               # NCC 双讲阈值（实测单讲 ρ≈1、双讲 ρ≈0.82~0.87）
+NEAR_GAIN = 1.8             # 近端语音电平
+MU = 0.50                   # NLMS 步长
+DRIFT = 8                   # 模拟时延漂移（样本）
+
+# ---- 计算与作图 ----
+rng = random.Random(7)
+far = synthetic_speech(rng, N)
+near_raw = synthetic_speech(rng, N)
+near = [NEAR_GAIN * near_raw[i] if DT0 &lt;= i &lt; DT1 else 0.0 for i in range(N)]
+h = rir(rng, L, decay=0.004, direct_delay=12)
+echo = fft_convolve(far, h)[:N]
+noise = white_noise(rng, N, 0.003)
+mic = [echo[i] + near[i] + noise[i] for i in range(N)]
+echo_hat = fft_convolve(far, h)[:N]
+
+NFR = N // FRAME
+rho, flags, truth = [], [], []
+for f in range(NFR):
+    s = f * FRAME
+    num = sum(echo_hat[s + i] * mic[s + i] for i in range(FRAME))
+    da = math.sqrt(sum(echo_hat[s + i] ** 2 for i in range(FRAME)))
+    db = math.sqrt(sum(mic[s + i] ** 2 for i in range(FRAME)))
+    r = num / (da * db + 1e-12)
+    rho.append(r)
+    flags.append(r &lt; THRESH)
+    truth.append(DT0 &lt;= s &lt; DT1)
+tp = sum(1 for a, b in zip(flags, truth) if a and b)
+fp = sum(1 for a, b in zip(flags, truth) if a and not b)
+fn = sum(1 for a, b in zip(flags, truth) if not a and b)
+tn = sum(1 for a, b in zip(flags, truth) if not a and not b)
+
+w_frozen, w_free = h[:], h[:]
+out_frozen, out_free = [0.0] * N, [0.0] * N
+curve_frozen, curve_free = [], []
+den_h = sum(v * v for v in h)
+for n in range(L, N):
+    xv = [far[n - i] for i in range(L)]
+    f = min(n // FRAME, NFR - 1)
+    is_dt = flags[f]
+    y_f = sum(w_frozen[i] * xv[i] for i in range(L))
+    y_u = sum(w_free[i] * xv[i] for i in range(L))
+    e_f, e_u = mic[n] - y_f, mic[n] - y_u
+    out_frozen[n], out_free[n] = e_f, e_u
+    p = sum(v * v for v in xv) + 1e-3
+    for i in range(L):
+        w_free[i] += MU * e_u * xv[i] / p
+        if not is_dt:
+            w_frozen[i] += MU * e_f * xv[i] / p
+    if n % FRAME == 0:
+        curve_frozen.append(10 * math.log10(
+            sum((w_frozen[i] - h[i]) ** 2 for i in range(L)) / (den_h + 1e-12) + 1e-12))
+        curve_free.append(10 * math.log10(
+            sum((w_free[i] - h[i]) ** 2 for i in range(L)) / (den_h + 1e-12) + 1e-12))
+
+probe = white_noise(rng, 2048, 0.35)
+h_a = rir(rng, 64, decay=0.004, direct_delay=12)
+h_b = rir(rng, 64, decay=0.004, direct_delay=12 + DRIFT)
+ya, yb = fft_convolve(probe, h_a)[:2048], fft_convolve(probe, h_b)[:2048]
+
+def peak_lag(y):
+    best, bp = -1.0, 0
+    for lag in range(60):
+        num = sum(probe[i] * y[i + lag] for i in range(1024))
+        da = math.sqrt(sum(probe[i] ** 2 for i in range(1024)))
+        db = math.sqrt(sum(y[i + lag] ** 2 for i in range(1024)))
+        r = num / (da * db + 1e-12)
+        if r &gt; best:
+            best, bp = r, lag
+    return bp, best
+
+la, pa = peak_lag(ya)
+lb, pb = peak_lag(yb)
+jump = sum((h_b[i] - h_a[i]) ** 2 for i in range(64)) / (sum(v * v for v in h_a) + 1e-12)
+
+c = Chart(FIG / "07-ncc.svg", "逐帧归一化互相关与双讲判决", xlabel="帧 t", ylabel="ρ")
+c.line(range(NFR), rho, BLUE, label="NCC ρ")
+c.hline(THRESH, RED, label="判决阈值 τ")
+c.vline(DT0 // FRAME, GREEN, label="双讲起")
+c.vline(DT1 // FRAME, GREEN, label="双讲止")
+print("检测图:", c.save())
+d = Chart(FIG / "07-weight-error.svg", "双讲期间冻结 vs 不冻结的权重误差",
+          xlabel="帧 t", ylabel="‖w−h‖²/‖h‖² (dB)")
+d.line(range(len(curve_frozen)), curve_frozen, GREEN, label="检测到双讲即冻结")
+d.line(range(len(curve_free)), curve_free, RED, label="全程照常更新")
+print("权重图:", d.save())
+write_wav(AUDIO / "07-mic.wav", normalize_peak(mic))
+write_wav(AUDIO / "07-frozen.wav", normalize_peak(out_frozen))
+write_wav(AUDIO / "07-unfrozen.wav", normalize_peak(out_free))
+print("采样率=%d Hz 帧数=%d 帧长=%d 阈值=%.2f 双讲区间=[%d,%d)" %
+      (SAMPLE_RATE, NFR, FRAME, THRESH, DT0, DT1))
+print("双讲检测 TP=%d FP=%d FN=%d TN=%d | 检测率=%.3f 虚警率=%.3f 帧准确率=%.3f" %
+      (tp, fp, fn, tn, tp / max(tp + fn, 1), fp / max(fp + tn, 1), (tp + tn) / NFR))
+print("互相关峰值 lag 原=%d 漂移后=%d 估计漂移=%d 真值=%d 峰值ρ=%.3f" % (la, lb, lb - la, DRIFT, pb))
+print("末帧权重误差 冻结=%.2f dB 不冻结=%.2f dB | 路径突变 ‖h_b−h_a‖²/‖h_a‖²=%.3f" %
+      (curve_frozen[-1], curve_free[-1], jump))</code></pre>
+<p class="code-hint"><strong>操作：</strong>先看 ρ 曲线在双讲区间是否跌破阈值；再对照两条权重误差曲线与两个残差 WAV；把 NEAR_GAIN 调到 0.4 观察漏检。　<strong>预期与判读：</strong>单讲帧 ρ 接近 1、双讲帧降到 0.82～0.87，阈值 0.90 可把 4 个双讲帧全部检出且零虚警；冻结曲线在双讲后回到约 −24 dB，不冻结曲线停在约 −15 dB。检测率与虚警率可由 TP/FP/FN/TN 逐项复算。</p>
+<p class="code-hint"><strong>改参数看趋势：</strong>把 THRESH 调到 0.95 会提高检测率但增大虚警；把 DRIFT 改成 16，互相关估计漂移应同步翻倍。　文件位置：<code>part1/07-doubletalk/code/07-doubletalk.py</code></p>
+<div class="chart-grid">
+<figure class="chart-figure"><img src="fig/07-ncc.svg" alt="逐帧 NCC 曲线、阈值与双讲真值区间" loading="lazy"><figcaption>图 1　逐帧 NCC 曲线、阈值与双讲真值区间（代码合成信号 / 教学示意）</figcaption></figure>
+<figure class="chart-figure"><img src="fig/07-weight-error.svg" alt="冻结与不冻结更新的权重误差对比" loading="lazy"><figcaption>图 2　冻结与不冻结更新的权重误差对比（代码合成信号 / 教学示意）</figcaption></figure>
+</div>
+<div class="audio-grid">
+<div class="audio-card"><h4>07-mic.wav</h4><audio controls preload="none" src="audio/07-mic.wav">浏览器不支持 audio 元素，请直接打开 audio/07-mic.wav。</audio><p>含双讲段的麦克风信号（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+<div class="audio-card"><h4>07-frozen.wav</h4><audio controls preload="none" src="audio/07-frozen.wav">浏览器不支持 audio 元素，请直接打开 audio/07-frozen.wav。</audio><p>双讲期间冻结系数后的残差（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+<div class="audio-card"><h4>07-unfrozen.wav</h4><audio controls preload="none" src="audio/07-unfrozen.wav">浏览器不支持 audio 元素，请直接打开 audio/07-unfrozen.wav。</audio><p>双讲期间照常更新的残差（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+</div>
+<div class="card note"><p style="margin-bottom:0">代码块右上角可一键复制；仓库里的 <code>code/*.py</code> 由 <code>tools/extract_code.py</code> 从这些代码块自动抽取。脚本只用标准库、固定 <code>random.seed(7)</code>，运行后写出 <code>fig/*.svg</code> 与 <code>audio/*.wav</code>；批量运行用 <code>./tools/run_python.sh</code>。</p></div>
+</section>
+<section id="commands"><h2><span class="sec-num">§</span>可选真机命令片段</h2>
+<div class="card note"><p style="margin-bottom:0">以下命令<strong>不参与批量运行</strong>，需要本机自行安装对应工具。滤镜是否可用取决于本机 ffmpeg 版本与编译选项，请先用 <code>ffmpeg -filters</code> / <code>ffmpeg -version</code> 自查，并以 https://ffmpeg.org/ffmpeg-filters.html 与各自官方文档为准；本书不假定任何特定版本具备某项能力。</p></div>
+<h3>本机自查回声/双讲测试素材与 G.168 官方入口</h3>
+<pre class="cmd" data-lang="shell"><code>ffmpeg -hide_banner -filters | grep -E 'aecho|silencedetect|astats'</code></pre>
+<p class="code-hint"><strong>说明：</strong>只做本机滤镜能力自查；双讲与 ERLE 的测试信号口径以 ITU-T G.168 https://www.itu.int/rec/T-REC-G.168/en 为准，滤镜可用性以 https://ffmpeg.org/ffmpeg-filters.html 与本机输出为准，本书不假定任何特定版本。</p>
+</section>
+<section id="highlights"><h2><span class="sec-num">§</span>本章参考资料</h2><p>按本章知识点挑选的精读资料；更多检索入口见 <a href="#extra-links">扩展学习</a>。</p><div class="repo-grid">
+<div class="repo-card"><h3><a href="https://www.itu.int/rec/T-REC-G.168/en" target="_blank" rel="noopener noreferrer">ITU-T G.168 ↗</a></h3><span class="tag">标准</span><p>网络回声消除器的测试标准，规定 ERLE 与双讲测试信号</p><p style="margin:0;color:var(--ink-faint)">推荐理由：回声消除器测试信号与双讲测试规范</p></div>
+<div class="repo-card"><h3><a href="https://github.com/microsoft/AEC-Challenge" target="_blank" rel="noopener noreferrer">Microsoft AEC Challenge ↗</a></h3><span class="tag">数据集</span><p>声学回声消除挑战赛，含真实双讲与非线性失真录音</p><p style="margin:0;color:var(--ink-faint)">推荐理由：真实双讲与非线性失真录音，验证检测器必备</p></div>
+<div class="repo-card"><h3><a href="https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/aec3/" target="_blank" rel="noopener noreferrer">WebRTC AEC3 模块 ↗</a></h3><span class="tag">工程</span><p>分块频域自适应滤波 + 残余回声估计的现代 AEC 结构</p><p style="margin:0;color:var(--ink-faint)">推荐理由：主/阴影滤波器与双讲逻辑的工业实现</p></div>
+<div class="repo-card"><h3><a href="https://en.wikipedia.org/wiki/Echo_cancellation" target="_blank" rel="noopener noreferrer">Echo cancellation ↗</a></h3><span class="tag">百科</span><p>回声消除的问题定义、自适应滤波与双讲概述</p><p style="margin:0;color:var(--ink-faint)">推荐理由：双讲问题与自适应滤波概述</p></div>
+</div></section>
+<section id="repos"><h2><span class="sec-num">§</span>相关开源工程</h2><p>下列工程仅作技术参照，版权与许可证归各自维护者所有。本书实验不依赖它们，也与之无从属关系。</p><div class="repo-grid">
+<div class="repo-card"><h3><a href="https://github.com/microsoft/AEC-Challenge" target="_blank" rel="noopener noreferrer">Microsoft AEC-Challenge ↗</a></h3><span class="tag">数据集 · 基线</span><p>真实双讲、非线性失真与远端单讲录音，AEC 必测</p></div>
+<div class="repo-card"><h3><a href="https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/" target="_blank" rel="noopener noreferrer">WebRTC audio_processing ↗</a></h3><span class="tag">传统 · C++</span><p>工业级 3A 参考实现：AEC3 / NS / AGC2，读源码理解分块频域与双讲逻辑</p></div>
+<div class="repo-card"><h3><a href="https://gitlab.xiph.org/xiph/speexdsp" target="_blank" rel="noopener noreferrer">speexdsp ↗</a></h3><span class="tag">传统 · C</span><p>最易读的经典 AEC / 预处理实现，适合对照本书 NLMS 代码</p></div>
+</div></section>
+<section id="pitfalls"><h2><span class="sec-num">§</span>常见误区</h2><div class="card warn"><ul><li>用近端能量绝对值做判决，电平一变就整片误检。</li>
+<li>双讲结束后立刻恢复更新，残留尾音仍会把系数推偏。</li>
+<li>把时延漂移当成 h 变化而重置滤波器，付出无谓的重收敛代价。</li>
+<li>只在单讲数据上调阈值，双讲检测率报出来虚高。</li></ul></div></section>
+<section id="exercises"><h2><span class="sec-num">§</span>习题与思考</h2><ol><li>由 ρ ≈ 1/√(1+q) 推导 q=1.5 时的 ρ，并给出 τ=0.80 的可检测 q 下限。</li>
+<li>解释主/阴影滤波器为何能降低一次误判的代价。</li>
+<li>设计一组覆盖 ppm 级时钟漂移与手掌遮挡的测试序列。</li></ol></section>
+<section id="extra-links"><h2><span class="sec-num">§</span>扩展学习</h2>
+<div class="repo-grid">
+<div class="repo-card"><h3><a href="https://www.itu.int/rec/T-REC-G.168/en" target="_blank" rel="noopener noreferrer">ITU-T G.168 ↗</a></h3><span class="tag">标准</span><p>网络回声消除器的测试标准，规定 ERLE 与双讲测试信号</p></div>
+<div class="repo-card"><h3><a href="https://github.com/microsoft/AEC-Challenge" target="_blank" rel="noopener noreferrer">Microsoft AEC Challenge ↗</a></h3><span class="tag">数据集</span><p>声学回声消除挑战赛，含真实双讲与非线性失真录音</p></div>
+<div class="repo-card"><h3><a href="https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/aec3/" target="_blank" rel="noopener noreferrer">WebRTC AEC3 模块 ↗</a></h3><span class="tag">工程</span><p>分块频域自适应滤波 + 残余回声估计的现代 AEC 结构</p></div>
+<div class="repo-card"><h3><a href="https://en.wikipedia.org/wiki/Echo_cancellation" target="_blank" rel="noopener noreferrer">Echo cancellation ↗</a></h3><span class="tag">百科</span><p>回声消除的问题定义、自适应滤波与双讲概述</p></div>
+</div>
+<h3>继续检索</h3><ul>
+<li>Google Scholar：<a href='https://scholar.google.com/scholar?q=double%20talk%20detection%20nonlinear%20echo%20delay%20drift' target='_blank' rel='noopener noreferrer'>double talk detection nonlinear echo delay drift ↗</a></li>
+<li>arXiv：<a href='https://arxiv.org/search/?query=double%20talk%20detection%20nonlinear%20echo%20delay%20drift&searchtype=all' target='_blank' rel='noopener noreferrer'>double talk detection nonlinear echo delay drift ↗</a></li>
+<li>GitHub：<a href='https://github.com/search?q=double%20talk%20detection%20nonlinear%20echo%20delay%20drift&type=repositories' target='_blank' rel='noopener noreferrer'>double talk detection nonlinear echo delay drift ↗</a></li>
+</ul>
+<p class="code-hint">全书链接总表见 <a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a> 与 <a href="../../appendix/index.html#sA-7">附录 A.7</a>；滤镜是否可用请以本机 <code>ffmpeg -filters</code> 为准。</p>
+</section>
+<section id="further"><h2><span class="sec-num">§</span>延伸阅读与内链</h2><ul><li><a href='../../part2/09-aec-architecture/index.html'>第 09 章 · AEC 总体结构：参考信号、线性滤波与残余抑制</a> AEC 总体结构中的双讲逻辑；<a href='../../part2/11-residual-echo/index.html'>第 11 章 · 残余回声抑制与 WebRTC AEC3 结构</a> AEC3 的残余回声估计；<a href='../../part6/27-causal-streaming/index.html'>第 27 章 · 因果性与流式推理：状态缓存、感受野</a> 流式状态下的因果约束。</li></ul></section>
+<footer class="pager" data-autofill></footer>
+<footer class="site-foot">
+<p class="credits"><strong>作者</strong>：汪亮（bertonwang）　<strong>联系邮箱</strong>：<a href="mailto:47608843@qq.com">47608843@qq.com</a></p>
+<p class="ai-note"><strong>AI 使用说明</strong>：本教材的知识框架、正文、Python 实验脚本与参考资料清单在 AI 辅助下整理生成，并经人工校订、实际运行与静态自检。公式、数值与运行结果请以Python 3 实际输出及权威教材、官方文档为准；发现错漏欢迎通过上方邮箱勘误。</p>
+<p class="imprint">音频 3A 处理：从自适应滤波到神经增强 · 每章一个 <code>code/*.py</code> 实验脚本、<code>fig/*.svg</code> 矢量图与 <code>audio/*.wav</code> 试听样本（由 <code>tools/extract_code.py</code> 与脚本运行同步） · 只用 Python 3 标准库 · 教学材料，信号全部由代码合成。</p>
+</footer>
+</main>
+</body>
+</html>

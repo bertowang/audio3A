@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 430" width="780" height="430" role="img">
+<title>输入包络与 AGC 增益轨迹</title>
+<desc>由 tools/chart.py 生成的教材示意插图，数据为合成数据。</desc>
+<rect x="0" y="0" width="780" height="430" fill="#ffffff"/>
+<text x="76.0" y="24" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="15" font-weight="600" fill="#23262b">输入包络与 AGC 增益轨迹</text>
+<line x1="76.0" y1="372.0" x2="756.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="376.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">-0.099</text>
+<line x1="76.0" y1="306.8" x2="756.0" y2="306.8" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="310.8" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">0.141</text>
+<line x1="76.0" y1="241.6" x2="756.0" y2="241.6" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="245.6" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">0.380</text>
+<line x1="76.0" y1="176.4" x2="756.0" y2="176.4" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="180.4" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">0.620</text>
+<line x1="76.0" y1="111.2" x2="756.0" y2="111.2" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="115.2" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">0.860</text>
+<line x1="76.0" y1="46.0" x2="756.0" y2="46.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="50.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">1.10</text>
+<line x1="76.0" y1="46.0" x2="76.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="76.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">-472.0</text>
+<line x1="212.0" y1="46.0" x2="212.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="212.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">2076.8</text>
+<line x1="348.0" y1="46.0" x2="348.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="348.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">4625.6</text>
+<line x1="484.0" y1="46.0" x2="484.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="484.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">7174.4</text>
+<line x1="620.0" y1="46.0" x2="620.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="620.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">9723.2</text>
+<line x1="756.0" y1="46.0" x2="756.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="756.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">12272</text>
+<line x1="76.0" y1="372.0" x2="756.0" y2="372.0" stroke="#8a909b" stroke-width="1.4"/>
+<line x1="76.0" y1="46.0" x2="76.0" y2="372.0" stroke="#8a909b" stroke-width="1.4"/>
+<text x="416.0" y="418.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="12" fill="#8a909b" text-anchor="middle">样本 / 200</text>
+<text x="14" y="209.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="12" fill="#8a909b" transform="rotate(-90 14 209.0)" text-anchor="middle">RMS 或归一化增益</text>
+<polyline points="101.19,344.83 111.86,344.34 122.53,343.77 133.20,342.55 143.87,341.24 154.54,339.73 165.22,338.22 175.89,337.34 186.56,336.40 197.23,336.24 207.90,335.75 218.57,297.13 229.25,293.82 239.92,301.97 250.59,310.38 261.26,320.92 271.93,329.74 282.60,338.44 293.28,343.32 303.95,341.23 314.62,334.43 325.29,337.81 335.96,340.59 346.63,339.33 357.31,337.82 367.98,336.65 378.65,336.21 389.32,336.37 399.99,336.17 410.66,336.85 421.34,337.30 432.01,310.76 442.68,314.97 453.35,324.15 464.02,333.17 474.69,340.84 485.37,343.67 496.04,338.43 506.71,330.52 517.38,321.66 528.05,312.75 538.72,328.06 549.40,337.34 560.07,336.65 570.74,336.28 581.41,336.03 592.08,336.39 602.75,337.30 613.43,338.40 624.10,339.64 634.77,340.74 645.44,330.88 656.11,336.62 666.78,342.51 677.46,341.97 688.13,335.65 698.80,327.48 709.47,317.08 720.14,308.66 730.81,298.71" fill="none" stroke="#245a7a" stroke-width="2" stroke-linejoin="round" opacity="1.0"/>
+<polyline points="101.19,73.17 111.86,73.17 122.53,73.17 133.20,73.17 143.87,73.17 154.54,73.17 165.22,118.04 175.89,148.73 186.56,169.75 197.23,177.58 207.90,182.65 218.57,309.97 229.25,317.13 239.92,315.03 250.59,310.03 261.26,300.80 271.93,281.64 282.60,231.84 293.28,147.61 303.95,106.56 314.62,189.88 325.29,192.21 335.96,128.09 346.63,100.46 357.31,134.61 367.98,163.19 378.65,175.45 389.32,180.89 399.99,181.22 410.66,174.87 421.34,160.46 432.01,298.71 442.68,302.78 453.35,292.78 464.02,267.09 474.69,193.02 485.37,126.93 496.04,105.59 506.71,228.69 517.38,276.74 528.05,298.49 538.72,291.42 549.40,213.89 560.07,184.90 570.74,181.65 581.41,183.40 592.08,179.81 602.75,170.74 613.43,153.65 624.10,122.94 634.77,95.50 645.44,235.43 656.11,226.40 666.78,150.53 677.46,107.87 688.13,157.95 698.80,255.13 709.47,288.13 720.14,303.03 730.81,311.77" fill="none" stroke="#8a3b26" stroke-width="2" stroke-linejoin="round" opacity="1.0"/>
+<rect x="80.0" y="50.0" width="178" height="48" fill="#ffffff" fill-opacity="0.86" stroke="#e8e6e0" rx="3"/>
+<line x1="86.0" y1="66.0" x2="104.0" y2="66.0" stroke="#245a7a" stroke-width="3"/>
+<text x="110.0" y="70.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="11" fill="#23262b">输入 RMS 包络</text>
+<line x1="86.0" y1="86.0" x2="104.0" y2="86.0" stroke="#8a3b26" stroke-width="3"/>
+<text x="110.0" y="90.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="11" fill="#23262b">归一化增益</text>
+</svg>

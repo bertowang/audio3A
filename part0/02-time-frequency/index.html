@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 02 章 · 采样、量化与时频表示：从 PCM 到 STFT | 音频 3A 处理：从自适应滤波到神经增强</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<script src="../../assets/toc.js" defer></script>
+<script src="../../assets/app.js" defer></script>
+</head>
+<body data-root="../../" data-chapter="02">
+<aside id="sidebar"></aside>
+<main class="book-page">
+<nav class="breadcrumb" data-autofill>总目录</nav>
+<header class="chapter-head">
+<span class="kicker">卷首 · 3A 问题全景 · 卷首 · 共同语言与问题定义</span>
+<h1><span class="ch-num">第 02 章</span>采样、量化与时频表示：从 PCM 到 STFT</h1>
+<p class="lede">3A 的所有算法都在「一帧频谱」上做决策；先把这块数据结构讲透。</p>
+<div class="meta">
+<span class="badge done">已完稿</span>
+<span class="badge s1">问题定义</span>
+<span>建议 3 学时</span>
+<span>1 个 Python 实验 · 3 张图 · 2 段试听</span>
+<span>音频 3A 处理：从自适应滤波到神经增强</span>
+</div></header>
+<p class="bridge"><strong>本章位置：</strong><a href='../01-acoustic-path/index.html'>第 01 章 · 声学链路与信号模型：房间、麦克风与回声路径</a> 给出时域的 h，本章给出观察它的频域工具；<a href='../03-metrics/index.html'>第 03 章 · 怎么算「变好了」：客观指标、尺度与主观听测</a> 用这些工具定义指标，<a href='../../part2/12-spectral-subtraction/index.html'>第 12 章 · 谱减、过减因子与音乐噪声</a> 与 <a href='../../part4/19-tf-mask/index.html'>第 19 章 · 时频掩码：IBM / IRM / CRM 与监督学习形式化</a> 将用它实现谱减与神经掩码。</p>
+<div class="analogy"><span class="card-label">给程序员的翻译</span><p style="margin-bottom:0">STFT 是把一维流按滑动窗口切成二维矩阵；<code>istft(stft(x)) == x</code> 是一条单元测试。<strong>下卷所有掩码模型，本质上都是在这个矩阵上做逐元素乘法。</strong></p></div>
+<div class="card objectives"><span class="card-label">学习目标</span><ul>
+<li>能说明采样率、位深、帧长与算法延迟的关系。</li>
+<li>能手推 radix-2 FFT 的蝶形结构并验证 Parseval 定理。</li>
+<li>能解释 STFT 的窗、重叠相加与时频分辨率折中。</li>
+<li>能量化位深与量化噪声的信噪比关系。</li>
+</ul></div>
+<section id="map"><h2><span class="sec-num">§</span>知识点地图</h2>
+<p class="code-hint">每个知识点都配了 1～2 个扩展学习链接；本章完整资源清单见 <a href="#extra-links">扩展学习</a>。</p>
+<table><thead><tr><th style="width:44px">#</th><th style="width:26%">知识点</th><th>扩展学习</th><th style="width:100px">状态</th></tr></thead><tbody>
+<tr><td>1</td><td>采样与混叠</td><td><a href="https://docs.python.org/3/library/index.html" target="_blank" rel="noopener noreferrer">Python 标准库文档 ↗</a> · <a href="https://en.wikipedia.org/wiki/Short-time_Fourier_transform" target="_blank" rel="noopener noreferrer">Short-time Fourier transform ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>2</td><td>量化位深与量化噪声</td><td><a href="https://ffmpeg.org/ffmpeg-filters.html#afftdn" target="_blank" rel="noopener noreferrer">ffmpeg afftdn ↗</a> · <a href="https://github.com/microsoft/DNS-Challenge" target="_blank" rel="noopener noreferrer">Microsoft DNS Challenge ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>3</td><td>PCM 与 WAV 容器</td><td><a href="https://en.wikipedia.org/wiki/Short-time_Fourier_transform" target="_blank" rel="noopener noreferrer">Short-time Fourier transform ↗</a> · <a href="https://en.wikipedia.org/wiki/Cooley%E2%80%93Tukey_FFT_algorithm" target="_blank" rel="noopener noreferrer">Cooley–Tukey FFT ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>4</td><td>DFT 与 radix-2 FFT</td><td><a href="https://en.wikipedia.org/wiki/Cooley%E2%80%93Tukey_FFT_algorithm" target="_blank" rel="noopener noreferrer">Cooley–Tukey FFT ↗</a> · <a href="https://docs.python.org/3/library/index.html" target="_blank" rel="noopener noreferrer">Python 标准库文档 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>5</td><td>Parseval 定理</td><td><a href="https://en.wikipedia.org/wiki/Short-time_Fourier_transform" target="_blank" rel="noopener noreferrer">Short-time Fourier transform ↗</a> · <a href="https://en.wikipedia.org/wiki/Cooley%E2%80%93Tukey_FFT_algorithm" target="_blank" rel="noopener noreferrer">Cooley–Tukey FFT ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>6</td><td>STFT 与 Hann 窗</td><td><a href="https://en.wikipedia.org/wiki/Short-time_Fourier_transform" target="_blank" rel="noopener noreferrer">Short-time Fourier transform ↗</a> · <a href="https://librosa.org/" target="_blank" rel="noopener noreferrer">librosa ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>7</td><td>重叠相加 OLA</td><td><a href="https://en.wikipedia.org/wiki/Short-time_Fourier_transform" target="_blank" rel="noopener noreferrer">Short-time Fourier transform ↗</a> · <a href="https://en.wikipedia.org/wiki/Cooley%E2%80%93Tukey_FFT_algorithm" target="_blank" rel="noopener noreferrer">Cooley–Tukey FFT ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>8</td><td>时频分辨率折中</td><td><a href="https://en.wikipedia.org/wiki/Short-time_Fourier_transform" target="_blank" rel="noopener noreferrer">Short-time Fourier transform ↗</a> · <a href="https://docs.pytorch.org/audio/stable/index.html" target="_blank" rel="noopener noreferrer">torchaudio ↗</a></td><td>正文已覆盖</td></tr>
+</tbody></table></section>
+<section id="s2-1"><h2><span class="sec-num">§2.1</span>三段不可逆的信息压缩</h2>
+<p>真实声压是连续时间、连续幅度的。进入算法前经过三步：<strong>抗混叠滤波 + 采样</strong>（时间离散化）、<strong>量化</strong>（幅度离散化）、<strong>分帧</strong>（局部平稳假设）。每一步都丢信息，也各自带一个必须记住的约束。</p>
+<table><thead><tr><th style="width:12%">步骤</th><th style="width:20%">关键参数</th><th style="width:30%">丢掉什么</th><th style="width:38%">3A 里的后果</th></tr></thead><tbody>
+<tr><td>采样</td><td>16 k / 48 kHz</td><td>高于奈奎斯特频率的成分</td><td>宽带回声需更高采样率才有足够 h 精度</td></tr>
+<tr><td>量化</td><td>16 / 24 bit</td><td>幅度精度，引入量化噪声</td><td>低电平近端语音被 AGC 放大时噪声一起被放大</td></tr>
+<tr><td>分帧</td><td>20–32 ms、50% 重叠</td><td>帧内非平稳细节</td><td>帧长 + 前瞻直接决定算法延迟</td></tr>
+</tbody></table>
+<p class="eq">SNR_量化 ≈ 6.02·B + 1.76 dB　（满幅正弦、均匀量化）</p>
+</section>
+<section id="s2-2"><h2><span class="sec-num">§2.2</span>FFT 只是 DFT 的一个 O(N log N) 实现</h2>
+<p class="eq">X[k] = Σ_{n=0}^{N−1} x[n]·e^(−j2πkn/N)　|　Σ|x[n]|² = (1/N)Σ|X[k]|²</p>
+<p>本书的 <code>tools/dsp.py</code> 手写迭代 radix-2 FFT：位反转置换 + log₂N 层蝶形。这样做不是重复造轮子，而是让「频域自适应滤波」「谱减」「复数掩码」都能被逐行读懂。附录 A.6 给出迁移到 <code>numpy.fft</code> / <code>torchaudio</code> 的对照。</p>
+</section>
+<section id="s2-3"><h2><span class="sec-num">§2.3</span>STFT：把一维流变成二维图</h2>
+<p class="eq">X[t,k] = Σ_n x[n + tH]·w[n]·e^(−j2πkn/N)　，H = N/2</p>
+<p>帧长 N 越大，频率分辨率越好、时间分辨率越差；这就是 3A 里最基础的折中。Hann 窗抑制频谱泄漏，50% 重叠 + 加权重叠相加（WOLA）保证修改频谱后仍能无失真重建——<strong>这是所有掩码类算法能成立的前提</strong>，下卷会反复用到。</p>
+<div class="card note"><span class="card-label">实验提醒</span><p style="margin-bottom:0">本书 <code>stft()</code> 在信号前后各补 N/2 个零，确保首尾样本也被两帧覆盖；否则在频谱被谱减/掩码修改后，边界会因窗平方和过小而被放大。</p></div>
+</section>
+<section id="lab"><h2><span class="sec-num">§</span>Python 实验</h2>
+<h3>实验 2-1 · FFT/Parseval、量化噪声与 STFT 时频谱</h3>
+<pre class="code" data-file="code/02-time-frequency.py" data-lang="Python 3 · 标准库"><code>#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""手写 FFT 验证能量守恒，测量不同位深的量化 SNR，并画出时频热力图。
+
+全部语音 / 噪声 / 房间冲激响应均为代码合成信号，仅用于教学演示机制与量级。
+"""
+from __future__ import annotations
+
+import math
+import pathlib
+import random
+import statistics
+import sys
+import time
+
+_here = pathlib.Path(__file__).resolve()
+for _p in _here.parents:
+    if (_p / "tools" / "dsp.py").exists():
+        sys.path.insert(0, str(_p / "tools"))
+        break
+from dsp import (SAMPLE_RATE, fft, hann, stft, istft, magnitude_db, spectrum,
+                 white_noise, tone, chirp, synthetic_speech, rir, convolve,
+                 fft_convolve, delay, clip, normalize_peak, rms, rolling_rms,
+                 smooth, db, energy_db, snr_db, erle_db, seg_snr_db,
+                 scale_align, si_sdr_db, lufs_approx,
+                 write_wav, read_wav, wav_info)
+from chart import Chart, heatmap, BLUE, RED, GREEN, AMBER
+
+FIG = _here.parents[1] / "fig"
+AUDIO = _here.parents[1] / "audio"
+FIG.mkdir(exist_ok=True)
+AUDIO.mkdir(exist_ok=True)
+
+random.seed(7)
+
+# ---- 参数区 ----
+N_FFT, HOP = 512, 256
+N = 8000
+BITS = (4, 8, 12, 16)      # 对比的量化位深
+
+# ---- 计算与作图 ----
+rng = random.Random(7)
+sig = [0.45 * math.sin(2 * math.pi * 440 * i / SAMPLE_RATE) +
+       0.25 * math.sin(2 * math.pi * 1310 * i / SAMPLE_RATE) for i in range(N_FFT)]
+re, im = fft(sig[:], [0.0] * N_FFT)
+time_energy = sum(v * v for v in sig)
+freq_energy = sum(re[k] ** 2 + im[k] ** 2 for k in range(N_FFT)) / N_FFT
+peak_bin = max(range(N_FFT // 2), key=lambda k: math.hypot(re[k], im[k]))
+
+sp = spectrum(sig, N_FFT)
+c = Chart(FIG / "02-spectrum.svg", "双正弦的幅度谱（dB）", xlabel="频率箱 k", ylabel="dB")
+c.line(range(len(sp)), sp, BLUE, label="幅度谱")
+c.vline(peak_bin, RED, label="峰值箱")
+print("频谱图:", c.save())
+
+speech = synthetic_speech(rng, N)
+frames = stft(speech, N_FFT, HOP)
+spec = magnitude_db(frames, N_FFT)
+rows = [row[::2] for row in spec[::8]]        # 降采样，便于 SVG 阅读
+heatmap(FIG / "02-spectrogram.svg", rows,
+        ["%d Hz" % int(k * SAMPLE_RATE / N_FFT) for k in range(0, N_FFT // 2, 8)][:len(rows)],
+        ["t%d" % (i * 4) for i in range(len(rows[0]))][::4],
+        title="合成语音的时频谱（dB，降采样显示）", vmin=-75, vmax=-15)
+print("时频图:", str(FIG / "02-spectrogram.svg"))
+
+def quantize(x, bits):
+    step = 2.0 / (2 ** bits)
+    return [round(v / step) * step for v in x]
+
+snrs = []
+for b in BITS:
+    q = quantize(speech, b)
+    noise = [q[i] - speech[i] for i in range(N)]
+    snrs.append(snr_db(speech, noise))
+qchart = Chart(FIG / "02-quantization.svg", "量化位深与量化噪声 SNR", xlabel="位深 (bit)", ylabel="dB",
+               xticks=[(i, "%d bit" % b) for i, b in enumerate(BITS)])
+qchart.bars(range(len(BITS)), snrs, GREEN, label="实测 SNR")
+qchart.line(range(len(BITS)), [6.02 * b + 1.76 - 12.0 for b in BITS], RED,
+            label="理论趋势（相对偏移）")
+print("量化图:", qchart.save())
+write_wav(AUDIO / "02-4bit.wav", quantize(speech, 4))
+write_wav(AUDIO / "02-16bit.wav", quantize(speech, 16))
+print("Parseval 时域=%.6f 频域=%.6f 相对误差=%.2e | 峰值箱=%d 对应 %.0f Hz" %
+      (time_energy, freq_energy, abs(time_energy - freq_energy) / time_energy,
+       peak_bin, peak_bin * SAMPLE_RATE / N_FFT))
+print("量化 SNR: " + " ".join("%dbit=%.1fdB" % (b, s) for b, s in zip(BITS, snrs)) +
+      " | 每增 1 bit 约 +6 dB")</code></pre>
+<p class="code-hint"><strong>操作：</strong>核对 Parseval 相对误差应接近机器精度；试听两个 WAV 比较量化噪声。　<strong>预期与判读：</strong>Parseval 误差在 1e-15 量级，说明手写 FFT 的归一化正确；峰值箱对应 440 Hz 附近。量化 SNR 随位深约每 bit 提升 6 dB，与 <code>6.02B+1.76</code> 一致（本例信号非满幅，故有固定偏移）。</p>
+<p class="code-hint"><strong>改参数看趋势：</strong>把 <code>N_FFT</code> 改成 1024，观察频率分辨率提高而时间分辨率下降。　文件位置：<code>part0/02-time-frequency/code/02-time-frequency.py</code></p>
+<div class="chart-grid">
+<figure class="chart-figure"><img src="fig/02-spectrum.svg" alt="双正弦幅度谱与峰值箱定位" loading="lazy"><figcaption>图 1　双正弦幅度谱与峰值箱定位（代码合成信号 / 教学示意）</figcaption></figure>
+<figure class="chart-figure"><img src="fig/02-spectrogram.svg" alt="合成语音的时频热力图" loading="lazy"><figcaption>图 2　合成语音的时频热力图（代码合成信号 / 教学示意）</figcaption></figure>
+<figure class="chart-figure"><img src="fig/02-quantization.svg" alt="位深与量化噪声 SNR 的线性关系" loading="lazy"><figcaption>图 3　位深与量化噪声 SNR 的线性关系（代码合成信号 / 教学示意）</figcaption></figure>
+</div>
+<div class="audio-grid">
+<div class="audio-card"><h4>02-4bit.wav</h4><audio controls preload="none" src="audio/02-4bit.wav">浏览器不支持 audio 元素，请直接打开 audio/02-4bit.wav。</audio><p>4 bit 量化，可明显听到量化噪声（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+<div class="audio-card"><h4>02-16bit.wav</h4><audio controls preload="none" src="audio/02-16bit.wav">浏览器不支持 audio 元素，请直接打开 audio/02-16bit.wav。</audio><p>16 bit 量化，接近原始合成语音（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+</div>
+<div class="card note"><p style="margin-bottom:0">代码块右上角可一键复制；仓库里的 <code>code/*.py</code> 由 <code>tools/extract_code.py</code> 从这些代码块自动抽取。脚本只用标准库、固定 <code>random.seed(7)</code>，运行后写出 <code>fig/*.svg</code> 与 <code>audio/*.wav</code>；批量运行用 <code>./tools/run_python.sh</code>。</p></div>
+</section>
+<section id="commands"><h2><span class="sec-num">§</span>可选真机命令片段</h2>
+<div class="card note"><p style="margin-bottom:0">以下命令<strong>不参与批量运行</strong>，需要本机自行安装对应工具。滤镜是否可用取决于本机 ffmpeg 版本与编译选项，请先用 <code>ffmpeg -filters</code> / <code>ffmpeg -version</code> 自查，并以 https://ffmpeg.org/ffmpeg-filters.html 与各自官方文档为准；本书不假定任何特定版本具备某项能力。</p></div>
+<h3>用 ffmpeg 检查采样率、重采样与电平统计</h3>
+<pre class="cmd" data-lang="shell"><code>ffmpeg -hide_banner -i input.wav -af volumedetect -f null - 2&gt;&amp;1 | grep -E 'mean_volume|max_volume'
+ffmpeg -hide_banner -i input48k.wav -af aresample=16000 -c:a pcm_s16le out16k.wav
+ffmpeg -hide_banner -i out16k.wav -af astats=metadata=1 -f null - 2&gt;&amp;1 | grep -E 'RMS level|Peak level'</code></pre>
+<p class="code-hint"><strong>说明：</strong>aresample 负责采样率转换，volumedetect / astats 给出量化前后的电平核对；滤镜可用性以本机 `ffmpeg -filters` 为准。</p>
+</section>
+<section id="highlights"><h2><span class="sec-num">§</span>本章参考资料</h2><p>按本章知识点挑选的精读资料；更多检索入口见 <a href="#extra-links">扩展学习</a>。</p><div class="repo-grid">
+<div class="repo-card"><h3><a href="https://en.wikipedia.org/wiki/Cooley%E2%80%93Tukey_FFT_algorithm" target="_blank" rel="noopener noreferrer">Cooley–Tukey FFT ↗</a></h3><span class="tag">百科</span><p>本书手写 radix-2 FFT 的算法依据</p><p style="margin:0;color:var(--ink-faint)">推荐理由：radix-2 FFT 的算法依据</p></div>
+<div class="repo-card"><h3><a href="https://en.wikipedia.org/wiki/Short-time_Fourier_transform" target="_blank" rel="noopener noreferrer">Short-time Fourier transform ↗</a></h3><span class="tag">百科</span><p>STFT、窗函数、重叠相加与谱图</p><p style="margin:0;color:var(--ink-faint)">推荐理由：STFT 与重叠相加定义</p></div>
+<div class="repo-card"><h3><a href="https://www.dspguide.com/" target="_blank" rel="noopener noreferrer">The Scientist and Engineer&#x27;s Guide to DSP ↗</a></h3><span class="tag">教材</span><p>免费在线 DSP 教材，卷积/FFT/滤波器章节讲解直观</p><p style="margin:0;color:var(--ink-faint)">推荐理由：免费在线 DSP 教材，卷积/FFT 章节直观</p></div>
+<div class="repo-card"><h3><a href="https://docs.python.org/3/library/index.html" target="_blank" rel="noopener noreferrer">Python 标准库文档 ↗</a></h3><span class="tag">教材</span><p>wave / array / struct / math / random 等标准模块说明</p><p style="margin:0;color:var(--ink-faint)">推荐理由：wave 模块是本书 WAV 读写的依据</p></div>
+</div></section>
+<section id="pitfalls"><h2><span class="sec-num">§</span>常见误区</h2><div class="card warn"><ul><li>把 FFT 结果当成 dB 谱直接比较，忘记取幅度与对数。</li>
+<li>频谱修改后不用 WOLA 归一化，边界出现爆音。</li>
+<li>混淆频率箱索引与实际 Hz（需乘 fs/N）。</li>
+<li>用长帧追求频率分辨率，忽略实时链路的延迟预算。</li></ul></div></section>
+<section id="exercises"><h2><span class="sec-num">§</span>习题与思考</h2><ol><li>推导 N=512、fs=16 kHz 时每个频率箱对应多少 Hz。</li>
+<li>解释为什么 50% 重叠的 Hann 窗能无失真重建。</li>
+<li>把量化位深从 16 降到 8，估算 AGC 放大后噪声的听感变化。</li></ol></section>
+<section id="extra-links"><h2><span class="sec-num">§</span>扩展学习</h2>
+<div class="repo-grid">
+<div class="repo-card"><h3><a href="https://en.wikipedia.org/wiki/Short-time_Fourier_transform" target="_blank" rel="noopener noreferrer">Short-time Fourier transform ↗</a></h3><span class="tag">百科</span><p>STFT、窗函数、重叠相加与谱图</p></div>
+<div class="repo-card"><h3><a href="https://en.wikipedia.org/wiki/Cooley%E2%80%93Tukey_FFT_algorithm" target="_blank" rel="noopener noreferrer">Cooley–Tukey FFT ↗</a></h3><span class="tag">百科</span><p>本书手写 radix-2 FFT 的算法依据</p></div>
+<div class="repo-card"><h3><a href="https://www.dspguide.com/" target="_blank" rel="noopener noreferrer">The Scientist and Engineer&#x27;s Guide to DSP ↗</a></h3><span class="tag">教材</span><p>免费在线 DSP 教材，卷积/FFT/滤波器章节讲解直观</p></div>
+<div class="repo-card"><h3><a href="https://docs.python.org/3/library/index.html" target="_blank" rel="noopener noreferrer">Python 标准库文档 ↗</a></h3><span class="tag">教材</span><p>wave / array / struct / math / random 等标准模块说明</p></div>
+<div class="repo-card"><h3><a href="https://librosa.org/" target="_blank" rel="noopener noreferrer">librosa ↗</a></h3><span class="tag">工程</span><p>音频特征提取与 STFT/ISTFT 的 Python 工业实现</p></div>
+</div>
+<h3>继续检索</h3><ul>
+<li>Google Scholar：<a href='https://scholar.google.com/scholar?q=sampling%20quantization%20STFT%20overlap-add' target='_blank' rel='noopener noreferrer'>sampling quantization STFT overlap-add ↗</a></li>
+<li>arXiv：<a href='https://arxiv.org/search/?query=sampling%20quantization%20STFT%20overlap-add&searchtype=all' target='_blank' rel='noopener noreferrer'>sampling quantization STFT overlap-add ↗</a></li>
+<li>GitHub：<a href='https://github.com/search?q=sampling%20quantization%20STFT%20overlap-add&type=repositories' target='_blank' rel='noopener noreferrer'>sampling quantization STFT overlap-add ↗</a></li>
+</ul>
+<p class="code-hint">全书链接总表见 <a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a> 与 <a href="../../appendix/index.html#sA-7">附录 A.7</a>；滤镜是否可用请以本机 <code>ffmpeg -filters</code> 为准。</p>
+</section>
+<section id="further"><h2><span class="sec-num">§</span>延伸阅读与内链</h2><ul><li><a href='../../part1/06-fdaf/index.html'>第 06 章 · 频域自适应滤波：FDAF、分块 MDF 与收敛</a> 频域自适应滤波；<a href='../../part2/12-spectral-subtraction/index.html'>第 12 章 · 谱减、过减因子与音乐噪声</a> 谱减；<a href='../../part4/19-tf-mask/index.html'>第 19 章 · 时频掩码：IBM / IRM / CRM 与监督学习形式化</a> 时频掩码。</li></ul></section>
+<footer class="pager" data-autofill></footer>
+<footer class="site-foot">
+<p class="credits"><strong>作者</strong>：汪亮（bertonwang）　<strong>联系邮箱</strong>：<a href="mailto:47608843@qq.com">47608843@qq.com</a></p>
+<p class="ai-note"><strong>AI 使用说明</strong>：本教材的知识框架、正文、Python 实验脚本与参考资料清单在 AI 辅助下整理生成，并经人工校订、实际运行与静态自检。公式、数值与运行结果请以Python 3 实际输出及权威教材、官方文档为准；发现错漏欢迎通过上方邮箱勘误。</p>
+<p class="imprint">音频 3A 处理：从自适应滤波到神经增强 · 每章一个 <code>code/*.py</code> 实验脚本、<code>fig/*.svg</code> 矢量图与 <code>audio/*.wav</code> 试听样本（由 <code>tools/extract_code.py</code> 与脚本运行同步） · 只用 Python 3 标准库 · 教学材料，信号全部由代码合成。</p>
+</footer>
+</main>
+</body>
+</html>

@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 10 章 · 用 NLMS 实现一个可验证的 AEC | 音频 3A 处理：从自适应滤波到神经增强</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<script src="../../assets/toc.js" defer></script>
+<script src="../../assets/app.js" defer></script>
+</head>
+<body data-root="../../" data-chapter="10">
+<aside id="sidebar"></aside>
+<main class="book-page">
+<nav class="breadcrumb" data-autofill>总目录</nav>
+<header class="chapter-head">
+<span class="kicker">第二篇 · AEC / ANS / AGC 三类经典引擎 · 上卷 · 传统算法（Model-based）</span>
+<h1><span class="ch-num">第 10 章</span>用 NLMS 实现一个可验证的 AEC</h1>
+<p class="lede">把步长、阶数、正则、冻结条件全部摊开，让每个 ERLE 数字都能复算。</p>
+<div class="meta">
+<span class="badge done">已完稿</span>
+<span class="badge s2">三大引擎</span>
+<span class="badge traditional">上卷 · 传统算法</span>
+<span>建议 3 学时</span>
+<span>1 个 Python 实验 · 2 张图 · 3 段试听</span>
+<span>音频 3A 处理：从自适应滤波到神经增强</span>
+</div></header>
+<p class="bridge"><strong>本章位置：</strong><a href='../../part1/05-adaptive-filter/index.html'>第 05 章 · 自适应滤波：LMS、NLMS 与收敛</a> 给出 NLMS 更新式、<a href='../09-aec-architecture/index.html'>第 09 章 · AEC 总体结构：参考信号、线性滤波与残余抑制</a> 给出 AEC 结构，本章把两者合成为可复算的实现；<a href='../11-residual-echo/index.html'>第 11 章 · 残余回声抑制与 WebRTC AEC3 结构</a> 处理它消不掉的非线性残余，<a href='../../part3/18-classic-eval/index.html'>第 18 章 · 上卷综合实验：完整传统 3A 链路与评测</a> 把 ERLE 放进完整评测。</p>
+<div class="analogy"><span class="card-label">给程序员的翻译</span><p style="margin-bottom:0">这章就是给 <a href='../../part1/05-adaptive-filter/index.html'>第 05 章 · 自适应滤波：LMS、NLMS 与收敛</a> 的在线 SGD 加了一套单元测试：滑动 ERLE 是训练曲线、权重误差是参数回归测试、阶数扫描是容量不足的消融实验、双讲冻结是 label 清洗。<strong>四条都过，才敢说 AEC『收敛了』。</strong></p></div>
+<div class="card objectives"><span class="card-label">学习目标</span><ul>
+<li>能实现一个逐样本 NLMS 回声消除器并画出滑动 ERLE 曲线。</li>
+<li>能量化步长 μ、阶数 L、正则 δ 对收敛速度与稳态 ERLE 的影响。</li>
+<li>能说明双讲冻结与滤波器阶数不足各自的失效表现。</li>
+<li>能运行实验，用收敛迭代数、权重误差与稳态 ERLE 交叉验证。</li>
+</ul></div>
+<section id="map"><h2><span class="sec-num">§</span>知识点地图</h2>
+<p class="code-hint">每个知识点都配了 1～2 个扩展学习链接；本章完整资源清单见 <a href="#extra-links">扩展学习</a>。</p>
+<table><thead><tr><th style="width:44px">#</th><th style="width:26%">知识点</th><th>扩展学习</th><th style="width:100px">状态</th></tr></thead><tbody>
+<tr><td>1</td><td>逐样本 NLMS</td><td><a href="https://en.wikipedia.org/wiki/Least_mean_squares_filter" target="_blank" rel="noopener noreferrer">Least mean squares filter ↗</a> · <a href="https://gitlab.xiph.org/xiph/speexdsp" target="_blank" rel="noopener noreferrer">speexdsp 源码 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>2</td><td>滑动窗 ERLE</td><td><a href="https://en.wikipedia.org/wiki/Short-time_Fourier_transform" target="_blank" rel="noopener noreferrer">Short-time Fourier transform ↗</a> · <a href="https://www.dspguide.com/" target="_blank" rel="noopener noreferrer">The Scientist and Engineer&#x27;s Guide to DSP ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>3</td><td>收敛迭代数</td><td><a href="https://en.wikipedia.org/wiki/Least_mean_squares_filter" target="_blank" rel="noopener noreferrer">Least mean squares filter ↗</a> · <a href="https://numpy.org/doc/stable/" target="_blank" rel="noopener noreferrer">NumPy 文档 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>4</td><td>稳态失调</td><td><a href="https://en.wikipedia.org/wiki/Least_mean_squares_filter" target="_blank" rel="noopener noreferrer">Least mean squares filter ↗</a> · <a href="https://gitlab.xiph.org/xiph/speexdsp" target="_blank" rel="noopener noreferrer">speexdsp 源码 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>5</td><td>步长扫描</td><td><a href="https://en.wikipedia.org/wiki/Least_mean_squares_filter" target="_blank" rel="noopener noreferrer">Least mean squares filter ↗</a> · <a href="https://gitlab.xiph.org/xiph/speexdsp" target="_blank" rel="noopener noreferrer">speexdsp 源码 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>6</td><td>阶数不足与欠建模</td><td><a href="https://en.wikipedia.org/wiki/Least_mean_squares_filter" target="_blank" rel="noopener noreferrer">Least mean squares filter ↗</a> · <a href="https://gitlab.xiph.org/xiph/speexdsp" target="_blank" rel="noopener noreferrer">speexdsp 源码 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>7</td><td>正则 δ</td><td><a href="https://en.wikipedia.org/wiki/Least_mean_squares_filter" target="_blank" rel="noopener noreferrer">Least mean squares filter ↗</a> · <a href="https://gitlab.xiph.org/xiph/speexdsp" target="_blank" rel="noopener noreferrer">speexdsp 源码 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>8</td><td>双讲冻结上界</td><td><a href="https://www.itu.int/rec/T-REC-G.168/en" target="_blank" rel="noopener noreferrer">ITU-T G.168 ↗</a> · <a href="https://github.com/microsoft/AEC-Challenge" target="_blank" rel="noopener noreferrer">Microsoft AEC Challenge ↗</a></td><td>正文已覆盖</td></tr>
+</tbody></table></section>
+<section id="s10-1"><h2><span class="sec-num">§10.1</span>最小可用实现只有五行</h2>
+<p class="eq">x⃗[n] = (x[n], x[n−1], …, x[n−L+1])　，ŷ[n] = wᵀx⃗[n]　，e[n] = y[n] − ŷ[n]</p>
+<p class="eq">w ← w + μ·e[n]·x⃗[n] / (x⃗[n]ᵀx⃗[n] + δ)　，0 &lt; μ &lt; 2</p>
+<p>AEC 与 <a href='../../part1/05-adaptive-filter/index.html'>第 05 章 · 自适应滤波：LMS、NLMS 与收敛</a> 的系统辨识只差一件事：观测里多了近端语音 <code>d[n]</code> 和环境噪声。因此工程实现必须补三样东西：<strong>时延对齐</strong>（<a href='../../part0/01-acoustic-path/index.html'>第 01 章 · 声学链路与信号模型：房间、麦克风与回声路径</a>）、<strong>双讲冻结</strong>（<a href='../../part1/07-doubletalk/index.html'>第 07 章 · 双讲检测、时延漂移与路径突变</a>）、<strong>输出残差的可听核对</strong>。本实验用已知双讲区间作为检测上界，把注意力集中在 μ / L / δ 上。</p>
+<table><thead><tr><th style="width:16%">参数</th><th style="width:28%">影响</th><th style="width:28%">调小的后果</th><th style="width:28%">调大的后果</th></tr></thead><tbody>
+<tr><td>μ 步长</td><td>收敛速度 / 稳态失调</td><td>收敛慢，路径突变追不上</td><td>收敛快但稳态 ERLE 低、易发散</td></tr>
+<tr><td>L 阶数</td><td>能覆盖的混响尾</td><td>欠建模，残余回声压不下去</td><td>算力线性增长、收敛变慢</td></tr>
+<tr><td>δ 正则</td><td>静音段数值稳定</td><td>输入能量趋零时步长爆炸</td><td>等效缩小 μ，收敛变慢</td></tr>
+</tbody></table>
+</section>
+<section id="s10-2"><h2><span class="sec-num">§10.2</span>怎样算『可验证』</h2>
+<ul>
+<li><strong>滑动窗 ERLE</strong>：每 256 样本算一次 10log₁₀(Σe²_echo/Σe²_res)，曲线拐点就是收敛时刻，比只报一个全局数更可核对。</li>
+<li><strong>权重误差</strong>：‖w−h‖ 直接检查辨识的是真实路径，而不是碰巧拟合了当前样本。</li>
+<li><strong>阶数扫描</strong>：真值 h 有 128 抽头，L=32 时稳态 ERLE 应明显偏低，这是欠建模（under-modeling）而非算法不收敛。</li>
+<li><strong>双讲段</strong>：单独报一段 segSNR / SI-SDR，防止『整体 ERLE 高但近端被压掉』。</li>
+</ul>
+<div class="card note"><span class="card-label">口径</span><p style="margin-bottom:0">ERLE 只在单讲区间统计。把双讲段的近端语音算进分子分母，会得到虚高或虚低的数字，这是 <a href='../../part0/03-metrics/index.html'>第 03 章 · 怎么算「变好了」：客观指标、尺度与主观听测</a> 反复强调的评测陷阱。</p></div>
+</section>
+<section id="lab"><h2><span class="sec-num">§</span>Python 实验</h2>
+<h3>实验 10-1 · NLMS AEC 的步长扫描、阶数扫描与收敛核对</h3>
+<pre class="code" data-file="code/10-nlms-aec.py" data-lang="Python 3 · 标准库"><code>#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""实现带双讲冻结的逐样本 NLMS，扫描三个步长与三个阶数，打印滑动 ERLE、收敛迭代数、权重误差与稳态 ERLE。
+
+全部语音 / 噪声 / 房间冲激响应均为代码合成信号，仅用于教学演示机制与量级。
+"""
+from __future__ import annotations
+
+import math
+import pathlib
+import random
+import statistics
+import sys
+import time
+
+_here = pathlib.Path(__file__).resolve()
+for _p in _here.parents:
+    if (_p / "tools" / "dsp.py").exists():
+        sys.path.insert(0, str(_p / "tools"))
+        break
+from dsp import (SAMPLE_RATE, fft, hann, stft, istft, magnitude_db, spectrum,
+                 white_noise, tone, chirp, synthetic_speech, rir, convolve,
+                 fft_convolve, delay, clip, normalize_peak, rms, rolling_rms,
+                 smooth, db, energy_db, snr_db, erle_db, seg_snr_db,
+                 scale_align, si_sdr_db, lufs_approx,
+                 write_wav, read_wav, wav_info)
+from chart import Chart, heatmap, BLUE, RED, GREEN, AMBER
+
+FIG = _here.parents[1] / "fig"
+AUDIO = _here.parents[1] / "audio"
+FIG.mkdir(exist_ok=True)
+AUDIO.mkdir(exist_ok=True)
+
+random.seed(7)
+
+# ---- 参数区 ----
+N, L = 3072, 64
+MUS = (0.15, 0.50, 1.10)   # 步长扫描
+LENS = (32, 64, 128)       # 阶数扫描
+DELTA = 1e-3               # 正则项
+DT_START = int(0.70 * N)   # 双讲起点（理想检测上界）
+H_WIN = 256                # 滑动 ERLE 窗长
+
+# ---- 计算与作图 ----
+rng = random.Random(7)
+sp = synthetic_speech(rng, N)
+far = [0.78 * a + 0.22 * b for a, b in zip(sp, white_noise(rng, N, 0.18))]
+h = rir(rng, 128, decay=0.006, direct_delay=20)
+echo = fft_convolve(far, h)[:N]
+near_raw = synthetic_speech(rng, N)
+near = [0.65 * near_raw[i] if i &gt;= DT_START else 0.0 for i in range(N)]
+noise = white_noise(rng, N, 0.004)
+mic = [echo[i] + near[i] + noise[i] for i in range(N)]
+
+def run_nlms(mu, length):
+    w = [0.0] * length
+    err = [0.0] * N
+    for n in range(length, N):
+        xv = [far[n - i] for i in range(length)]
+        y = sum(w[i] * xv[i] for i in range(length))
+        e = mic[n] - y
+        err[n] = e
+        if n &lt; DT_START:
+            p = sum(v * v for v in xv) + DELTA
+            for i in range(length):
+                w[i] += mu * e * xv[i] / p
+    curve = []
+    for s in range(length, DT_START - H_WIN, H_WIN):
+        curve.append(erle_db(echo[s:s + H_WIN], err[s:s + H_WIN]))
+    werr = math.sqrt(sum((w[i] - h[i]) ** 2 for i in range(length)))
+    steady = erle_db(echo[N // 2:DT_START], err[N // 2:DT_START])
+    return curve, steady, werr, err
+
+curves, steadies, werrs = [], [], []
+best_err = None
+for mu in MUS:
+    cv, st, we, err = run_nlms(mu, L)
+    curves.append(cv)
+    steadies.append(st)
+    werrs.append(we)
+    if mu == 0.50:
+        best_err = err
+len_steadies = []
+for ln in LENS:
+    _cv, st, _we, _err = run_nlms(0.50, ln)
+    len_steadies.append(st)
+
+c = Chart(FIG / "10-learning.svg", "不同步长的滑动窗 ERLE 曲线", xlabel="窗序号", ylabel="ERLE (dB)")
+for mu, cv, col in zip(MUS, curves, (BLUE, GREEN, RED)):
+    c.line(range(len(cv)), cv, col, label="mu=%.2f" % mu)
+c.hline(10.0, AMBER, label="10 dB 收敛线")
+print("学习图:", c.save())
+d = Chart(FIG / "10-erle-lens.svg", "滤波器阶数对稳态 ERLE 的影响", xlabel="抽头数 L", ylabel="ERLE (dB)",
+          xticks=[(i, "L=%d" % ln) for i, ln in enumerate(LENS)])
+d.bars(range(len(LENS)), len_steadies, BLUE, label="稳态 ERLE")
+print("阶数图:", d.save())
+write_wav(AUDIO / "10-mic.wav", normalize_peak(mic))
+write_wav(AUDIO / "10-echo.wav", normalize_peak(echo))
+write_wav(AUDIO / "10-error.wav", normalize_peak(best_err))
+print("采样率=%d Hz 样本=%d 真值h=128抽头 双讲起点=%d 冻结=是 真值延迟=20" %
+      (SAMPLE_RATE, N, DT_START))
+for mu, st, we, cv in zip(MUS, steadies, werrs, curves):
+    hit = next((i + 1 for i, v in enumerate(cv) if v &gt;= 10.0), -1)
+    print("mu=%.2f 稳态ERLE=%.2f dB 权重误差=%.4f 首次10dB窗=%d 约=%d样本" %
+          (mu, st, we, hit, L + hit * H_WIN if hit &gt; 0 else -1))
+print("阶数扫描 稳态ERLE: " + " ".join("L=%d→%.2fdB" % (ln, s)
+                                   for ln, s in zip(LENS, len_steadies)))
+print("双讲段 segSNR=%.2f dB SI-SDR=%.2f dB" %
+      (seg_snr_db(near[DT_START:], best_err[DT_START:]),
+       si_sdr_db(best_err[DT_START:], near[DT_START:])))</code></pre>
+<p class="code-hint"><strong>操作：</strong>对照三条学习曲线与 10 dB 线；看阶数扫描里 L=32 的 ERLE 缺口；试听 10-echo.wav 与 10-error.wav。　<strong>预期与判读：</strong>本例三个步长的「首次 10 dB 窗」都是第 3 窗，μ=0.50 反而同时拿到最高稳态 ERLE（19.19 dB）与最小权重误差；μ=1.10 已越过最优值开始变差——<strong>步长与性能不是单调关系，必须扫描</strong>。阶数扫描则很干净：L=32 欠建模 13.13 dB，L=128 覆盖真值长度后达到 25.27 dB。</p>
+<p class="code-hint"><strong>改参数看趋势：</strong>把 DELTA 调到 1e-6，静音段会出现数值抖动；把 DT_START 之后的冻结去掉，双讲段 SI-SDR 会明显下降。　文件位置：<code>part2/10-nlms-aec/code/10-nlms-aec.py</code></p>
+<div class="chart-grid">
+<figure class="chart-figure"><img src="fig/10-learning.svg" alt="三个步长的滑动窗 ERLE 学习曲线" loading="lazy"><figcaption>图 1　三个步长的滑动窗 ERLE 学习曲线（代码合成信号 / 教学示意）</figcaption></figure>
+<figure class="chart-figure"><img src="fig/10-erle-lens.svg" alt="阶数不足导致的稳态 ERLE 下降" loading="lazy"><figcaption>图 2　阶数不足导致的稳态 ERLE 下降（代码合成信号 / 教学示意）</figcaption></figure>
+</div>
+<div class="audio-grid">
+<div class="audio-card"><h4>10-mic.wav</h4><audio controls preload="none" src="audio/10-mic.wav">浏览器不支持 audio 元素，请直接打开 audio/10-mic.wav。</audio><p>含回声与后段双讲的麦克风信号（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+<div class="audio-card"><h4>10-echo.wav</h4><audio controls preload="none" src="audio/10-echo.wav">浏览器不支持 audio 元素，请直接打开 audio/10-echo.wav。</audio><p>真实回声分量（核对参考）（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+<div class="audio-card"><h4>10-error.wav</h4><audio controls preload="none" src="audio/10-error.wav">浏览器不支持 audio 元素，请直接打开 audio/10-error.wav。</audio><p>mu=0.50 的 NLMS 输出残差（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+</div>
+<div class="card note"><p style="margin-bottom:0">代码块右上角可一键复制；仓库里的 <code>code/*.py</code> 由 <code>tools/extract_code.py</code> 从这些代码块自动抽取。脚本只用标准库、固定 <code>random.seed(7)</code>，运行后写出 <code>fig/*.svg</code> 与 <code>audio/*.wav</code>；批量运行用 <code>./tools/run_python.sh</code>。</p></div>
+</section>
+<section id="commands"><h2><span class="sec-num">§</span>可选真机命令片段</h2>
+<div class="card note"><p style="margin-bottom:0">以下命令<strong>不参与批量运行</strong>，需要本机自行安装对应工具。滤镜是否可用取决于本机 ffmpeg 版本与编译选项，请先用 <code>ffmpeg -filters</code> / <code>ffmpeg -version</code> 自查，并以 https://ffmpeg.org/ffmpeg-filters.html 与各自官方文档为准；本书不假定任何特定版本具备某项能力。</p></div>
+<h3>用 ffmpeg 核对本章输出 WAV 的电平（本机自查）</h3>
+<pre class="cmd" data-lang="shell"><code>ffmpeg -hide_banner -i part2/10-nlms-aec/audio/10-error.wav -af volumedetect -f null -</code></pre>
+<p class="code-hint"><strong>说明：</strong>命令只读取本机已生成文件并做电平自查；滤镜与参数以 https://ffmpeg.org/ffmpeg-filters.html 及本机 ffmpeg -filters 输出为准，本书不假定任何特定版本。</p>
+</section>
+<section id="highlights"><h2><span class="sec-num">§</span>本章参考资料</h2><p>按本章知识点挑选的精读资料；更多检索入口见 <a href="#extra-links">扩展学习</a>。</p><div class="repo-grid">
+<div class="repo-card"><h3><a href="https://en.wikipedia.org/wiki/Least_mean_squares_filter" target="_blank" rel="noopener noreferrer">Least mean squares filter ↗</a></h3><span class="tag">百科</span><p>LMS / NLMS 的更新式与收敛条件</p><p style="margin:0;color:var(--ink-faint)">推荐理由：LMS/NLMS 更新式与收敛条件</p></div>
+<div class="repo-card"><h3><a href="https://gitlab.xiph.org/xiph/speexdsp" target="_blank" rel="noopener noreferrer">speexdsp 源码 ↗</a></h3><span class="tag">工程</span><p>speex_echo_cancellation / speex_preprocess_ctl 的参考实现</p><p style="margin:0;color:var(--ink-faint)">推荐理由：经典 AEC 中 NLMS 的工业实现，可逐行对照</p></div>
+<div class="repo-card"><h3><a href="https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/aec3/" target="_blank" rel="noopener noreferrer">WebRTC AEC3 模块 ↗</a></h3><span class="tag">工程</span><p>分块频域自适应滤波 + 残余回声估计的现代 AEC 结构</p><p style="margin:0;color:var(--ink-faint)">推荐理由：频域分块版本与本章时域实现的对照</p></div>
+<div class="repo-card"><h3><a href="https://numpy.org/doc/stable/" target="_blank" rel="noopener noreferrer">NumPy 文档 ↗</a></h3><span class="tag">工程</span><p>向量化 DSP 的事实标准；本书手写实现可逐步替换为 ndarray</p><p style="margin:0;color:var(--ink-faint)">推荐理由：把 x⃗ 与 w 的乘加向量化后的迁移目标</p></div>
+</div></section>
+<section id="repos"><h2><span class="sec-num">§</span>相关开源工程</h2><p>下列工程仅作技术参照，版权与许可证归各自维护者所有。本书实验不依赖它们，也与之无从属关系。</p><div class="repo-grid">
+<div class="repo-card"><h3><a href="https://gitlab.xiph.org/xiph/speexdsp" target="_blank" rel="noopener noreferrer">speexdsp ↗</a></h3><span class="tag">传统 · C</span><p>最易读的经典 AEC / 预处理实现，适合对照本书 NLMS 代码</p></div>
+<div class="repo-card"><h3><a href="https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/" target="_blank" rel="noopener noreferrer">WebRTC audio_processing ↗</a></h3><span class="tag">传统 · C++</span><p>工业级 3A 参考实现：AEC3 / NS / AGC2，读源码理解分块频域与双讲逻辑</p></div>
+<div class="repo-card"><h3><a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg ↗</a></h3><span class="tag">工具</span><p>afftdn / arnndn / loudnorm / dynaudnorm 等滤镜的离线验证工具</p></div>
+</div></section>
+<section id="pitfalls"><h2><span class="sec-num">§</span>常见误区</h2><div class="card warn"><ul><li>把双讲段的近端语音算进 ERLE 分子分母，指标失真。</li>
+<li>滤波器阶数小于真实混响长度，误判为算法不收敛。</li>
+<li>δ 设为 0，静音段输入能量趋零导致系数爆炸。</li>
+<li>只报全局 ERLE，不报稳态与收敛迭代数。</li></ul></div></section>
+<section id="exercises"><h2><span class="sec-num">§</span>习题与思考</h2><ol><li>推导 0 < μ < 2 的稳定性条件，并说明 δ 应如何与输入功率同量级。</li>
+<li>解释 L=32 时 ERLE 上不去的物理原因，并估算 16 kHz 下 128 ms 混响所需抽头。</li>
+<li>在双讲段取消冻结，预测权重误差与 SI-SDR 曲线的变化。</li></ol></section>
+<section id="extra-links"><h2><span class="sec-num">§</span>扩展学习</h2>
+<div class="repo-grid">
+<div class="repo-card"><h3><a href="https://en.wikipedia.org/wiki/Least_mean_squares_filter" target="_blank" rel="noopener noreferrer">Least mean squares filter ↗</a></h3><span class="tag">百科</span><p>LMS / NLMS 的更新式与收敛条件</p></div>
+<div class="repo-card"><h3><a href="https://gitlab.xiph.org/xiph/speexdsp" target="_blank" rel="noopener noreferrer">speexdsp 源码 ↗</a></h3><span class="tag">工程</span><p>speex_echo_cancellation / speex_preprocess_ctl 的参考实现</p></div>
+<div class="repo-card"><h3><a href="https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/aec3/" target="_blank" rel="noopener noreferrer">WebRTC AEC3 模块 ↗</a></h3><span class="tag">工程</span><p>分块频域自适应滤波 + 残余回声估计的现代 AEC 结构</p></div>
+<div class="repo-card"><h3><a href="https://numpy.org/doc/stable/" target="_blank" rel="noopener noreferrer">NumPy 文档 ↗</a></h3><span class="tag">工程</span><p>向量化 DSP 的事实标准；本书手写实现可逐步替换为 ndarray</p></div>
+</div>
+<h3>继续检索</h3><ul>
+<li>Google Scholar：<a href='https://scholar.google.com/scholar?q=NLMS%20echo%20cancellation%20ERLE%20implementation' target='_blank' rel='noopener noreferrer'>NLMS echo cancellation ERLE implementation ↗</a></li>
+<li>arXiv：<a href='https://arxiv.org/search/?query=NLMS%20echo%20cancellation%20ERLE%20implementation&searchtype=all' target='_blank' rel='noopener noreferrer'>NLMS echo cancellation ERLE implementation ↗</a></li>
+<li>GitHub：<a href='https://github.com/search?q=NLMS%20echo%20cancellation%20ERLE%20implementation&type=repositories' target='_blank' rel='noopener noreferrer'>NLMS echo cancellation ERLE implementation ↗</a></li>
+</ul>
+<p class="code-hint">全书链接总表见 <a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a> 与 <a href="../../appendix/index.html#sA-7">附录 A.7</a>；滤镜是否可用请以本机 <code>ffmpeg -filters</code> 为准。</p>
+</section>
+<section id="further"><h2><span class="sec-num">§</span>延伸阅读与内链</h2><ul><li><a href='../09-aec-architecture/index.html'>第 09 章 · AEC 总体结构：参考信号、线性滤波与残余抑制</a> AEC 总体结构；<a href='../11-residual-echo/index.html'>第 11 章 · 残余回声抑制与 WebRTC AEC3 结构</a> 残余回声抑制与 AEC3；<a href='../../part3/18-classic-eval/index.html'>第 18 章 · 上卷综合实验：完整传统 3A 链路与评测</a> 经典链路综合评测。</li></ul></section>
+<footer class="pager" data-autofill></footer>
+<footer class="site-foot">
+<p class="credits"><strong>作者</strong>：汪亮（bertonwang）　<strong>联系邮箱</strong>：<a href="mailto:47608843@qq.com">47608843@qq.com</a></p>
+<p class="ai-note"><strong>AI 使用说明</strong>：本教材的知识框架、正文、Python 实验脚本与参考资料清单在 AI 辅助下整理生成，并经人工校订、实际运行与静态自检。公式、数值与运行结果请以Python 3 实际输出及权威教材、官方文档为准；发现错漏欢迎通过上方邮箱勘误。</p>
+<p class="imprint">音频 3A 处理：从自适应滤波到神经增强 · 每章一个 <code>code/*.py</code> 实验脚本、<code>fig/*.svg</code> 矢量图与 <code>audio/*.wav</code> 试听样本（由 <code>tools/extract_code.py</code> 与脚本运行同步） · 只用 Python 3 标准库 · 教学材料，信号全部由代码合成。</p>
+</footer>
+</main>
+</body>
+</html>

@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 430" width="780" height="430" role="img">
+<title>后滤波前后的平均功率谱</title>
+<desc>由 tools/chart.py 生成的教材示意插图，数据为合成数据。</desc>
+<rect x="0" y="0" width="780" height="430" fill="#ffffff"/>
+<text x="76.0" y="24" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="15" font-weight="600" fill="#23262b">后滤波前后的平均功率谱</text>
+<line x1="76.0" y1="372.0" x2="756.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="376.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">-29.59</text>
+<line x1="76.0" y1="306.8" x2="756.0" y2="306.8" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="310.8" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">-22.16</text>
+<line x1="76.0" y1="241.6" x2="756.0" y2="241.6" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="245.6" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">-14.73</text>
+<line x1="76.0" y1="176.4" x2="756.0" y2="176.4" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="180.4" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">-7.30</text>
+<line x1="76.0" y1="111.2" x2="756.0" y2="111.2" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="115.2" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">0.135</text>
+<line x1="76.0" y1="46.0" x2="756.0" y2="46.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="50.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">7.56</text>
+<line x1="76.0" y1="46.0" x2="76.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="76.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">-5.08</text>
+<line x1="212.0" y1="46.0" x2="212.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="212.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">22.35</text>
+<line x1="348.0" y1="46.0" x2="348.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="348.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">49.78</text>
+<line x1="484.0" y1="46.0" x2="484.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="484.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">77.22</text>
+<line x1="620.0" y1="46.0" x2="620.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="620.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">104.6</text>
+<line x1="756.0" y1="46.0" x2="756.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="756.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">132.1</text>
+<line x1="76.0" y1="372.0" x2="756.0" y2="372.0" stroke="#8a909b" stroke-width="1.4"/>
+<line x1="76.0" y1="46.0" x2="76.0" y2="372.0" stroke="#8a909b" stroke-width="1.4"/>
+<text x="416.0" y="418.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="12" fill="#8a909b" text-anchor="middle">频率箱 k</text>
+<text x="14" y="209.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="12" fill="#8a909b" transform="rotate(-90 14 209.0)" text-anchor="middle">功率 dB</text>
+<polyline points="101.19,73.17 106.14,130.75 111.10,218.30 116.06,258.36 121.02,219.84 125.97,166.95 130.93,163.83 135.89,178.94 140.85,175.50 145.80,202.64 150.76,209.57 155.72,202.49 160.68,183.37 165.64,209.20 170.59,228.55 175.55,226.42 180.51,208.08 185.47,234.73 190.42,261.31 195.38,258.68 200.34,267.42 205.30,256.78 210.25,268.30 215.21,272.52 220.17,255.99 225.13,234.96 230.09,225.42 235.04,210.86 240.00,213.99 244.96,224.35 249.92,230.75 254.87,235.76 259.83,262.00 264.79,284.75 269.75,294.97 274.71,287.85 279.66,295.68 284.62,285.35 289.58,289.65 294.54,273.47 299.49,256.61 304.45,237.20 309.41,235.87 314.37,250.77 319.32,291.90 324.28,292.67 329.24,261.52 334.20,249.25 339.16,262.27 344.11,247.96 349.07,239.16 354.03,233.37 358.99,221.76 363.94,228.60 368.90,227.83 373.86,219.68 378.82,232.54 383.77,234.91 388.73,221.16 393.69,202.46 398.65,197.03 403.61,199.12 408.56,212.65 413.52,238.16 418.48,238.48 423.44,230.39 428.39,225.15 433.35,227.57 438.31,241.16 443.27,222.84 448.23,210.58 453.18,205.49 458.14,212.66 463.10,218.37 468.06,238.43 473.01,205.70 477.97,185.69 482.93,186.76 487.89,205.54 492.84,213.64 497.80,222.87 502.76,234.38 507.72,216.36 512.68,199.99 517.63,215.46 522.59,235.04 527.55,209.16 532.51,199.10 537.46,199.69 542.42,229.01 547.38,252.82 552.34,219.54 557.29,203.80 562.25,211.06 567.21,201.15 572.17,213.62 577.13,221.15 582.08,215.08 587.04,191.63 592.00,177.79 596.96,188.36 601.91,191.51 606.87,193.41 611.83,202.51 616.79,198.12 621.75,199.30 626.70,228.08 631.66,257.52 636.62,268.78 641.58,253.27 646.53,236.25 651.49,239.87 656.45,252.87 661.41,248.18 666.36,228.69 671.32,213.42 676.28,204.70 681.24,227.67 686.20,249.41 691.15,245.87 696.11,237.74 701.07,240.71 706.03,237.99 710.98,230.48 715.94,241.89 720.90,243.78 725.86,242.57 730.81,230.58" fill="none" stroke="#8a3b26" stroke-width="2" stroke-linejoin="round" opacity="1.0"/>
+<polyline points="101.19,98.94 106.14,163.27 111.10,240.13 116.06,303.11 121.02,343.66 125.97,317.23 130.93,286.09 135.89,241.93 140.85,266.03 145.80,328.68 150.76,301.09 155.72,254.92 160.68,225.29 165.64,281.98 170.59,322.88 175.55,334.51 180.51,344.83 185.47,328.81 190.42,297.99 195.38,284.44 200.34,296.29 205.30,277.88 210.25,282.90 215.21,285.06 220.17,269.73 225.13,248.92 230.09,239.06 235.04,224.46 240.00,227.27 244.96,237.40 249.92,243.64 254.87,248.35 259.83,273.65 264.79,295.66 269.75,305.18 274.71,296.80 279.66,304.64 284.62,293.29 289.58,296.35 294.54,279.08 299.49,261.37 304.45,241.85 309.41,240.13 314.37,254.85 319.32,296.31 324.28,297.46 329.24,265.70 334.20,253.21 339.16,266.49 344.11,251.88 349.07,243.10 354.03,237.24 358.99,225.44 363.94,232.18 368.90,231.16 373.86,222.44 378.82,235.11 383.77,237.44 388.73,223.68 393.69,204.88 398.65,199.19 403.61,201.08 408.56,214.44 413.52,240.23 418.48,240.47 423.44,232.25 428.39,227.06 433.35,229.53 438.31,243.07 443.27,224.62 448.23,212.34 453.18,207.29 458.14,214.67 463.10,220.45 468.06,240.70 473.01,207.36 477.97,187.04 482.93,188.00 487.89,206.69 492.84,214.92 497.80,224.47 502.76,236.01 507.72,217.80 512.68,201.26 517.63,216.78 522.59,236.36 527.55,210.33 532.51,200.24 537.46,200.82 542.42,230.17 547.38,254.85 552.34,221.18 557.29,205.04 562.25,212.19 567.21,202.10 572.17,214.69 577.13,222.24 582.08,215.91 587.04,192.19 592.00,178.43 596.96,189.03 601.91,192.19 606.87,194.18 611.83,203.42 616.79,198.98 621.75,200.23 626.70,229.12 631.66,258.80 636.62,270.65 641.58,254.85 646.53,237.55 651.49,241.17 656.45,254.22 661.41,249.28 666.36,229.63 671.32,214.33 676.28,205.49 681.24,228.34 686.20,250.18 691.15,246.86 696.11,238.70 701.07,241.61 706.03,238.97 710.98,231.57 715.94,242.89 720.90,244.79 725.86,243.78 730.81,231.92" fill="none" stroke="#2f6b4f" stroke-width="2" stroke-linejoin="round" opacity="1.0"/>
+<rect x="80.0" y="50.0" width="178" height="48" fill="#ffffff" fill-opacity="0.86" stroke="#e8e6e0" rx="3"/>
+<line x1="86.0" y1="66.0" x2="104.0" y2="66.0" stroke="#8a3b26" stroke-width="3"/>
+<text x="110.0" y="70.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="11" fill="#23262b">线性 AEC 误差谱</text>
+<line x1="86.0" y1="86.0" x2="104.0" y2="86.0" stroke="#2f6b4f" stroke-width="3"/>
+<text x="110.0" y="90.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="11" fill="#23262b">残余抑制后谱</text>
+</svg>

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 12 章 · 谱减、过减因子与音乐噪声 | 音频 3A 处理：从自适应滤波到神经增强</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<script src="../../assets/toc.js" defer></script>
+<script src="../../assets/app.js" defer></script>
+</head>
+<body data-root="../../" data-chapter="12">
+<aside id="sidebar"></aside>
+<main class="book-page">
+<nav class="breadcrumb" data-autofill>总目录</nav>
+<header class="chapter-head">
+<span class="kicker">第二篇 · AEC / ANS / AGC 三类经典引擎 · 上卷 · 传统算法（Model-based）</span>
+<h1><span class="ch-num">第 12 章</span>谱减、过减因子与音乐噪声</h1>
+<p class="lede">从「减去噪声功率谱」这一行公式出发，把 ANS 的经典基线及其副作用讲透。</p>
+<div class="meta">
+<span class="badge done">已完稿</span>
+<span class="badge s2">三大引擎</span>
+<span class="badge traditional">上卷 · 传统算法</span>
+<span>建议 3 学时</span>
+<span>1 个 Python 实验 · 2 张图 · 2 段试听</span>
+<span>音频 3A 处理：从自适应滤波到神经增强</span>
+</div></header>
+<p class="bridge"><strong>本章位置：</strong><a href='../../part1/08-noise-estimation/index.html'>第 08 章 · VAD 与噪声功率谱估计（MCRA 思路）</a> 解决「噪声有多大」，本章解决「知道了以后怎么减」；<a href='../13-wiener-mmse/index.html'>第 13 章 · Wiener 滤波、先验 SNR 与 MMSE-STSA</a> 把同一增益换成有统计最优解释的 Wiener 形式。</p>
+<div class="analogy"><span class="card-label">给程序员的翻译</span><p style="margin-bottom:0">谱减是对 STFT 矩阵做逐元素 clamp。每个频率箱是一个独立的小控制器，控制器之间不通信，于是才会出现孤立的谱洞。</p></div>
+<div class="card objectives"><span class="card-label">学习目标</span><ul>
+<li>能从加性噪声模型推导功率谱减与幅度谱减的增益式。</li>
+<li>能说明过减因子、谱下限与音乐噪声三者的定量关系。</li>
+<li>能实现逐帧逐频率箱的谱减器并测量分段 SNR。</li>
+<li>能解释为什么「指标变好」不等于「听感变好」。</li>
+</ul></div>
+<section id="map"><h2><span class="sec-num">§</span>知识点地图</h2>
+<p class="code-hint">每个知识点都配了 1～2 个扩展学习链接；本章完整资源清单见 <a href="#extra-links">扩展学习</a>。</p>
+<table><thead><tr><th style="width:44px">#</th><th style="width:26%">知识点</th><th>扩展学习</th><th style="width:100px">状态</th></tr></thead><tbody>
+<tr><td>1</td><td>加性噪声模型</td><td><a href="https://ffmpeg.org/ffmpeg-filters.html#afftdn" target="_blank" rel="noopener noreferrer">ffmpeg afftdn ↗</a> · <a href="https://github.com/microsoft/DNS-Challenge" target="_blank" rel="noopener noreferrer">Microsoft DNS Challenge ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>2</td><td>功率谱减</td><td><a href="https://en.wikipedia.org/wiki/Spectral_subtraction" target="_blank" rel="noopener noreferrer">Spectral subtraction ↗</a> · <a href="https://ffmpeg.org/ffmpeg-filters.html#afftdn" target="_blank" rel="noopener noreferrer">ffmpeg afftdn ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>3</td><td>幅度谱减</td><td><a href="https://en.wikipedia.org/wiki/Spectral_subtraction" target="_blank" rel="noopener noreferrer">Spectral subtraction ↗</a> · <a href="https://ffmpeg.org/ffmpeg-filters.html#afftdn" target="_blank" rel="noopener noreferrer">ffmpeg afftdn ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>4</td><td>过减因子</td><td><a href="https://en.wikipedia.org/wiki/Spectral_subtraction" target="_blank" rel="noopener noreferrer">Spectral subtraction ↗</a> · <a href="https://ffmpeg.org/ffmpeg-filters.html#afftdn" target="_blank" rel="noopener noreferrer">ffmpeg afftdn ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>5</td><td>谱下限与谱底</td><td><a href="https://en.wikipedia.org/wiki/Spectral_subtraction" target="_blank" rel="noopener noreferrer">Spectral subtraction ↗</a> · <a href="https://ffmpeg.org/ffmpeg-filters.html#afftdn" target="_blank" rel="noopener noreferrer">ffmpeg afftdn ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>6</td><td>音乐噪声</td><td><a href="https://ffmpeg.org/ffmpeg-filters.html#afftdn" target="_blank" rel="noopener noreferrer">ffmpeg afftdn ↗</a> · <a href="https://github.com/microsoft/DNS-Challenge" target="_blank" rel="noopener noreferrer">Microsoft DNS Challenge ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>7</td><td>噪声功率谱估计</td><td><a href="https://ffmpeg.org/ffmpeg-filters.html#afftdn" target="_blank" rel="noopener noreferrer">ffmpeg afftdn ↗</a> · <a href="https://github.com/microsoft/DNS-Challenge" target="_blank" rel="noopener noreferrer">Microsoft DNS Challenge ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>8</td><td>分段 SNR 权衡</td><td><a href="https://en.wikipedia.org/wiki/Spectral_subtraction" target="_blank" rel="noopener noreferrer">Spectral subtraction ↗</a> · <a href="https://ffmpeg.org/ffmpeg-filters.html#afftdn" target="_blank" rel="noopener noreferrer">ffmpeg afftdn ↗</a></td><td>正文已覆盖</td></tr>
+</tbody></table></section>
+<section id="s12-1"><h2><span class="sec-num">§12.1</span>一行公式，一个增益矩阵</h2>
+<p class="eq">Y[t,k] = S[t,k] + N[t,k]　→　G[t,k] = max(G_floor, 1 − β·P̂_n / |Y[t,k]|²)</p>
+<p>把 <a href='../../part0/02-time-frequency/index.html'>第 02 章 · 采样、量化与时频表示：从 PCM 到 STFT</a> 的 STFT 矩阵看成二维表：行是频率箱 <code>k</code>，列是帧 <code>t</code>。谱减的全部工作就是给每个格子算一个 <code>0 ≤ G ≤ 1</code>，再令 <code>Ŝ = G·Y</code>。相位保持不变——既低延迟低算力，也是 <a href='../../part4/22-complex-phase/index.html'>第 22 章 · 复数域与相位：DCCRN、深度滤波与时域模型</a> 要讨论的局限。</p>
+<table><thead><tr><th style="width:18%">变体</th><th style="width:44%">增益式</th><th style="width:38%">特点</th></tr></thead><tbody>
+<tr><td>功率谱减</td><td>G = max(G_floor, 1 − β·P̂_n/|Y|²)</td><td>推导最自然，残余起伏大</td></tr>
+<tr><td>幅度谱减</td><td>G = max(G_floor, 1 − β·√P̂_n/|Y|)</td><td>对强噪声更温和，仍有孤立谱峰</td></tr>
+<tr><td>Wiener 型</td><td>G = ξ/(1+ξ)，ξ 为先验 SNR</td><td>见 <a href='../13-wiener-mmse/index.html'>第 13 章 · Wiener 滤波、先验 SNR 与 MMSE-STSA</a>，增益有概率解释</td></tr>
+</tbody></table>
+</section>
+<section id="s12-2"><h2><span class="sec-num">§12.2</span>音乐噪声：被过度抑制留下的孤立谱峰</h2>
+<p>噪声是随机的：某帧某箱恰好噪声很小，增益就被算得很高；相邻箱却可能被压到下限。这种时频上零星闪现的窄带残响听起来像水滴，称为<strong>音乐噪声</strong>。缓解手段有三：增大过减因子 <code>β</code>、抬高谱下限 <code>G_floor</code>、对增益做时频平滑。</p>
+<ul>
+<li><code>β</code> 增大：残余噪声下降，但语音高频一起被削，可懂度变差。</li>
+<li><code>G_floor</code> 增大：谱空洞变少、听感平稳，但降噪量下降。</li>
+<li>增益平滑：抹掉孤立深陷，代价是引入时域拖尾。</li>
+</ul>
+<div class="card note"><span class="card-label">可检验的判据</span><p style="margin-bottom:0">实验统计「增益被压到下限的频率箱比例」作为语音失真与音乐噪声风险的粗略代理量。它不替代主观听测，但能量化 β 与 G_floor 这一对拉扯的旋钮：降噪越狠，触底箱越多。</p></div>
+</section>
+<section id="lab"><h2><span class="sec-num">§</span>Python 实验</h2>
+<h3>实验 12-1 · 过减因子扫描：分段 SNR 与音乐噪声的拉扯</h3>
+<pre class="code" data-file="code/12-spectral-subtraction.py" data-lang="Python 3 · 标准库"><code>#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""在合成带噪语音上扫描过减因子，测量分段 SNR 与孤立谱洞数量。
+
+全部语音 / 噪声 / 房间冲激响应均为代码合成信号，仅用于教学演示机制与量级。
+"""
+from __future__ import annotations
+
+import math
+import pathlib
+import random
+import statistics
+import sys
+import time
+
+_here = pathlib.Path(__file__).resolve()
+for _p in _here.parents:
+    if (_p / "tools" / "dsp.py").exists():
+        sys.path.insert(0, str(_p / "tools"))
+        break
+from dsp import (SAMPLE_RATE, fft, hann, stft, istft, magnitude_db, spectrum,
+                 white_noise, tone, chirp, synthetic_speech, rir, convolve,
+                 fft_convolve, delay, clip, normalize_peak, rms, rolling_rms,
+                 smooth, db, energy_db, snr_db, erle_db, seg_snr_db,
+                 scale_align, si_sdr_db, lufs_approx,
+                 write_wav, read_wav, wav_info)
+from chart import Chart, heatmap, BLUE, RED, GREEN, AMBER
+
+FIG = _here.parents[1] / "fig"
+AUDIO = _here.parents[1] / "audio"
+FIG.mkdir(exist_ok=True)
+AUDIO.mkdir(exist_ok=True)
+
+random.seed(7)
+
+# ---- 参数区 ----
+N = 8000
+N_FFT, HOP = 256, 128
+NOISE_AMP = 0.035
+FACTORS = (0.5, 1.0, 1.5, 2.0, 3.0)
+FLOOR = 0.15
+
+# ---- 计算与作图 ----
+rng = random.Random(7)
+clean = synthetic_speech(rng, N)
+noise = white_noise(rng, N, NOISE_AMP)
+noisy = [clean[i] + noise[i] for i in range(N)]
+nf = stft(noise, N_FFT, HOP)[:8]
+nmag = [sum(math.hypot(re[k], im[k]) for re, im in nf) / len(nf) for k in range(N_FFT)]
+
+def enhance(sub, floor):
+    frames = stft(noisy, N_FFT, HOP)
+    floored = 0
+    for re, im in frames:
+        gains = []
+        for k in range(N_FFT):
+            mag = math.hypot(re[k], im[k])
+            g = max(floor, 1.0 - sub * nmag[k] / (mag + 1e-9))
+            gains.append(g)
+            re[k] *= g
+            im[k] *= g
+        floored += sum(1 for v in gains if v &lt;= floor + 1e-9)
+    return istft(frames, N_FFT, HOP, N), floored / max(1, len(frames) * N_FFT)
+
+scores, clipped = [], []
+for f in FACTORS:
+    out, h = enhance(f, FLOOR)
+    scores.append(seg_snr_db(clean, scale_align(out, clean)))
+    clipped.append(h)
+best = scores.index(max(scores))
+out_best, _ = enhance(FACTORS[best], FLOOR)
+
+c = Chart(FIG / "12-subtraction.svg", "过减因子与分段 SNR", xlabel="过减因子 beta", ylabel="dB",
+          xticks=[(i, "%.1f" % f) for i, f in enumerate(FACTORS)])
+c.line(range(len(FACTORS)), scores, BLUE, label="分段 SNR (dB)")
+c.line(range(len(FACTORS)), [seg_snr_db(clean, noisy)] * len(FACTORS), RED, label="未处理")
+print("SNR图:", c.save())
+b = Chart(FIG / "12-distortion.svg", "过减因子与谱增益触底比例（语音失真代理量）",
+          xlabel="过减因子 beta", ylabel="触底频率箱比例",
+          xticks=[(i, "%.1f" % f) for i, f in enumerate(FACTORS)])
+b.bars(range(len(FACTORS)), clipped, RED, label="触底比例")
+print("失真图:", b.save())
+write_wav(AUDIO / "12-noisy.wav", normalize_peak(noisy))
+write_wav(AUDIO / "12-enhanced.wav", normalize_peak(out_best))
+print("segSNR 未处理=%.2f | 谱减: " % seg_snr_db(clean, noisy) +
+      " ".join("b=%.1f-&gt;%.2f" % (f, s) for f, s in zip(FACTORS, scores)))
+print("触底比例: " + " ".join("b=%.1f-&gt;%.3f" % (f, c) for f, c in zip(FACTORS, clipped)))
+print("最佳 beta=%.1f | SAMPLE_RATE=%d N_FFT=%d" % (FACTORS[best], SAMPLE_RATE, N_FFT))</code></pre>
+<p class="code-hint"><strong>操作：</strong>对照两条曲线：找出 SNR 最高的因子，再看它对应的触底比例；试听两个 WAV。　<strong>预期与判读：</strong>分段 SNR 随 β 先升后降，而谱增益触底比例单调上升——降噪越狠，被压到下限的频率箱越多，语音高频与清音一起被削。<strong>最优客观分数与最舒适听感通常不是同一个 β</strong>，这就是主观评测不可省的原因。</p>
+<p class="code-hint"><strong>改参数看趋势：</strong>把 FLOOR 从 0.15 改到 0.35，触底比例的分母不变但失真减轻，降噪量也会下降。　文件位置：<code>part2/12-spectral-subtraction/code/12-spectral-subtraction.py</code></p>
+<div class="chart-grid">
+<figure class="chart-figure"><img src="fig/12-subtraction.svg" alt="过减因子与分段 SNR" loading="lazy"><figcaption>图 1　过减因子与分段 SNR（代码合成信号 / 教学示意）</figcaption></figure>
+<figure class="chart-figure"><img src="fig/12-distortion.svg" alt="过减因子与谱增益触底比例" loading="lazy"><figcaption>图 2　过减因子与谱增益触底比例（代码合成信号 / 教学示意）</figcaption></figure>
+</div>
+<div class="audio-grid">
+<div class="audio-card"><h4>12-noisy.wav</h4><audio controls preload="none" src="audio/12-noisy.wav">浏览器不支持 audio 元素，请直接打开 audio/12-noisy.wav。</audio><p>带噪输入：均匀白噪声（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+<div class="audio-card"><h4>12-enhanced.wav</h4><audio controls preload="none" src="audio/12-enhanced.wav">浏览器不支持 audio 元素，请直接打开 audio/12-enhanced.wav。</audio><p>谱减输出：注意残留的窄带起伏（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+</div>
+<div class="card note"><p style="margin-bottom:0">代码块右上角可一键复制；仓库里的 <code>code/*.py</code> 由 <code>tools/extract_code.py</code> 从这些代码块自动抽取。脚本只用标准库、固定 <code>random.seed(7)</code>，运行后写出 <code>fig/*.svg</code> 与 <code>audio/*.wav</code>；批量运行用 <code>./tools/run_python.sh</code>。</p></div>
+</section>
+<section id="commands"><h2><span class="sec-num">§</span>可选真机命令片段</h2>
+<div class="card note"><p style="margin-bottom:0">以下命令<strong>不参与批量运行</strong>，需要本机自行安装对应工具。滤镜是否可用取决于本机 ffmpeg 版本与编译选项，请先用 <code>ffmpeg -filters</code> / <code>ffmpeg -version</code> 自查，并以 https://ffmpeg.org/ffmpeg-filters.html 与各自官方文档为准；本书不假定任何特定版本具备某项能力。</p></div>
+<h3>用 ffmpeg afftdn 做一次离线对照</h3>
+<pre class="cmd" data-lang="shell"><code>ffmpeg -hide_banner -i noisy.wav -af afftdn=nt=w:om=o denoised.wav</code></pre>
+<p class="code-hint"><strong>说明：</strong>afftdn 是 ffmpeg 文档中基于 FFT 的自适应降噪滤镜；参数与可用性以本机 `ffmpeg -h filter=afftdn` 与 https://ffmpeg.org/ffmpeg-filters.html 为准，本书不假定任何特定版本具备该滤镜。</p>
+</section>
+<section id="highlights"><h2><span class="sec-num">§</span>本章参考资料</h2><p>按本章知识点挑选的精读资料；更多检索入口见 <a href="#extra-links">扩展学习</a>。</p><div class="repo-grid">
+<div class="repo-card"><h3><a href="https://en.wikipedia.org/wiki/Spectral_subtraction" target="_blank" rel="noopener noreferrer">Spectral subtraction ↗</a></h3><span class="tag">百科</span><p>谱减法与音乐噪声的成因</p><p style="margin:0;color:var(--ink-faint)">推荐理由：谱减与音乐噪声的经典定义</p></div>
+<div class="repo-card"><h3><a href="https://ffmpeg.org/ffmpeg-filters.html#afftdn" target="_blank" rel="noopener noreferrer">ffmpeg afftdn ↗</a></h3><span class="tag">工具</span><p>基于 FFT 的自适应降噪，含噪声指纹与自适应白噪声参数</p><p style="margin:0;color:var(--ink-faint)">推荐理由：命令行里的频域降噪对照</p></div>
+<div class="repo-card"><h3><a href="https://en.wikipedia.org/wiki/Wiener_filter" target="_blank" rel="noopener noreferrer">Wiener filter ↗</a></h3><span class="tag">百科</span><p>最小均方误差意义下的最优线性滤波</p><p style="margin:0;color:var(--ink-faint)">推荐理由：从谱减过渡到统计最优滤波</p></div>
+<div class="repo-card"><h3><a href="https://arxiv.org/abs/1709.08243" target="_blank" rel="noopener noreferrer">RNNoise 论文（arXiv 1709.08243） ↗</a></h3><span class="tag">论文</span><p>A Hybrid DSP/Deep Learning Approach to Real-Time Full-Band Speech Enhancement</p><p style="margin:0;color:var(--ink-faint)">推荐理由：混合 DSP/深度学习如何处理残留噪声</p></div>
+</div></section>
+<section id="pitfalls"><h2><span class="sec-num">§</span>常见误区</h2><div class="card warn"><ul><li>把噪声功率谱当常数，非平稳噪声下越减越差。</li>
+<li>只报 segSNR，忽略音乐噪声与语音失真。</li>
+<li>增益下限设为 0，制造深谱洞与明显水滴声。</li>
+<li>谱减后不做 WOLA 归一化，边界出现爆音。</li></ul></div></section>
+<section id="exercises"><h2><span class="sec-num">§</span>习题与思考</h2><ol><li>推导功率谱减与幅度谱减的增益式，说明二者对强噪声的差异。</li>
+<li>解释为什么增大 G_floor 能减少音乐噪声却降低降噪量。</li>
+<li>设计一个同时报降噪量与语音失真的双指标评测表。</li></ol></section>
+<section id="extra-links"><h2><span class="sec-num">§</span>扩展学习</h2>
+<div class="repo-grid">
+<div class="repo-card"><h3><a href="https://en.wikipedia.org/wiki/Spectral_subtraction" target="_blank" rel="noopener noreferrer">Spectral subtraction ↗</a></h3><span class="tag">百科</span><p>谱减法与音乐噪声的成因</p></div>
+<div class="repo-card"><h3><a href="https://ffmpeg.org/ffmpeg-filters.html#afftdn" target="_blank" rel="noopener noreferrer">ffmpeg afftdn ↗</a></h3><span class="tag">工具</span><p>基于 FFT 的自适应降噪，含噪声指纹与自适应白噪声参数</p></div>
+<div class="repo-card"><h3><a href="https://en.wikipedia.org/wiki/Wiener_filter" target="_blank" rel="noopener noreferrer">Wiener filter ↗</a></h3><span class="tag">百科</span><p>最小均方误差意义下的最优线性滤波</p></div>
+<div class="repo-card"><h3><a href="https://arxiv.org/abs/1709.08243" target="_blank" rel="noopener noreferrer">RNNoise 论文（arXiv 1709.08243） ↗</a></h3><span class="tag">论文</span><p>A Hybrid DSP/Deep Learning Approach to Real-Time Full-Band Speech Enhancement</p></div>
+</div>
+<h3>继续检索</h3><ul>
+<li>Google Scholar：<a href='https://scholar.google.com/scholar?q=spectral%20subtraction%20musical%20noise%20denoising' target='_blank' rel='noopener noreferrer'>spectral subtraction musical noise denoising ↗</a></li>
+<li>arXiv：<a href='https://arxiv.org/search/?query=spectral%20subtraction%20musical%20noise%20denoising&searchtype=all' target='_blank' rel='noopener noreferrer'>spectral subtraction musical noise denoising ↗</a></li>
+<li>GitHub：<a href='https://github.com/search?q=spectral%20subtraction%20musical%20noise%20denoising&type=repositories' target='_blank' rel='noopener noreferrer'>spectral subtraction musical noise denoising ↗</a></li>
+</ul>
+<p class="code-hint">全书链接总表见 <a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a> 与 <a href="../../appendix/index.html#sA-7">附录 A.7</a>；滤镜是否可用请以本机 <code>ffmpeg -filters</code> 为准。</p>
+</section>
+<section id="further"><h2><span class="sec-num">§</span>延伸阅读与内链</h2><ul><li><a href='../13-wiener-mmse/index.html'>第 13 章 · Wiener 滤波、先验 SNR 与 MMSE-STSA</a> Wiener / MMSE；<a href='../../part5/23-neural-ns/index.html'>第 23 章 · 神经噪声抑制：从 RNNoise 到 DNS Challenge</a> 神经噪声抑制；<a href='../../part4/19-tf-mask/index.html'>第 19 章 · 时频掩码：IBM / IRM / CRM 与监督学习形式化</a> 时频掩码视角。</li></ul></section>
+<footer class="pager" data-autofill></footer>
+<footer class="site-foot">
+<p class="credits"><strong>作者</strong>：汪亮（bertonwang）　<strong>联系邮箱</strong>：<a href="mailto:47608843@qq.com">47608843@qq.com</a></p>
+<p class="ai-note"><strong>AI 使用说明</strong>：本教材的知识框架、正文、Python 实验脚本与参考资料清单在 AI 辅助下整理生成，并经人工校订、实际运行与静态自检。公式、数值与运行结果请以Python 3 实际输出及权威教材、官方文档为准；发现错漏欢迎通过上方邮箱勘误。</p>
+<p class="imprint">音频 3A 处理：从自适应滤波到神经增强 · 每章一个 <code>code/*.py</code> 实验脚本、<code>fig/*.svg</code> 矢量图与 <code>audio/*.wav</code> 试听样本（由 <code>tools/extract_code.py</code> 与脚本运行同步） · 只用 Python 3 标准库 · 教学材料，信号全部由代码合成。</p>
+</footer>
+</main>
+</body>
+</html>

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 13 章 · Wiener 滤波、先验 SNR 与 MMSE-STSA | 音频 3A 处理：从自适应滤波到神经增强</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<script src="../../assets/toc.js" defer></script>
+<script src="../../assets/app.js" defer></script>
+</head>
+<body data-root="../../" data-chapter="13">
+<aside id="sidebar"></aside>
+<main class="book-page">
+<nav class="breadcrumb" data-autofill>总目录</nav>
+<header class="chapter-head">
+<span class="kicker">第二篇 · AEC / ANS / AGC 三类经典引擎 · 上卷 · 传统算法（Model-based）</span>
+<h1><span class="ch-num">第 13 章</span>Wiener 滤波、先验 SNR 与 MMSE-STSA</h1>
+<p class="lede">把「拍脑袋的增益」换成最小均方误差意义下的最优增益，并解释决策导向估计。</p>
+<div class="meta">
+<span class="badge done">已完稿</span>
+<span class="badge s2">三大引擎</span>
+<span class="badge traditional">上卷 · 传统算法</span>
+<span>建议 3 学时</span>
+<span>1 个 Python 实验 · 2 张图 · 2 段试听</span>
+<span>音频 3A 处理：从自适应滤波到神经增强</span>
+</div></header>
+<p class="bridge"><strong>本章位置：</strong><a href='../12-spectral-subtraction/index.html'>第 12 章 · 谱减、过减因子与音乐噪声</a> 的谱减是「无状态增益」，本章引入跨帧状态；<a href='../14-agc/index.html'>第 14 章 · AGC：包络跟踪、攻击释放、限幅与响度</a> 用同样的一阶状态平滑 AGC 增益，<a href='../../part5/23-neural-ns/index.html'>第 23 章 · 神经噪声抑制：从 RNNoise 到 DNS Challenge</a> 则让网络自己学这条递推。</p>
+<div class="analogy"><span class="card-label">给程序员的翻译</span><p style="margin-bottom:0">决策导向是一条跨帧指数移动平均：<code>state = a*state + (1-a)*evidence</code>，与监控里平滑 QPS 曲线同构，只是状态维度等于频率箱数。</p></div>
+<div class="card objectives"><span class="card-label">学习目标</span><ul>
+<li>能从 MMSE 准则推导 Wiener 增益 G = ξ/(1+ξ)。</li>
+<li>能区分后验 SNR γ 与先验 SNR ξ，说明决策导向递推的作用。</li>
+<li>能实现 Wiener 降噪器并量化平滑系数对指标的影响。</li>
+<li>能说清 Wiener 与谱减在形式上的联系与差别。</li>
+</ul></div>
+<section id="map"><h2><span class="sec-num">§</span>知识点地图</h2>
+<p class="code-hint">每个知识点都配了 1～2 个扩展学习链接；本章完整资源清单见 <a href="#extra-links">扩展学习</a>。</p>
+<table><thead><tr><th style="width:44px">#</th><th style="width:26%">知识点</th><th>扩展学习</th><th style="width:100px">状态</th></tr></thead><tbody>
+<tr><td>1</td><td>MMSE 估计</td><td><a href="https://en.wikipedia.org/wiki/Wiener_filter" target="_blank" rel="noopener noreferrer">Wiener filter ↗</a> · <a href="https://arxiv.org/abs/1709.08243" target="_blank" rel="noopener noreferrer">RNNoise 论文（arXiv 1709.08243） ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>2</td><td>Wiener 增益</td><td><a href="https://en.wikipedia.org/wiki/Automatic_gain_control" target="_blank" rel="noopener noreferrer">Automatic gain control ↗</a> · <a href="https://ffmpeg.org/ffmpeg-filters.html#dynaudnorm" target="_blank" rel="noopener noreferrer">ffmpeg dynaudnorm ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>3</td><td>后验 SNR γ</td><td><a href="https://en.wikipedia.org/wiki/Wiener_filter" target="_blank" rel="noopener noreferrer">Wiener filter ↗</a> · <a href="https://arxiv.org/abs/1709.08243" target="_blank" rel="noopener noreferrer">RNNoise 论文（arXiv 1709.08243） ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>4</td><td>先验 SNR ξ</td><td><a href="https://en.wikipedia.org/wiki/Wiener_filter" target="_blank" rel="noopener noreferrer">Wiener filter ↗</a> · <a href="https://arxiv.org/abs/1709.08243" target="_blank" rel="noopener noreferrer">RNNoise 论文（arXiv 1709.08243） ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>5</td><td>决策导向估计</td><td><a href="https://en.wikipedia.org/wiki/Wiener_filter" target="_blank" rel="noopener noreferrer">Wiener filter ↗</a> · <a href="https://arxiv.org/abs/1709.08243" target="_blank" rel="noopener noreferrer">RNNoise 论文（arXiv 1709.08243） ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>6</td><td>MMSE-STSA</td><td><a href="https://en.wikipedia.org/wiki/Wiener_filter" target="_blank" rel="noopener noreferrer">Wiener filter ↗</a> · <a href="https://arxiv.org/abs/1709.08243" target="_blank" rel="noopener noreferrer">RNNoise 论文（arXiv 1709.08243） ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>7</td><td>增益平滑与拖尾</td><td><a href="https://en.wikipedia.org/wiki/Automatic_gain_control" target="_blank" rel="noopener noreferrer">Automatic gain control ↗</a> · <a href="https://ffmpeg.org/ffmpeg-filters.html#dynaudnorm" target="_blank" rel="noopener noreferrer">ffmpeg dynaudnorm ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>8</td><td>噪声功率谱</td><td><a href="https://ffmpeg.org/ffmpeg-filters.html#afftdn" target="_blank" rel="noopener noreferrer">ffmpeg afftdn ↗</a> · <a href="https://github.com/microsoft/DNS-Challenge" target="_blank" rel="noopener noreferrer">Microsoft DNS Challenge ↗</a></td><td>正文已覆盖</td></tr>
+</tbody></table></section>
+<section id="s13-1"><h2><span class="sec-num">§13.1</span>从最优估计到一条增益曲线</h2>
+<p class="eq">Ŝ = argmin E[(S − Ŝ)²]　→　G = ξ/(1+ξ)　，ξ = E|S|²/σ_n²，γ = |Y|²/σ_n²</p>
+<p><code>ξ</code> 是<strong>先验</strong> SNR（观测前对干净谱能量的期望），<code>γ</code> 是<strong>后验</strong> SNR（这帧实际测到的能量比）。谱减用 γ 直接代公式，对随机起伏敏感；Wiener 用 ξ，把上一帧估计当先验，天然更平滑。</p>
+<table><thead><tr><th style="width:12%">量</th><th style="width:44%">定义</th><th style="width:18%">在代码里</th><th style="width:26%">作用</th></tr></thead><tbody>
+<tr><td>γ[t,k]</td><td>|Y|² / σ_n²</td><td>当帧计算</td><td>瞬时证据</td></tr>
+<tr><td>ξ[t,k]</td><td>a·G²[t−1]·γ[t−1] + (1−a)·max(γ−1,0)</td><td>递推维护</td><td>平滑后的先验</td></tr>
+<tr><td>a</td><td>0.9～0.99</td><td>参数区</td><td>越大越平滑，也越拖尾</td></tr>
+<tr><td>G</td><td>ξ/(1+ξ)</td><td>逐箱逐帧</td><td>恒在 [0,1]，无需人为下限</td></tr>
+</tbody></table>
+</section>
+<section id="s13-2"><h2><span class="sec-num">§13.2</span>决策导向：用上一帧的输出当这一帧的先验</h2>
+<p>上式即 Ephraim–Malah 系列里的<strong>决策导向（decision-directed）</strong>估计。从程序员视角看，这是一条跨帧的一阶 IIR 状态：<strong>算法从此有了状态，也就有了记忆和延迟</strong>。</p>
+<ul>
+<li><code>a = 0</code>：完全用瞬时估计，退化为带噪增益，音乐噪声明显。</li>
+<li><code>a → 1</code>：增益几乎不变，输出平稳但语音起音被拖慢。</li>
+<li>MMSE-STSA 在增益里进一步引入修正贝塞尔函数，低 SNR 箱压得更彻底，工程上常查表近似。</li>
+</ul>
+<div class="card note"><span class="card-label">与上卷其它模块的关系</span><p style="margin-bottom:0">这里的状态递推与 <a href='../14-agc/index.html'>第 14 章 · AGC：包络跟踪、攻击释放、限幅与响度</a> 的 AGC 包络、<a href='../../part1/08-noise-estimation/index.html'>第 08 章 · VAD 与噪声功率谱估计（MCRA 思路）</a> 的 MCRA 噪声跟踪是同一种一阶平滑器，只是平滑对象不同：增益、电平、噪声功率。</p></div>
+</section>
+<section id="lab"><h2><span class="sec-num">§</span>Python 实验</h2>
+<h3>实验 13-1 · 决策导向 Wiener 增益与平滑系数扫描</h3>
+<pre class="code" data-file="code/13-wiener-mmse.py" data-lang="Python 3 · 标准库"><code>#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""实现先验 SNR 递推与 Wiener 增益，扫描平滑系数并与未处理信号对照。
+
+全部语音 / 噪声 / 房间冲激响应均为代码合成信号，仅用于教学演示机制与量级。
+"""
+from __future__ import annotations
+
+import math
+import pathlib
+import random
+import statistics
+import sys
+import time
+
+_here = pathlib.Path(__file__).resolve()
+for _p in _here.parents:
+    if (_p / "tools" / "dsp.py").exists():
+        sys.path.insert(0, str(_p / "tools"))
+        break
+from dsp import (SAMPLE_RATE, fft, hann, stft, istft, magnitude_db, spectrum,
+                 white_noise, tone, chirp, synthetic_speech, rir, convolve,
+                 fft_convolve, delay, clip, normalize_peak, rms, rolling_rms,
+                 smooth, db, energy_db, snr_db, erle_db, seg_snr_db,
+                 scale_align, si_sdr_db, lufs_approx,
+                 write_wav, read_wav, wav_info)
+from chart import Chart, heatmap, BLUE, RED, GREEN, AMBER
+
+FIG = _here.parents[1] / "fig"
+AUDIO = _here.parents[1] / "audio"
+FIG.mkdir(exist_ok=True)
+AUDIO.mkdir(exist_ok=True)
+
+random.seed(7)
+
+# ---- 参数区 ----
+N = 8000
+N_FFT, HOP = 256, 128
+NOISE_AMP = 0.035
+ALPHAS = (0.0, 0.50, 0.90, 0.98)
+
+# ---- 计算与作图 ----
+rng = random.Random(7)
+clean = synthetic_speech(rng, N)
+noise = white_noise(rng, N, NOISE_AMP)
+noisy = [clean[i] + noise[i] for i in range(N)]
+nf = stft(noise, N_FFT, HOP)[:8]
+npow = [sum(re[k]**2 + im[k]**2 for re, im in nf) / len(nf) for k in range(N_FFT)]
+
+def wiener(alpha):
+    frames = stft(noisy, N_FFT, HOP)
+    prev_g, prev_gamma = [1.0] * N_FFT, [1.0] * N_FFT
+    first = None
+    for re, im in frames:
+        new_g, new_gamma = [], []
+        for k in range(N_FFT):
+            gamma = (re[k]**2 + im[k]**2) / (npow[k] + 1e-12)
+            xi = alpha * prev_g[k]**2 * prev_gamma[k] + (1.0 - alpha) * max(gamma - 1.0, 0.0)
+            g = xi / (1.0 + xi + 1e-12)
+            re[k] *= g
+            im[k] *= g
+            new_g.append(g)
+            new_gamma.append(gamma)
+        if first is None:
+            first = new_g
+        prev_g, prev_gamma = new_g, new_gamma
+    return istft(frames, N_FFT, HOP, N), first
+
+scores, outputs = [], []
+for a in ALPHAS:
+    out, _g = wiener(a)
+    outputs.append(out)
+    scores.append(seg_snr_db(clean, scale_align(out, clean)))
+_, gains = wiener(0.98)
+c = Chart(FIG / "13-wiener.svg", "决策导向平滑系数与分段 SNR", xlabel="平滑系数 a", ylabel="dB",
+          xticks=[(i, "%.2f" % a) for i, a in enumerate(ALPHAS)])
+c.line(range(len(ALPHAS)), scores, BLUE, label="Wiener segSNR (dB)")
+c.line(range(len(ALPHAS)), [seg_snr_db(clean, noisy)] * len(ALPHAS), RED, label="未处理")
+print("Wiener图:", c.save())
+g = Chart(FIG / "13-gains.svg", "a=0.98 时首帧各频率箱的 Wiener 增益", xlabel="频率箱 k", ylabel="增益")
+g.line(range(N_FFT // 2), gains[:N_FFT // 2], GREEN, label="G[k]")
+print("增益图:", g.save())
+write_wav(AUDIO / "13-noisy.wav", normalize_peak(noisy))
+write_wav(AUDIO / "13-wiener.wav", normalize_peak(outputs[-1]))
+print("未处理 segSNR=%.2f | Wiener: " % seg_snr_db(clean, noisy) +
+      " ".join("a=%.2f-&gt;%.2f" % (a, s) for a, s in zip(ALPHAS, scores)))
+print("SI-SDR 未处理=%.2f -&gt; a=0.98 后=%.2f | SAMPLE_RATE=%d N_FFT=%d" %
+      (si_sdr_db(noisy, clean), si_sdr_db(outputs[-1], clean), SAMPLE_RATE, N_FFT))</code></pre>
+<p class="code-hint"><strong>操作：</strong>对照四个平滑系数的分段 SNR 与增益曲线；试听输出。　<strong>预期与判读：</strong>适度平滑显著提高分段 SNR 并让增益曲线连续；a=0 时增益随噪声随机起伏，a 过大则语音起音被拖慢。<strong>segSNR 无法反映拖尾，必须配合听测。</strong></p>
+<p class="code-hint"><strong>改参数看趋势：</strong>把 NOISE_AMP 提到 0.08，观察高噪声下各平滑系数的排序是否改变。　文件位置：<code>part2/13-wiener-mmse/code/13-wiener-mmse.py</code></p>
+<div class="chart-grid">
+<figure class="chart-figure"><img src="fig/13-wiener.svg" alt="平滑系数与分段 SNR" loading="lazy"><figcaption>图 1　平滑系数与分段 SNR（代码合成信号 / 教学示意）</figcaption></figure>
+<figure class="chart-figure"><img src="fig/13-gains.svg" alt="单帧逐频率箱增益曲线" loading="lazy"><figcaption>图 2　单帧逐频率箱增益曲线（代码合成信号 / 教学示意）</figcaption></figure>
+</div>
+<div class="audio-grid">
+<div class="audio-card"><h4>13-noisy.wav</h4><audio controls preload="none" src="audio/13-noisy.wav">浏览器不支持 audio 元素，请直接打开 audio/13-noisy.wav。</audio><p>带噪输入（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+<div class="audio-card"><h4>13-wiener.wav</h4><audio controls preload="none" src="audio/13-wiener.wav">浏览器不支持 audio 元素，请直接打开 audio/13-wiener.wav。</audio><p>a=0.98 的 Wiener 输出（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+</div>
+<div class="card note"><p style="margin-bottom:0">代码块右上角可一键复制；仓库里的 <code>code/*.py</code> 由 <code>tools/extract_code.py</code> 从这些代码块自动抽取。脚本只用标准库、固定 <code>random.seed(7)</code>，运行后写出 <code>fig/*.svg</code> 与 <code>audio/*.wav</code>；批量运行用 <code>./tools/run_python.sh</code>。</p></div>
+</section>
+<section id="commands"><h2><span class="sec-num">§</span>可选真机命令片段</h2>
+<div class="card note"><p style="margin-bottom:0">以下命令<strong>不参与批量运行</strong>，需要本机自行安装对应工具。滤镜是否可用取决于本机 ffmpeg 版本与编译选项，请先用 <code>ffmpeg -filters</code> / <code>ffmpeg -version</code> 自查，并以 https://ffmpeg.org/ffmpeg-filters.html 与各自官方文档为准；本书不假定任何特定版本具备某项能力。</p></div>
+<h3>用 ffmpeg anlmdn 对照非平稳噪声的处理</h3>
+<pre class="cmd" data-lang="shell"><code>ffmpeg -hide_banner -i noisy.wav -af anlmdn=s=256:p=0.002 out.wav</code></pre>
+<p class="code-hint"><strong>说明：</strong>anlmdn 是 ffmpeg 文档中的非局部均值降噪滤镜；参数名与可用性以本机 `ffmpeg -h filter=anlmdn` 与 https://ffmpeg.org/ffmpeg-filters.html 为准。</p>
+</section>
+<section id="highlights"><h2><span class="sec-num">§</span>本章参考资料</h2><p>按本章知识点挑选的精读资料；更多检索入口见 <a href="#extra-links">扩展学习</a>。</p><div class="repo-grid">
+<div class="repo-card"><h3><a href="https://en.wikipedia.org/wiki/Wiener_filter" target="_blank" rel="noopener noreferrer">Wiener filter ↗</a></h3><span class="tag">百科</span><p>最小均方误差意义下的最优线性滤波</p><p style="margin:0;color:var(--ink-faint)">推荐理由：Wiener 滤波的最小均方误差推导</p></div>
+<div class="repo-card"><h3><a href="https://arxiv.org/abs/1709.08243" target="_blank" rel="noopener noreferrer">RNNoise 论文（arXiv 1709.08243） ↗</a></h3><span class="tag">论文</span><p>A Hybrid DSP/Deep Learning Approach to Real-Time Full-Band Speech Enhancement</p><p style="margin:0;color:var(--ink-faint)">推荐理由：混合系统里频带增益的现代版本</p></div>
+<div class="repo-card"><h3><a href="https://ffmpeg.org/ffmpeg-filters.html#anlmdn" target="_blank" rel="noopener noreferrer">ffmpeg anlmdn ↗</a></h3><span class="tag">工具</span><p>非局部均值降噪滤镜，适合平稳噪声</p><p style="margin:0;color:var(--ink-faint)">推荐理由：命令行降噪的另一种思路</p></div>
+<div class="repo-card"><h3><a href="https://www.dsprelated.com/" target="_blank" rel="noopener noreferrer">DSPRelated ↗</a></h3><span class="tag">教材</span><p>自适应滤波、AGC 与实时实现的工程文章与博客</p><p style="margin:0;color:var(--ink-faint)">推荐理由：先验 SNR 与决策导向的工程文章</p></div>
+</div></section>
+<section id="pitfalls"><h2><span class="sec-num">§</span>常见误区</h2><div class="card warn"><ul><li>把 γ 与 ξ 混用，导致增益在静音帧剧烈跳变。</li>
+<li>平滑系数取 1，增益完全不更新，非平稳噪声下失效。</li>
+<li>噪声功率谱用全段均值估计，把语音段也算进噪声。</li>
+<li>认为 Wiener「最优」就等于主观最好（它只最优均方误差）。</li></ul></div></section>
+<section id="exercises"><h2><span class="sec-num">§</span>习题与思考</h2><ol><li>从 MMSE 准则推导实增益 G = ξ/(1+ξ)。</li>
+<li>解释为什么决策导向会引入一帧量级的瞬态拖尾。</li>
+<li>把噪声改成前静后响，观察固定噪声谱的失效。</li></ol></section>
+<section id="extra-links"><h2><span class="sec-num">§</span>扩展学习</h2>
+<div class="repo-grid">
+<div class="repo-card"><h3><a href="https://en.wikipedia.org/wiki/Wiener_filter" target="_blank" rel="noopener noreferrer">Wiener filter ↗</a></h3><span class="tag">百科</span><p>最小均方误差意义下的最优线性滤波</p></div>
+<div class="repo-card"><h3><a href="https://arxiv.org/abs/1709.08243" target="_blank" rel="noopener noreferrer">RNNoise 论文（arXiv 1709.08243） ↗</a></h3><span class="tag">论文</span><p>A Hybrid DSP/Deep Learning Approach to Real-Time Full-Band Speech Enhancement</p></div>
+<div class="repo-card"><h3><a href="https://ffmpeg.org/ffmpeg-filters.html#anlmdn" target="_blank" rel="noopener noreferrer">ffmpeg anlmdn ↗</a></h3><span class="tag">工具</span><p>非局部均值降噪滤镜，适合平稳噪声</p></div>
+<div class="repo-card"><h3><a href="https://www.dsprelated.com/" target="_blank" rel="noopener noreferrer">DSPRelated ↗</a></h3><span class="tag">教材</span><p>自适应滤波、AGC 与实时实现的工程文章与博客</p></div>
+</div>
+<h3>继续检索</h3><ul>
+<li>Google Scholar：<a href='https://scholar.google.com/scholar?q=MMSE%20STSA%20OM-LSA%20a%20priori%20SNR%20MCRA' target='_blank' rel='noopener noreferrer'>MMSE STSA OM-LSA a priori SNR MCRA ↗</a></li>
+<li>arXiv：<a href='https://arxiv.org/search/?query=MMSE%20STSA%20OM-LSA%20a%20priori%20SNR%20MCRA&searchtype=all' target='_blank' rel='noopener noreferrer'>MMSE STSA OM-LSA a priori SNR MCRA ↗</a></li>
+<li>GitHub：<a href='https://github.com/search?q=MMSE%20STSA%20OM-LSA%20a%20priori%20SNR%20MCRA&type=repositories' target='_blank' rel='noopener noreferrer'>MMSE STSA OM-LSA a priori SNR MCRA ↗</a></li>
+</ul>
+<p class="code-hint">全书链接总表见 <a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a> 与 <a href="../../appendix/index.html#sA-7">附录 A.7</a>；滤镜是否可用请以本机 <code>ffmpeg -filters</code> 为准。</p>
+</section>
+<section id="further"><h2><span class="sec-num">§</span>延伸阅读与内链</h2><ul><li><a href='../../part1/08-noise-estimation/index.html'>第 08 章 · VAD 与噪声功率谱估计（MCRA 思路）</a> 噪声功率估计；<a href='../../part4/19-tf-mask/index.html'>第 19 章 · 时频掩码：IBM / IRM / CRM 与监督学习形式化</a> 可学习掩码；<a href='../../part5/23-neural-ns/index.html'>第 23 章 · 神经噪声抑制：从 RNNoise 到 DNS Challenge</a> RNNoise 频带增益。</li></ul></section>
+<footer class="pager" data-autofill></footer>
+<footer class="site-foot">
+<p class="credits"><strong>作者</strong>：汪亮（bertonwang）　<strong>联系邮箱</strong>：<a href="mailto:47608843@qq.com">47608843@qq.com</a></p>
+<p class="ai-note"><strong>AI 使用说明</strong>：本教材的知识框架、正文、Python 实验脚本与参考资料清单在 AI 辅助下整理生成，并经人工校订、实际运行与静态自检。公式、数值与运行结果请以Python 3 实际输出及权威教材、官方文档为准；发现错漏欢迎通过上方邮箱勘误。</p>
+<p class="imprint">音频 3A 处理：从自适应滤波到神经增强 · 每章一个 <code>code/*.py</code> 实验脚本、<code>fig/*.svg</code> 矢量图与 <code>audio/*.wav</code> 试听样本（由 <code>tools/extract_code.py</code> 与脚本运行同步） · 只用 Python 3 标准库 · 教学材料，信号全部由代码合成。</p>
+</footer>
+</main>
+</body>
+</html>

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 29 章 · 量化、剪枝与端侧推理 | 音频 3A 处理：从自适应滤波到神经增强</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<script src="../../assets/toc.js" defer></script>
+<script src="../../assets/app.js" defer></script>
+</head>
+<body data-root="../../" data-chapter="29">
+<aside id="sidebar"></aside>
+<main class="book-page">
+<nav class="breadcrumb" data-autofill>总目录</nav>
+<header class="chapter-head">
+<span class="kicker">第六篇 · 实时部署、评测与前沿 · 下卷 · AI 算法（Data-driven）</span>
+<h1><span class="ch-num">第 29 章</span>量化、剪枝与端侧推理</h1>
+<p class="lede">把浮点模型塞进端侧预算，同时守住「不能听出来」这条底线。</p>
+<div class="meta">
+<span class="badge done">已完稿</span>
+<span class="badge s4">部署 · 前沿</span>
+<span class="badge neural">下卷 · AI 算法</span>
+<span>建议 3 学时</span>
+<span>1 个 Python 实验 · 2 张图 · 2 段试听</span>
+<span>音频 3A 处理：从自适应滤波到神经增强</span>
+</div></header>
+<p class="bridge"><strong>本章位置：</strong><a href='../27-causal-streaming/index.html'>第 27 章 · 因果性与流式推理：状态缓存、感受野</a> 与 <a href='../28-latency-budget/index.html'>第 28 章 · 延迟预算与 RTF：实时链路账本</a> 给出状态与时间约束，本章压缩空间与算力；<a href='../30-generalization/index.html'>第 30 章 · 泛化、鲁棒性与评测陷阱</a> 讨论分布外泛化，<a href='../31-capstone/index.html'>第 31 章 · 结课项目：小型掩码估计器与全链路验证</a> 把全部约束写进结课验收。</p>
+<div class="analogy"><span class="card-label">给程序员的翻译</span><p style="margin-bottom:0">量化是给模型的所有数换一把刻度更粗的尺子；校准是先量出这批数到底有多大，再决定尺子的量程。</p></div>
+<div class="card objectives"><span class="card-label">学习目标</span><ul>
+<li>能写出均匀量化的误差模型并估算量化 SNR。</li>
+<li>能区分训练后量化 PTQ 与量化感知训练 QAT。</li>
+<li>能量化不同位深对掩码精度与增强质量的影响。</li>
+<li>能列出端侧部署的完整检查清单。</li>
+</ul></div>
+<section id="map"><h2><span class="sec-num">§</span>知识点地图</h2>
+<p class="code-hint">每个知识点都配了 1～2 个扩展学习链接；本章完整资源清单见 <a href="#extra-links">扩展学习</a>。</p>
+<table><thead><tr><th style="width:44px">#</th><th style="width:26%">知识点</th><th>扩展学习</th><th style="width:100px">状态</th></tr></thead><tbody>
+<tr><td>1</td><td>均匀量化与步长</td><td><a href="https://onnxruntime.ai/" target="_blank" rel="noopener noreferrer">ONNX Runtime ↗</a> · <a href="https://en.wikipedia.org/wiki/Quantization_(signal_processing)" target="_blank" rel="noopener noreferrer">Quantization (signal processing) ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>2</td><td>int8 与定点 DSP</td><td><a href="https://en.wikipedia.org/wiki/Quantization_(signal_processing)" target="_blank" rel="noopener noreferrer">Quantization (signal processing) ↗</a> · <a href="https://onnxruntime.ai/" target="_blank" rel="noopener noreferrer">ONNX Runtime ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>3</td><td>量化噪声与 SNR</td><td><a href="https://ffmpeg.org/ffmpeg-filters.html#afftdn" target="_blank" rel="noopener noreferrer">ffmpeg afftdn ↗</a> · <a href="https://github.com/microsoft/DNS-Challenge" target="_blank" rel="noopener noreferrer">Microsoft DNS Challenge ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>4</td><td>训练后量化 PTQ</td><td><a href="https://github.com/microsoft/DNS-Challenge" target="_blank" rel="noopener noreferrer">Microsoft DNS Challenge ↗</a> · <a href="https://github.com/speechbrain/speechbrain" target="_blank" rel="noopener noreferrer">SpeechBrain ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>5</td><td>量化感知训练 QAT</td><td><a href="https://github.com/microsoft/DNS-Challenge" target="_blank" rel="noopener noreferrer">Microsoft DNS Challenge ↗</a> · <a href="https://github.com/speechbrain/speechbrain" target="_blank" rel="noopener noreferrer">SpeechBrain ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>6</td><td>校准与激活范围</td><td><a href="https://en.wikipedia.org/wiki/Quantization_(signal_processing)" target="_blank" rel="noopener noreferrer">Quantization (signal processing) ↗</a> · <a href="https://onnxruntime.ai/" target="_blank" rel="noopener noreferrer">ONNX Runtime ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>7</td><td>剪枝与稀疏</td><td><a href="https://en.wikipedia.org/wiki/Quantization_(signal_processing)" target="_blank" rel="noopener noreferrer">Quantization (signal processing) ↗</a> · <a href="https://onnxruntime.ai/" target="_blank" rel="noopener noreferrer">ONNX Runtime ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>8</td><td>端侧推理检查清单</td><td><a href="https://en.wikipedia.org/wiki/Quantization_(signal_processing)" target="_blank" rel="noopener noreferrer">Quantization (signal processing) ↗</a> · <a href="https://onnxruntime.ai/" target="_blank" rel="noopener noreferrer">ONNX Runtime ↗</a></td><td>正文已覆盖</td></tr>
+</tbody></table></section>
+<section id="s29-1"><h2><span class="sec-num">§29.1</span>量化就是给每个数重新定一把尺子</h2>
+<p class="eq">q = round(x / Δ)·Δ　，Δ = (x_max − x_min)/(2^b − 1)　，SNR_q ≈ 6.02·b + 1.76 dB</p>
+<p><a href='../../part0/02-time-frequency/index.html'>第 02 章 · 采样、量化与时频表示：从 PCM 到 STFT</a> 讨论过 PCM 量化，模型量化是同一件事，只是对象从波形换成权重与激活。对输出在 <code>[0,1]</code> 的掩码/增益，尺子是固定的；对权重则要先统计每层的动态范围（校准），否则少数离群值会把步长撑大、精度全丢。</p>
+<table><thead><tr><th style="width:16%">方法</th><th style="width:28%">何时做</th><th style="width:22%">需要数据吗</th><th style="width:34%">特点</th></tr></thead><tbody>
+<tr><td>PTQ</td><td>训练完成后</td><td>少量校准集</td><td>最快，低比特时掉点明显</td></tr>
+<tr><td>QAT</td><td>训练中插入伪量化</td><td>完整训练集</td><td>精度最好，训练成本最高</td></tr>
+<tr><td>动态量化</td><td>推理时按 batch 统计</td><td>不需要</td><td>权重定长，激活范围动态</td></tr>
+<tr><td>剪枝</td><td>训练中或之后</td><td>可选</td><td>减少 MACs，但需硬件支持稀疏</td></tr>
+</tbody></table>
+</section>
+<section id="s29-2"><h2><span class="sec-num">§29.2</span>端侧部署的检查清单</h2>
+<ul>
+<li><strong>精度</strong>：同时报客观指标与主观听测；只报 segSNR 会漏掉量化引入的音乐噪声。</li>
+<li><strong>算子</strong>：确认目标运行时支持所用算子（复数卷积、GRU、因果注意力）。</li>
+<li><strong>状态</strong>：流式状态本身也要量化或保持浮点，否则 <a href='../27-causal-streaming/index.html'>第 27 章 · 因果性与流式推理：状态缓存、感受野</a> 的等价性测试会失败。</li>
+<li><strong>预算</strong>：重算 <a href='../28-latency-budget/index.html'>第 28 章 · 延迟预算与 RTF：实时链路账本</a> 的 RTF 与内存带宽，并测最坏单帧耗时；int8 未必等于 4 倍加速。</li>
+<li><strong>回退</strong>：保留一条传统 3A 兜底链路，在模型加载失败或设备过载时降级。</li>
+</ul>
+<div class="card note"><span class="card-label">实验口径</span><p style="margin-bottom:0">下面把 oracle IRM 掩码均匀量化到 2～16 bit，测量掩码 SNR 与增强后的分段 SNR。这一步隔离了「量化」这一项误差，不含模型训练误差，便于看清位深的边际收益。</p></div>
+</section>
+<section id="lab"><h2><span class="sec-num">§</span>Python 实验</h2>
+<h3>实验 29-1 · 掩码位深扫描：量化噪声、增强质量与模型体积</h3>
+<pre class="code" data-file="code/29-quantization.py" data-lang="Python 3 · 标准库"><code>#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""把 oracle 掩码量化到 2～16 bit，测量掩码 SNR、分段 SNR 与模型体积估算。
+
+全部语音 / 噪声 / 房间冲激响应均为代码合成信号，仅用于教学演示机制与量级。
+"""
+from __future__ import annotations
+
+import math
+import pathlib
+import random
+import statistics
+import sys
+import time
+
+_here = pathlib.Path(__file__).resolve()
+for _p in _here.parents:
+    if (_p / "tools" / "dsp.py").exists():
+        sys.path.insert(0, str(_p / "tools"))
+        break
+from dsp import (SAMPLE_RATE, fft, hann, stft, istft, magnitude_db, spectrum,
+                 white_noise, tone, chirp, synthetic_speech, rir, convolve,
+                 fft_convolve, delay, clip, normalize_peak, rms, rolling_rms,
+                 smooth, db, energy_db, snr_db, erle_db, seg_snr_db,
+                 scale_align, si_sdr_db, lufs_approx,
+                 write_wav, read_wav, wav_info)
+from chart import Chart, heatmap, BLUE, RED, GREEN, AMBER
+
+FIG = _here.parents[1] / "fig"
+AUDIO = _here.parents[1] / "audio"
+FIG.mkdir(exist_ok=True)
+AUDIO.mkdir(exist_ok=True)
+
+random.seed(7)
+
+# ---- 参数区 ----
+N = 8000
+N_FFT, HOP = 256, 128
+NOISE_AMP = 0.035
+BITS = (2, 4, 6, 8, 12, 16)
+MODEL_PARAMS = 100000
+
+# ---- 计算与作图 ----
+rng = random.Random(7)
+clean = synthetic_speech(rng, N)
+noise = white_noise(rng, N, NOISE_AMP)
+noisy = [clean[i] + noise[i] for i in range(N)]
+fs, fn = stft(clean, N_FFT, HOP), stft(noise, N_FFT, HOP)
+
+def quantize(v, bits):
+    levels = 2 ** bits - 1
+    return round(max(0.0, min(1.0, v)) * levels) / levels
+def enhance(bits):
+    frames = stft(noisy, N_FFT, HOP)
+    err2, energy, count = 0.0, 0.0, 0
+    for idx, (ry, iy) in enumerate(frames):
+        rs, is_ = fs[idx]
+        rn, in_ = fn[idx]
+        for k in range(N_FFT):
+            ms = math.hypot(rs[k], is_[k])
+            mn = math.hypot(rn[k], in_[k])
+            g0 = ms / (ms + mn + 1e-9)
+            g = quantize(g0, bits)
+            err2 += (g - g0) ** 2
+            energy += g0 ** 2
+            count += 1
+            ry[k] *= g
+            iy[k] *= g
+    return istft(frames, N_FFT, HOP, N), 10 * math.log10((energy / count) / (err2 / count + 1e-12))
+outputs, segs, mask_snrs = [], [], []
+for b in BITS:
+    out, m = enhance(b)
+    outputs.append(out)
+    segs.append(seg_snr_db(clean, scale_align(out, clean)))
+    mask_snrs.append(m)
+c = Chart(FIG / "29-bits.svg", "掩码位深与增强后分段 SNR", xlabel="位深 (bit)", ylabel="dB",
+          xticks=[(i, "%d" % b) for i, b in enumerate(BITS)])
+c.line(range(len(BITS)), segs, BLUE, label="分段 SNR (dB)")
+print("位深图:", c.save())
+m = Chart(FIG / "29-mask.svg", "掩码位深与掩码量化 SNR", xlabel="位深 (bit)", ylabel="dB",
+          xticks=[(i, "%d" % b) for i, b in enumerate(BITS)])
+m.line(range(len(BITS)), mask_snrs, GREEN, label="掩码 SNR (dB)")
+m.line(range(len(BITS)), [6.02 * b + 1.76 - 6.02 for b in BITS], RED, label="理论趋势（相对偏移）")
+print("掩码图:", m.save())
+write_wav(AUDIO / "29-4bit.wav", normalize_peak(outputs[1]))
+write_wav(AUDIO / "29-12bit.wav", normalize_peak(outputs[4]))
+sizes = [MODEL_PARAMS * b / 8.0 / 1024.0 for b in BITS]
+print("分段 SNR: " + " ".join("%dbit=%.2f" % (b, s) for b, s in zip(BITS, segs)))
+print("掩码 SNR: " + " ".join("%dbit=%.2f" % (b, s) for b, s in zip(BITS, mask_snrs)))
+print("模型体积(估算, %d 参数): " % MODEL_PARAMS +
+      " ".join("%dbit=%.1fKB" % (b, z) for b, z in zip(BITS, sizes)))
+print("SAMPLE_RATE=%d | 低比特省内存但可能引入音乐噪声" % SAMPLE_RATE)</code></pre>
+<p class="code-hint"><strong>操作：</strong>对照两条曲线，找出「再增加位深收益很小」的拐点；试听 4 bit 与 12 bit。　<strong>预期与判读：</strong>掩码 SNR 随位深约每 bit 提升 6 dB；分段 SNR 在 8 bit 之后趋于饱和，说明<strong>继续加位深对最终听感的边际收益很小</strong>。低比特的量化台阶可能带来可听的增益跳变。</p>
+<p class="code-hint"><strong>改参数看趋势：</strong>把 NOISE_AMP 提到 0.10，观察低比特与高比特的差距是否拉大。　文件位置：<code>part6/29-quantization/code/29-quantization.py</code></p>
+<div class="chart-grid">
+<figure class="chart-figure"><img src="fig/29-bits.svg" alt="位深与增强后分段 SNR" loading="lazy"><figcaption>图 1　位深与增强后分段 SNR（代码合成信号 / 教学示意）</figcaption></figure>
+<figure class="chart-figure"><img src="fig/29-mask.svg" alt="位深与掩码量化 SNR" loading="lazy"><figcaption>图 2　位深与掩码量化 SNR（代码合成信号 / 教学示意）</figcaption></figure>
+</div>
+<div class="audio-grid">
+<div class="audio-card"><h4>29-4bit.wav</h4><audio controls preload="none" src="audio/29-4bit.wav">浏览器不支持 audio 元素，请直接打开 audio/29-4bit.wav。</audio><p>4 bit 掩码的输出（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+<div class="audio-card"><h4>29-12bit.wav</h4><audio controls preload="none" src="audio/29-12bit.wav">浏览器不支持 audio 元素，请直接打开 audio/29-12bit.wav。</audio><p>12 bit 掩码的输出（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+</div>
+<div class="card note"><p style="margin-bottom:0">代码块右上角可一键复制；仓库里的 <code>code/*.py</code> 由 <code>tools/extract_code.py</code> 从这些代码块自动抽取。脚本只用标准库、固定 <code>random.seed(7)</code>，运行后写出 <code>fig/*.svg</code> 与 <code>audio/*.wav</code>；批量运行用 <code>./tools/run_python.sh</code>。</p></div>
+</section>
+<section id="commands"><h2><span class="sec-num">§</span>可选真机命令片段</h2>
+<div class="card note"><p style="margin-bottom:0">以下命令<strong>不参与批量运行</strong>，需要本机自行安装对应工具。滤镜是否可用取决于本机 ffmpeg 版本与编译选项，请先用 <code>ffmpeg -filters</code> / <code>ffmpeg -version</code> 自查，并以 https://ffmpeg.org/ffmpeg-filters.html 与各自官方文档为准；本书不假定任何特定版本具备某项能力。</p></div>
+<h3>查看 ONNX Runtime 的量化入口</h3>
+<pre class="cmd" data-lang="shell"><code>python3 -c "import onnxruntime; print(onnxruntime.__version__)"</code></pre>
+<p class="code-hint"><strong>说明：</strong>本机未必安装 onnxruntime；进阶路径见 https://onnxruntime.ai/ ，本书实验不依赖任何第三方包。</p>
+</section>
+<section id="highlights"><h2><span class="sec-num">§</span>本章参考资料</h2><p>按本章知识点挑选的精读资料；更多检索入口见 <a href="#extra-links">扩展学习</a>。</p><div class="repo-grid">
+<div class="repo-card"><h3><a href="https://en.wikipedia.org/wiki/Quantization_(signal_processing)" target="_blank" rel="noopener noreferrer">Quantization (signal processing) ↗</a></h3><span class="tag">百科</span><p>模型 int8 量化与定点 DSP 的共同基础</p><p style="margin:0;color:var(--ink-faint)">推荐理由：定点与均匀量化的共同基础</p></div>
+<div class="repo-card"><h3><a href="https://onnxruntime.ai/" target="_blank" rel="noopener noreferrer">ONNX Runtime ↗</a></h3><span class="tag">工程</span><p>端侧推理运行时，神经 3A 部署常用目标</p><p style="margin:0;color:var(--ink-faint)">推荐理由：端侧量化推理的常用运行时</p></div>
+<div class="repo-card"><h3><a href="https://github.com/xiph/rnnoise" target="_blank" rel="noopener noreferrer">RNNoise ↗</a></h3><span class="tag">工程</span><p>Valin 的混合 DSP/深度学习实时降噪，ffmpeg arnndn 的模型来源</p><p style="margin:0;color:var(--ink-faint)">推荐理由：极小模型 + 定点实现的工程范例</p></div>
+<div class="repo-card"><h3><a href="https://github.com/Rikorose/DeepFilterNet" target="_blank" rel="noopener noreferrer">DeepFilterNet ↗</a></h3><span class="tag">工程</span><p>低算力实时语音增强，复数滤波 + 深度掩码</p><p style="margin:0;color:var(--ink-faint)">推荐理由：低算力实时增强的模型压缩思路</p></div>
+</div></section>
+<section id="repos"><h2><span class="sec-num">§</span>相关开源工程</h2><p>下列工程仅作技术参照，版权与许可证归各自维护者所有。本书实验不依赖它们，也与之无从属关系。</p><div class="repo-grid">
+<div class="repo-card"><h3><a href="https://onnxruntime.ai/" target="_blank" rel="noopener noreferrer">ONNX Runtime ↗</a></h3><span class="tag">部署</span><p>端侧推理、量化与算子支持检查的常用目标</p></div>
+<div class="repo-card"><h3><a href="https://github.com/xiph/rnnoise" target="_blank" rel="noopener noreferrer">RNNoise ↗</a></h3><span class="tag">AI · C</span><p>极小模型与定点实时实现的参考</p></div>
+</div></section>
+<section id="pitfalls"><h2><span class="sec-num">§</span>常见误区</h2><div class="card warn"><ul><li>不做校准直接按理论范围量化，离群值毁掉精度。</li>
+<li>只报模型体积，不报量化后的指标与听测。</li>
+<li>忘记把流式状态一并量化或保持浮点。</li>
+<li>默认 int8 必然带来 4 倍加速，忽略内存带宽与算子支持。</li></ul></div></section>
+<section id="exercises"><h2><span class="sec-num">§</span>习题与思考</h2><ol><li>推导均匀量化的 SNR ≈ 6.02b + 1.76 dB。</li>
+<li>解释 PTQ 与 QAT 各自的适用场景。</li>
+<li>写一份至少 6 项的端侧部署检查清单。</li></ol></section>
+<section id="extra-links"><h2><span class="sec-num">§</span>扩展学习</h2>
+<div class="repo-grid">
+<div class="repo-card"><h3><a href="https://en.wikipedia.org/wiki/Quantization_(signal_processing)" target="_blank" rel="noopener noreferrer">Quantization (signal processing) ↗</a></h3><span class="tag">百科</span><p>模型 int8 量化与定点 DSP 的共同基础</p></div>
+<div class="repo-card"><h3><a href="https://onnxruntime.ai/" target="_blank" rel="noopener noreferrer">ONNX Runtime ↗</a></h3><span class="tag">工程</span><p>端侧推理运行时，神经 3A 部署常用目标</p></div>
+<div class="repo-card"><h3><a href="https://github.com/xiph/rnnoise" target="_blank" rel="noopener noreferrer">RNNoise ↗</a></h3><span class="tag">工程</span><p>Valin 的混合 DSP/深度学习实时降噪，ffmpeg arnndn 的模型来源</p></div>
+<div class="repo-card"><h3><a href="https://github.com/Rikorose/DeepFilterNet" target="_blank" rel="noopener noreferrer">DeepFilterNet ↗</a></h3><span class="tag">工程</span><p>低算力实时语音增强，复数滤波 + 深度掩码</p></div>
+</div>
+<h3>继续检索</h3><ul>
+<li>Google Scholar：<a href='https://scholar.google.com/scholar?q=model%20quantization%20int8%20inference%20edge%20DSP' target='_blank' rel='noopener noreferrer'>model quantization int8 inference edge DSP ↗</a></li>
+<li>arXiv：<a href='https://arxiv.org/search/?query=model%20quantization%20int8%20inference%20edge%20DSP&searchtype=all' target='_blank' rel='noopener noreferrer'>model quantization int8 inference edge DSP ↗</a></li>
+<li>GitHub：<a href='https://github.com/search?q=model%20quantization%20int8%20inference%20edge%20DSP&type=repositories' target='_blank' rel='noopener noreferrer'>model quantization int8 inference edge DSP ↗</a></li>
+</ul>
+<p class="code-hint">全书链接总表见 <a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a> 与 <a href="../../appendix/index.html#sA-7">附录 A.7</a>；滤镜是否可用请以本机 <code>ffmpeg -filters</code> 为准。</p>
+</section>
+<section id="further"><h2><span class="sec-num">§</span>延伸阅读与内链</h2><ul><li><a href='../28-latency-budget/index.html'>第 28 章 · 延迟预算与 RTF：实时链路账本</a> 延迟预算；<a href='../30-generalization/index.html'>第 30 章 · 泛化、鲁棒性与评测陷阱</a> 泛化；<a href='../31-capstone/index.html'>第 31 章 · 结课项目：小型掩码估计器与全链路验证</a> 结课项目。</li></ul></section>
+<footer class="pager" data-autofill></footer>
+<footer class="site-foot">
+<p class="credits"><strong>作者</strong>：汪亮（bertonwang）　<strong>联系邮箱</strong>：<a href="mailto:47608843@qq.com">47608843@qq.com</a></p>
+<p class="ai-note"><strong>AI 使用说明</strong>：本教材的知识框架、正文、Python 实验脚本与参考资料清单在 AI 辅助下整理生成，并经人工校订、实际运行与静态自检。公式、数值与运行结果请以Python 3 实际输出及权威教材、官方文档为准；发现错漏欢迎通过上方邮箱勘误。</p>
+<p class="imprint">音频 3A 处理：从自适应滤波到神经增强 · 每章一个 <code>code/*.py</code> 实验脚本、<code>fig/*.svg</code> 矢量图与 <code>audio/*.wav</code> 试听样本（由 <code>tools/extract_code.py</code> 与脚本运行同步） · 只用 Python 3 标准库 · 教学材料，信号全部由代码合成。</p>
+</footer>
+</main>
+</body>
+</html>

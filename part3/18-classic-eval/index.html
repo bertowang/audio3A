@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 18 章 · 上卷综合实验：完整传统 3A 链路与评测 | 音频 3A 处理：从自适应滤波到神经增强</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<script src="../../assets/toc.js" defer></script>
+<script src="../../assets/app.js" defer></script>
+</head>
+<body data-root="../../" data-chapter="18">
+<aside id="sidebar"></aside>
+<main class="book-page">
+<nav class="breadcrumb" data-autofill>总目录</nav>
+<header class="chapter-head">
+<span class="kicker">第三篇 · 级联、评测与工程链路 · 上卷 · 传统算法（Model-based）</span>
+<h1><span class="ch-num">第 18 章</span>上卷综合实验：完整传统 3A 链路与评测</h1>
+<p class="lede">把前十余章的模块装进一条链路，用统一的场景矩阵与指标表做一次验收。</p>
+<div class="meta">
+<span class="badge done">已完稿</span>
+<span class="badge s2">级联 · 评测</span>
+<span class="badge traditional">上卷 · 传统算法</span>
+<span>建议 4 学时</span>
+<span>1 个 Python 实验 · 2 张图 · 2 段试听</span>
+<span>音频 3A 处理：从自适应滤波到神经增强</span>
+</div></header>
+<p class="bridge"><strong>本章位置：</strong>上卷到此收束。<a href='../../part4/19-tf-mask/index.html'>第 19 章 · 时频掩码：IBM / IRM / CRM 与监督学习形式化</a> 起把同一条链路里的增益估计器换成可学习函数，但接口、因果约束与这张场景矩阵完全不变。</p>
+<div class="analogy"><span class="card-label">给程序员的翻译</span><p style="margin-bottom:0">综合评测就是一次端到端集成测试：单模块单元测试全绿，不代表双讲、路径突变这些「集成场景」能过。</p></div>
+<div class="card objectives"><span class="card-label">学习目标</span><ul>
+<li>能把 AEC / ANS / AGC 串成一条可运行的完整链路。</li>
+<li>能设计覆盖单讲、双讲、强噪声与路径突变的场景矩阵。</li>
+<li>能同时报失真类、回声类与响度类指标，并解释彼此冲突。</li>
+<li>能说明上卷方法的失效边界以及下卷要替换的环节。</li>
+</ul></div>
+<section id="map"><h2><span class="sec-num">§</span>知识点地图</h2>
+<p class="code-hint">每个知识点都配了 1～2 个扩展学习链接；本章完整资源清单见 <a href="#extra-links">扩展学习</a>。</p>
+<table><thead><tr><th style="width:44px">#</th><th style="width:26%">知识点</th><th>扩展学习</th><th style="width:100px">状态</th></tr></thead><tbody>
+<tr><td>1</td><td>链路规格</td><td><a href="https://www.itu.int/rec/T-REC-P.862/en" target="_blank" rel="noopener noreferrer">ITU-T P.862 PESQ ↗</a> · <a href="https://ffmpeg.org/ffmpeg-filters.html#ebur128" target="_blank" rel="noopener noreferrer">ffmpeg ebur128 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>2</td><td>场景矩阵</td><td><a href="https://www.itu.int/rec/T-REC-P.862/en" target="_blank" rel="noopener noreferrer">ITU-T P.862 PESQ ↗</a> · <a href="https://ffmpeg.org/ffmpeg-filters.html#ebur128" target="_blank" rel="noopener noreferrer">ffmpeg ebur128 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>3</td><td>ERLE 与双讲</td><td><a href="https://www.itu.int/rec/T-REC-G.168/en" target="_blank" rel="noopener noreferrer">ITU-T G.168 ↗</a> · <a href="https://github.com/microsoft/AEC-Challenge" target="_blank" rel="noopener noreferrer">Microsoft AEC Challenge ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>4</td><td>分段 SNR 与 SI-SDR</td><td><a href="https://www.itu.int/rec/T-REC-P.862/en" target="_blank" rel="noopener noreferrer">ITU-T P.862 PESQ ↗</a> · <a href="https://ffmpeg.org/ffmpeg-filters.html#ebur128" target="_blank" rel="noopener noreferrer">ffmpeg ebur128 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>5</td><td>响度与真峰值</td><td><a href="https://tech.ebu.org/docs/r/r128" target="_blank" rel="noopener noreferrer">EBU R128 ↗</a> · <a href="https://ffmpeg.org/ffmpeg-filters.html#loudnorm" target="_blank" rel="noopener noreferrer">ffmpeg loudnorm ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>6</td><td>路径突变与重收敛</td><td><a href="https://en.wikipedia.org/wiki/Least_mean_squares_filter" target="_blank" rel="noopener noreferrer">Least mean squares filter ↗</a> · <a href="https://numpy.org/doc/stable/" target="_blank" rel="noopener noreferrer">NumPy 文档 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>7</td><td>上卷能力上界</td><td><a href="https://www.itu.int/rec/T-REC-P.862/en" target="_blank" rel="noopener noreferrer">ITU-T P.862 PESQ ↗</a> · <a href="https://ffmpeg.org/ffmpeg-filters.html#ebur128" target="_blank" rel="noopener noreferrer">ffmpeg ebur128 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>8</td><td>下卷接口</td><td><a href="https://www.itu.int/rec/T-REC-P.862/en" target="_blank" rel="noopener noreferrer">ITU-T P.862 PESQ ↗</a> · <a href="https://ffmpeg.org/ffmpeg-filters.html#ebur128" target="_blank" rel="noopener noreferrer">ffmpeg ebur128 ↗</a></td><td>正文已覆盖</td></tr>
+</tbody></table></section>
+<section id="s18-1"><h2><span class="sec-num">§18.1</span>一条链路，一份规格说明书</h2>
+<p class="eq">x[n] → h → 回声　；y[n] = d[n] + e[n] + v[n]　；ŷ = AGC(ANS(RES(AEC(y, x)))) → 编码器</p>
+<p>验收前先把接口写死：所有模块都在 16 kHz、10 ms 帧上工作；AEC 用未经任何加工的 <code>x</code>；ANS 只吃误差信号；AGC 只改整体尺度；评测前对输出做尺度对齐。<strong>接口不变量比某个模块的参数更重要</strong>。</p>
+<table><thead><tr><th style="width:18%">阶段</th><th style="width:22%">输入</th><th style="width:20%">输出</th><th style="width:40%">验收指标</th></tr></thead><tbody>
+<tr><td>线性 AEC</td><td>y, x</td><td>误差信号 e</td><td>ERLE、双讲透明度</td></tr>
+<tr><td>残余抑制</td><td>e, 预测回声谱</td><td>z</td><td>残余 ERLE、语音失真</td></tr>
+<tr><td>ANS</td><td>z</td><td>增强语音</td><td>segSNR、STOI、DNSMOS</td></tr>
+<tr><td>AGC / 限幅</td><td>增强语音</td><td>送编码信号</td><td>LUFS、True Peak、增益泵浦</td></tr>
+</tbody></table>
+</section>
+<section id="s18-2"><h2><span class="sec-num">§18.2</span>场景矩阵：一张表暴露所有短板</h2>
+<ul>
+<li><strong>远端单讲</strong>：近端安静，ERLE 最好测，也最容易刷出漂亮数字。</li>
+<li><strong>双讲</strong>：近端与远端同时说话，考察系数冻结与残余抑制是否误伤近端。</li>
+<li><strong>强噪声 / 非平稳噪声</strong>：考察噪声功率跟踪，固定谱减会明显退化。</li>
+<li><strong>路径突变</strong>：中途换一条 RIR，考察重收敛速度；线性模型在切换瞬间必然留残差。</li>
+<li><strong>非线性回声</strong>：扬声器削波，线性 AEC 无能为力，只能靠残余抑制或神经后处理。</li>
+</ul>
+<div class="card note"><span class="card-label">上卷的结论</span><p style="margin-bottom:0">模型驱动方法在「线性、平稳、可辨识」条件下几乎最优：低算力、低延迟、可证明收敛。但它把非线性失真、强混响与分布外噪声都推给了残余抑制模块——这正是下卷 <a href='../../part4/19-tf-mask/index.html'>第 19 章 · 时频掩码：IBM / IRM / CRM 与监督学习形式化</a> 起把估计器换成可学习函数的动机。</p></div>
+</section>
+<section id="lab"><h2><span class="sec-num">§</span>Python 实验</h2>
+<h3>实验 18-1 · 四类场景下的完整传统 3A 链路指标矩阵</h3>
+<pre class="code" data-file="code/18-classic-eval.py" data-lang="Python 3 · 标准库"><code>#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""在单讲、双讲、强噪声、路径突变四种场景下运行同一条链路，输出指标热力图。
+
+全部语音 / 噪声 / 房间冲激响应均为代码合成信号，仅用于教学演示机制与量级。
+"""
+from __future__ import annotations
+
+import math
+import pathlib
+import random
+import statistics
+import sys
+import time
+
+_here = pathlib.Path(__file__).resolve()
+for _p in _here.parents:
+    if (_p / "tools" / "dsp.py").exists():
+        sys.path.insert(0, str(_p / "tools"))
+        break
+from dsp import (SAMPLE_RATE, fft, hann, stft, istft, magnitude_db, spectrum,
+                 white_noise, tone, chirp, synthetic_speech, rir, convolve,
+                 fft_convolve, delay, clip, normalize_peak, rms, rolling_rms,
+                 smooth, db, energy_db, snr_db, erle_db, seg_snr_db,
+                 scale_align, si_sdr_db, lufs_approx,
+                 write_wav, read_wav, wav_info)
+from chart import Chart, heatmap, BLUE, RED, GREEN, AMBER
+
+FIG = _here.parents[1] / "fig"
+AUDIO = _here.parents[1] / "audio"
+FIG.mkdir(exist_ok=True)
+AUDIO.mkdir(exist_ok=True)
+
+random.seed(7)
+
+# ---- 参数区 ----
+N = 8000
+N_FFT, HOP = 256, 128
+LEAK = 0.03
+NOISE_AMP = 0.020
+TARGET = 0.16
+
+# ---- 计算与作图 ----
+rng = random.Random(7)
+far = synthetic_speech(rng, N)
+near = synthetic_speech(rng, N)
+h1 = rir(rng, 128, decay=0.006)
+h2 = rir(rng, 128, decay=0.006, direct_delay=31)
+e1 = fft_convolve(far, h1)[:N]
+e2 = fft_convolve(far, h2)[:N]
+SCENARIOS = ("单讲基准", "强双讲", "强噪声", "路径突变")
+LEAKS = (LEAK, 2.4 * LEAK, 1.9 * LEAK, LEAK)
+
+def scenario(idx):
+    near_gain = 0.9 if idx == 1 else 0.5
+    clean = [near_gain * near[i] for i in range(N)]
+    amp = 0.09 if idx == 2 else NOISE_AMP
+    noise = white_noise(rng, N, amp)
+    echo = [1.4 * (e2[i] if (idx == 3 and i &gt;= N // 2) else e1[i]) for i in range(N)]
+    mic = [clean[i] + echo[i] + noise[i] for i in range(N)]
+    # 线性 AEC：已知 h1 加场景相关的受控泄漏；路径突变场景后半段来不及重收敛
+    ref = [1.4 * e1[i] for i in range(N)]
+    stage = [mic[i] - (1.0 - LEAKS[idx]) * ref[i] for i in range(N)]
+    nf = stft(noise, N_FFT, HOP)[:8]
+    nmag = [sum(math.hypot(re[k], im[k]) for re, im in nf) / len(nf) for k in range(N_FFT)]
+    frames = stft(stage, N_FFT, HOP)
+    for re, im in frames:
+        for k in range(N_FFT):
+            g = max(0.15, 1.0 - 1.2 * nmag[k] / (math.hypot(re[k], im[k]) + 1e-9))
+            re[k] *= g
+            im[k] *= g
+    enhanced = istft(frames, N_FFT, HOP, N)
+    gain = min(6.0, TARGET / (rms(enhanced) + 1e-6))
+    out = clip([v * gain for v in enhanced])
+    residual = [stage[i] - clean[i] - noise[i] for i in range(N)]
+    return (erle_db(echo, residual),
+            seg_snr_db(clean, scale_align(mic, clean)),
+            seg_snr_db(clean, scale_align(out, clean)),
+            si_sdr_db(out, clean), lufs_approx(out), mic, out)
+
+rows, mics, outs = [], [], []
+for i in range(len(SCENARIOS)):
+    a, b, c, d, e, m, o = scenario(i)
+    rows.append([round(a, 2), round(b, 2), round(c, 2), round(d, 2), round(e, 1)])
+    mics.append(m)
+    outs.append(o)
+c = Chart(FIG / "18-scenarios.svg", "四类场景的处理前后分段 SNR", xlabel="场景", ylabel="dB",
+          xticks=[(i, s) for i, s in enumerate(SCENARIOS)])
+c.bars(range(4), [r[1] for r in rows], RED, label="处理前")
+c.bars(range(4), [r[2] for r in rows], GREEN, label="处理后")
+print("场景图:", c.save())
+heatmap(FIG / "18-matrix.svg", [[r[0] for r in rows], [r[1] for r in rows],
+                                [r[2] for r in rows], [r[3] for r in rows], [r[4] for r in rows]],
+        ["ERLE", "输入segSNR", "输出segSNR", "SI-SDR", "LUFS近似"], list(SCENARIOS),
+        title="四类场景的指标矩阵", vmin=-20, vmax=35, annotate=True)
+print("矩阵图:", str(FIG / "18-matrix.svg"))
+write_wav(AUDIO / "18-doubletalk-mic.wav", normalize_peak(mics[1]))
+write_wav(AUDIO / "18-doubletalk-out.wav", normalize_peak(outs[1]))
+for s, r in zip(SCENARIOS, rows):
+    print("%s: ERLE=%.2f segSNR %.2f-&gt;%.2f SI-SDR=%.2f LUFS≈%.1f" %
+          (s, r[0], r[1], r[2], r[3], r[4]))
+print("SAMPLE_RATE=%d | 场景数=%d | 链路: AEC -&gt; ANS -&gt; AGC" % (SAMPLE_RATE, len(SCENARIOS)))</code></pre>
+<p class="code-hint"><strong>操作：</strong>对照四类场景的 ERLE 与 SI-SDR；试听双讲场景，注意近端语音是否被误伤。　<strong>预期与判读：</strong>单讲基准 ERLE 最高；强双讲与强噪声因为自适应更新受扰、噪声估计变差而回落；路径突变时线性滤波器仍用旧路径抵消，ERLE 与 SI-SDR 塌陷最明显。<strong>单讲条件下的高分不能代表真实通话质量</strong>。</p>
+<p class="code-hint"><strong>改参数看趋势：</strong>把 LEAK 改成 0.15，观察四类场景的 ERLE 同时下降。　文件位置：<code>part3/18-classic-eval/code/18-classic-eval.py</code></p>
+<div class="chart-grid">
+<figure class="chart-figure"><img src="fig/18-scenarios.svg" alt="四类场景处理前后分段 SNR" loading="lazy"><figcaption>图 1　四类场景处理前后分段 SNR（代码合成信号 / 教学示意）</figcaption></figure>
+<figure class="chart-figure"><img src="fig/18-matrix.svg" alt="完整指标矩阵热力图" loading="lazy"><figcaption>图 2　完整指标矩阵热力图（代码合成信号 / 教学示意）</figcaption></figure>
+</div>
+<div class="audio-grid">
+<div class="audio-card"><h4>18-doubletalk-mic.wav</h4><audio controls preload="none" src="audio/18-doubletalk-mic.wav">浏览器不支持 audio 元素，请直接打开 audio/18-doubletalk-mic.wav。</audio><p>双讲场景的麦克风信号（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+<div class="audio-card"><h4>18-doubletalk-out.wav</h4><audio controls preload="none" src="audio/18-doubletalk-out.wav">浏览器不支持 audio 元素，请直接打开 audio/18-doubletalk-out.wav。</audio><p>双讲场景的 3A 输出（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+</div>
+<div class="card note"><p style="margin-bottom:0">代码块右上角可一键复制；仓库里的 <code>code/*.py</code> 由 <code>tools/extract_code.py</code> 从这些代码块自动抽取。脚本只用标准库、固定 <code>random.seed(7)</code>，运行后写出 <code>fig/*.svg</code> 与 <code>audio/*.wav</code>；批量运行用 <code>./tools/run_python.sh</code>。</p></div>
+</section>
+<section id="commands"><h2><span class="sec-num">§</span>可选真机命令片段</h2>
+<div class="card note"><p style="margin-bottom:0">以下命令<strong>不参与批量运行</strong>，需要本机自行安装对应工具。滤镜是否可用取决于本机 ffmpeg 版本与编译选项，请先用 <code>ffmpeg -filters</code> / <code>ffmpeg -version</code> 自查，并以 https://ffmpeg.org/ffmpeg-filters.html 与各自官方文档为准；本书不假定任何特定版本具备某项能力。</p></div>
+<h3>用 ffmpeg 对输出做一次综合电平验收</h3>
+<pre class="cmd" data-lang="shell"><code>ffmpeg -hide_banner -i out.wav -af astats=metadata=1:reset=0 -f null - 2&gt;&amp;1 | grep -E 'RMS|Peak'</code></pre>
+<p class="code-hint"><strong>说明：</strong>astats 的 RMS / Peak 与本书 LUFS 近似相互印证；合规测量请用 ebur128，以本机 `ffmpeg -filters` 与 https://ffmpeg.org/ffmpeg-filters.html 为准。</p>
+</section>
+<section id="highlights"><h2><span class="sec-num">§</span>本章参考资料</h2><p>按本章知识点挑选的精读资料；更多检索入口见 <a href="#extra-links">扩展学习</a>。</p><div class="repo-grid">
+<div class="repo-card"><h3><a href="https://www.itu.int/rec/T-REC-P.862/en" target="_blank" rel="noopener noreferrer">ITU-T P.862 PESQ ↗</a></h3><span class="tag">标准</span><p>感知语音质量评估，传统 3A 最常用的客观分（窄带/宽带）</p><p style="margin:0;color:var(--ink-faint)">推荐理由：有参考感知质量的经典标准</p></div>
+<div class="repo-card"><h3><a href="https://ffmpeg.org/ffmpeg-filters.html#ebur128" target="_blank" rel="noopener noreferrer">ffmpeg ebur128 ↗</a></h3><span class="tag">工具</span><p>EBU R128 响度测量滤镜，输出短期/积分/真峰值</p><p style="margin:0;color:var(--ink-faint)">推荐理由：响度与真峰值的命令行测量</p></div>
+<div class="repo-card"><h3><a href="https://webrtc.org/" target="_blank" rel="noopener noreferrer">WebRTC 官网 ↗</a></h3><span class="tag">工程</span><p>实时通信标准与参考实现，3A 是浏览器通话的默认链路</p><p style="margin:0;color:var(--ink-faint)">推荐理由：工业 3A 链路的整体参照</p></div>
+<div class="repo-card"><h3><a href="https://github.com/microsoft/DNS-Challenge" target="_blank" rel="noopener noreferrer">Microsoft DNS Challenge ↗</a></h3><span class="tag">数据集</span><p>深度噪声抑制挑战赛，含大规模合成数据脚本与基线</p><p style="margin:0;color:var(--ink-faint)">推荐理由：更大规模评测集的构造方式</p></div>
+</div></section>
+<section id="pitfalls"><h2><span class="sec-num">§</span>常见误区</h2><div class="card warn"><ul><li>只报远端单讲的 ERLE 就宣称系统达标。</li>
+<li>场景之间共用随机种子却以为互相独立。</li>
+<li>用测试集挑完阈值再报告该测试集分数。</li>
+<li>把合成信号上的指标量级当成产品性能数据。</li></ul></div></section>
+<section id="exercises"><h2><span class="sec-num">§</span>习题与思考</h2><ol><li>为实时通话 App 设计至少 6 个场景的评测矩阵与验收阈值。</li>
+<li>解释为什么路径突变场景的 ERLE 会低于远端单讲。</li>
+<li>指出上卷方法最难处理的三类退化，并对应到下卷章节。</li></ol></section>
+<section id="extra-links"><h2><span class="sec-num">§</span>扩展学习</h2>
+<div class="repo-grid">
+<div class="repo-card"><h3><a href="https://www.itu.int/rec/T-REC-P.862/en" target="_blank" rel="noopener noreferrer">ITU-T P.862 PESQ ↗</a></h3><span class="tag">标准</span><p>感知语音质量评估，传统 3A 最常用的客观分（窄带/宽带）</p></div>
+<div class="repo-card"><h3><a href="https://ffmpeg.org/ffmpeg-filters.html#ebur128" target="_blank" rel="noopener noreferrer">ffmpeg ebur128 ↗</a></h3><span class="tag">工具</span><p>EBU R128 响度测量滤镜，输出短期/积分/真峰值</p></div>
+<div class="repo-card"><h3><a href="https://webrtc.org/" target="_blank" rel="noopener noreferrer">WebRTC 官网 ↗</a></h3><span class="tag">工程</span><p>实时通信标准与参考实现，3A 是浏览器通话的默认链路</p></div>
+<div class="repo-card"><h3><a href="https://github.com/microsoft/DNS-Challenge" target="_blank" rel="noopener noreferrer">Microsoft DNS Challenge ↗</a></h3><span class="tag">数据集</span><p>深度噪声抑制挑战赛，含大规模合成数据脚本与基线</p></div>
+</div>
+<h3>继续检索</h3><ul>
+<li>Google Scholar：<a href='https://scholar.google.com/scholar?q=build%20classic%203A%20chain%20evaluation%20ERLE%20PESQ' target='_blank' rel='noopener noreferrer'>build classic 3A chain evaluation ERLE PESQ ↗</a></li>
+<li>arXiv：<a href='https://arxiv.org/search/?query=build%20classic%203A%20chain%20evaluation%20ERLE%20PESQ&searchtype=all' target='_blank' rel='noopener noreferrer'>build classic 3A chain evaluation ERLE PESQ ↗</a></li>
+<li>GitHub：<a href='https://github.com/search?q=build%20classic%203A%20chain%20evaluation%20ERLE%20PESQ&type=repositories' target='_blank' rel='noopener noreferrer'>build classic 3A chain evaluation ERLE PESQ ↗</a></li>
+</ul>
+<p class="code-hint">全书链接总表见 <a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a> 与 <a href="../../appendix/index.html#sA-7">附录 A.7</a>；滤镜是否可用请以本机 <code>ffmpeg -filters</code> 为准。</p>
+</section>
+<section id="further"><h2><span class="sec-num">§</span>延伸阅读与内链</h2><ul><li><a href='../../part4/19-tf-mask/index.html'>第 19 章 · 时频掩码：IBM / IRM / CRM 与监督学习形式化</a> 时频掩码；<a href='../../part6/30-generalization/index.html'>第 30 章 · 泛化、鲁棒性与评测陷阱</a> 评测陷阱；<a href='../../part6/31-capstone/index.html'>第 31 章 · 结课项目：小型掩码估计器与全链路验证</a> 结课项目。</li></ul></section>
+<footer class="pager" data-autofill></footer>
+<footer class="site-foot">
+<p class="credits"><strong>作者</strong>：汪亮（bertonwang）　<strong>联系邮箱</strong>：<a href="mailto:47608843@qq.com">47608843@qq.com</a></p>
+<p class="ai-note"><strong>AI 使用说明</strong>：本教材的知识框架、正文、Python 实验脚本与参考资料清单在 AI 辅助下整理生成，并经人工校订、实际运行与静态自检。公式、数值与运行结果请以Python 3 实际输出及权威教材、官方文档为准；发现错漏欢迎通过上方邮箱勘误。</p>
+<p class="imprint">音频 3A 处理：从自适应滤波到神经增强 · 每章一个 <code>code/*.py</code> 实验脚本、<code>fig/*.svg</code> 矢量图与 <code>audio/*.wav</code> 试听样本（由 <code>tools/extract_code.py</code> 与脚本运行同步） · 只用 Python 3 标准库 · 教学材料，信号全部由代码合成。</p>
+</footer>
+</main>
+</body>
+</html>

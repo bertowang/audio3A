@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 22 章 · 复数域与相位：DCCRN、深度滤波与时域模型 | 音频 3A 处理：从自适应滤波到神经增强</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<script src="../../assets/toc.js" defer></script>
+<script src="../../assets/app.js" defer></script>
+</head>
+<body data-root="../../" data-chapter="22">
+<aside id="sidebar"></aside>
+<main class="book-page">
+<nav class="breadcrumb" data-autofill>总目录</nav>
+<header class="chapter-head">
+<span class="kicker">第四篇 · 数据、表示与学习基础 · 下卷 · AI 算法（Data-driven）</span>
+<h1><span class="ch-num">第 22 章</span>复数域与相位：DCCRN、深度滤波与时域模型</h1>
+<p class="lede">只改幅度不改相位，是一条容易走到头的路；本章说明为什么以及下一步怎么走。</p>
+<div class="meta">
+<span class="badge done">已完稿</span>
+<span class="badge s4">数据 · 表示</span>
+<span class="badge neural">下卷 · AI 算法</span>
+<span>建议 3 学时</span>
+<span>1 个 Python 实验 · 2 张图 · 3 段试听</span>
+<span>音频 3A 处理：从自适应滤波到神经增强</span>
+</div></header>
+<p class="bridge"><strong>本章位置：</strong><a href='../21-network-backbones/index.html'>第 21 章 · 网络骨架：DNN / CRN / U-Net / TCN / Conformer</a> 讨论「读多少上下文」，本章讨论「输出什么域」；<a href='../../part5/23-neural-ns/index.html'>第 23 章 · 神经噪声抑制：从 RNNoise 到 DNS Challenge</a> 回到具体任务，<a href='../../part5/24-neural-aec/index.html'>第 24 章 · 神经 AEC 与回声/噪声联合抑制</a> 把参考信号也接进网络。</p>
+<div class="analogy"><span class="card-label">给程序员的翻译</span><p style="margin-bottom:0">只改幅度相当于给复数只缩放不旋转；复数掩码允许同时旋转，因此能补回 <code>φ_s − φ_y</code> 这一半信息。</p></div>
+<div class="card objectives"><span class="card-label">学习目标</span><ul>
+<li>能说明幅度掩码在相位上的固有误差上界。</li>
+<li>能推导复数比值掩码 CRM 并解释它为何能同时修正幅度与相位。</li>
+<li>能对比谱域复数网络与时域编码器—解码器两条路线。</li>
+<li>能量化相位误差随信噪比的变化。</li>
+</ul></div>
+<section id="map"><h2><span class="sec-num">§</span>知识点地图</h2>
+<p class="code-hint">每个知识点都配了 1～2 个扩展学习链接；本章完整资源清单见 <a href="#extra-links">扩展学习</a>。</p>
+<table><thead><tr><th style="width:44px">#</th><th style="width:26%">知识点</th><th>扩展学习</th><th style="width:100px">状态</th></tr></thead><tbody>
+<tr><td>1</td><td>相位不变假设</td><td><a href="https://github.com/Rikorose/DeepFilterNet" target="_blank" rel="noopener noreferrer">DeepFilterNet ↗</a> · <a href="https://en.wikipedia.org/wiki/Time%E2%80%93frequency_analysis" target="_blank" rel="noopener noreferrer">Ideal ratio mask / T-F masking ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>2</td><td>相位误差上界</td><td><a href="https://github.com/Rikorose/DeepFilterNet" target="_blank" rel="noopener noreferrer">DeepFilterNet ↗</a> · <a href="https://en.wikipedia.org/wiki/Time%E2%80%93frequency_analysis" target="_blank" rel="noopener noreferrer">Ideal ratio mask / T-F masking ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>3</td><td>复数比值掩码 CRM</td><td><a href="https://en.wikipedia.org/wiki/Time%E2%80%93frequency_analysis" target="_blank" rel="noopener noreferrer">Ideal ratio mask / T-F masking ↗</a> · <a href="https://github.com/microsoft/DNS-Challenge" target="_blank" rel="noopener noreferrer">Microsoft DNS Challenge ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>4</td><td>DCCRN 与复数卷积</td><td><a href="https://www.dspguide.com/" target="_blank" rel="noopener noreferrer">The Scientist and Engineer&#x27;s Guide to DSP ↗</a> · <a href="https://docs.scipy.org/doc/scipy/reference/signal.html" target="_blank" rel="noopener noreferrer">SciPy signal ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>5</td><td>深度滤波 DeepFilter</td><td><a href="https://github.com/Rikorose/DeepFilterNet" target="_blank" rel="noopener noreferrer">DeepFilterNet ↗</a> · <a href="https://docs.pytorch.org/audio/stable/index.html" target="_blank" rel="noopener noreferrer">torchaudio ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>6</td><td>时域 Conv-TasNet</td><td><a href="https://github.com/asteroid-team/asteroid" target="_blank" rel="noopener noreferrer">Asteroid ↗</a> · <a href="https://docs.pytorch.org/audio/stable/index.html" target="_blank" rel="noopener noreferrer">torchaudio ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>7</td><td>复数损失与 SI-SDR</td><td><a href="https://github.com/asteroid-team/asteroid" target="_blank" rel="noopener noreferrer">Asteroid ↗</a> · <a href="https://github.com/speechbrain/speechbrain" target="_blank" rel="noopener noreferrer">SpeechBrain ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>8</td><td>相位与可懂度</td><td><a href="https://github.com/Rikorose/DeepFilterNet" target="_blank" rel="noopener noreferrer">DeepFilterNet ↗</a> · <a href="https://en.wikipedia.org/wiki/Time%E2%80%93frequency_analysis" target="_blank" rel="noopener noreferrer">Ideal ratio mask / T-F masking ↗</a></td><td>正文已覆盖</td></tr>
+</tbody></table></section>
+<section id="s22-1"><h2><span class="sec-num">§22.1</span>幅度掩码没有碰过的那半个信息</h2>
+<p class="eq">Y = |Y|·e^{jφ_y}　，Ŝ = G·|Y|·e^{jφ_y}　→　相位误差 Δφ = φ_s − φ_y 完全保留</p>
+<p><a href='../19-tf-mask/index.html'>第 19 章 · 时频掩码：IBM / IRM / CRM 与监督学习形式化</a> 的 IRM 把相位原样留给了带噪信号。低 SNR 时 <code>φ_y</code> 与 <code>φ_s</code> 可能相差很大，此时无论幅度估得多准，重建波形都会与干净信号错开。这解释了为什么纯幅度掩码在高噪声下会出现「听起来闷、指标却不错」的现象。</p>
+<table><thead><tr><th style="width:18%">路线</th><th style="width:30%">输出</th><th style="width:18%">能修相位吗</th><th style="width:34%">代价</th></tr></thead><tbody>
+<tr><td>幅度掩码</td><td>G[t,k] ∈ [0,1]</td><td>不能</td><td>最省算力，低 SNR 受限</td></tr>
+<tr><td>复数掩码</td><td>M[t,k] ∈ ℂ，Ŝ = M·Y</td><td>能</td><td>需复数网络或实部/虚部双通道</td></tr>
+<tr><td>复数谱映射</td><td>直接回归 Ŝ 的实部虚部</td><td>能</td><td>输出动态范围大，训练更难</td></tr>
+<tr><td>时域模型</td><td>一维卷积直接输出波形</td><td>隐式能</td><td>无需 STFT，但感受野与算力要求高</td></tr>
+</tbody></table>
+</section>
+<section id="s22-2"><h2><span class="sec-num">§22.2</span>CRM、DCCRN 与深度滤波</h2>
+<p class="eq">M = S / Y = (S·Y*) / (|Y|² + ε)　→　Re(M) = (S_r Y_r + S_i Y_i)/(|Y|²+ε)</p>
+<p>复数比值掩码就是一次复数除法：把它乘回 <code>Y</code> 能精确还原 <code>S</code>（oracle 情形）。DCCRN 用复数卷积网络去预测这个 <code>M</code>；DeepFilterNet 在低频用深度复数滤波、高频用传统增益，以极低算力换取相位修正；Conv-TasNet 则干脆绕开 STFT，用时域编码器学习一组可学习的「滤波器组」。</p>
+<ul>
+<li><strong>相位与可懂度</strong>：STOI 等可懂度指标对相位误差不如对幅度敏感，但听感与下游 ASR 仍会受影响。</li>
+<li><strong>损失</strong>：复数 MSE、幅度 + 相位加权、或直接 SI-SDR（<a href='../../part5/26-joint-3a/index.html'>第 26 章 · 联合 3A：多任务、级联与端到端建模</a>）。</li>
+<li><strong>实时性</strong>：复数网络参数量约为实数版的两倍，量化前要重算预算（<a href='../../part6/29-quantization/index.html'>第 29 章 · 量化、剪枝与端侧推理</a>）。</li>
+</ul>
+<div class="card note"><span class="card-label">oracle 提醒</span><p style="margin-bottom:0">实验里的 CRM 需要干净谱 <code>S</code>，与 IRM 一样是上界；为得到有限可比的数值，代码给它加了与网络预测误差同量级的扰动。真正部署时必须由网络预测 M，性能还会再下降。</p></div>
+</section>
+<section id="lab"><h2><span class="sec-num">§</span>Python 实验</h2>
+<h3>实验 22-1 · 幅度掩码、复数掩码与相位误差分布</h3>
+<pre class="code" data-file="code/22-complex-phase.py" data-lang="Python 3 · 标准库"><code>#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""计算 IRM 与 oracle CRM，比较二者的 SI-SDR，并画出干净谱与带噪谱的相位误差直方图。
+
+全部语音 / 噪声 / 房间冲激响应均为代码合成信号，仅用于教学演示机制与量级。
+"""
+from __future__ import annotations
+
+import math
+import pathlib
+import random
+import statistics
+import sys
+import time
+
+_here = pathlib.Path(__file__).resolve()
+for _p in _here.parents:
+    if (_p / "tools" / "dsp.py").exists():
+        sys.path.insert(0, str(_p / "tools"))
+        break
+from dsp import (SAMPLE_RATE, fft, hann, stft, istft, magnitude_db, spectrum,
+                 white_noise, tone, chirp, synthetic_speech, rir, convolve,
+                 fft_convolve, delay, clip, normalize_peak, rms, rolling_rms,
+                 smooth, db, energy_db, snr_db, erle_db, seg_snr_db,
+                 scale_align, si_sdr_db, lufs_approx,
+                 write_wav, read_wav, wav_info)
+from chart import Chart, heatmap, BLUE, RED, GREEN, AMBER
+
+FIG = _here.parents[1] / "fig"
+AUDIO = _here.parents[1] / "audio"
+FIG.mkdir(exist_ok=True)
+AUDIO.mkdir(exist_ok=True)
+
+random.seed(7)
+
+# ---- 参数区 ----
+N = 8000
+N_FFT, HOP = 256, 128
+NOISE_AMP = 0.040
+MASK_NOISE = 0.06       # 模拟网络预测误差，避免 oracle 精确重建
+BINS = 12
+
+# ---- 计算与作图 ----
+rng = random.Random(7)
+clean = synthetic_speech(rng, N)
+noise = white_noise(rng, N, NOISE_AMP)
+noisy = [clean[i] + noise[i] for i in range(N)]
+fs, fn = stft(clean, N_FFT, HOP), stft(noise, N_FFT, HOP)
+hist = [0] * BINS
+phase_vals = []
+for idx, (ry, iy) in enumerate(stft(noisy, N_FFT, HOP)):
+    rs, is_ = fs[idx]
+    rn, in_ = fn[idx]
+    for k in range(1, N_FFT // 2):
+        d = (math.atan2(is_[k], rs[k]) - math.atan2(iy[k], ry[k]) + math.pi) % (2 * math.pi) - math.pi
+        phase_vals.append(abs(d))
+        b = min(BINS - 1, int(abs(d) / math.pi * BINS))
+        hist[b] += 1
+
+def masked(kind):
+    frames = stft(noisy, N_FFT, HOP)
+    for idx, (ry, iy) in enumerate(frames):
+        rs, is_ = fs[idx]
+        rn, in_ = fn[idx]
+        for k in range(N_FFT):
+            ms, mn = math.hypot(rs[k], is_[k]), math.hypot(rn[k], in_[k])
+            if kind == "IRM":
+                g = ms / (ms + mn + 1e-9)
+                ry[k] *= g
+                iy[k] *= g
+            else:
+                y2 = ry[k] ** 2 + iy[k] ** 2 + 1e-12
+                cr = (rs[k] * ry[k] + is_[k] * iy[k]) / y2
+                ci = (is_[k] * ry[k] - rs[k] * iy[k]) / y2
+                cr += rng.gauss(0, MASK_NOISE)
+                ci += rng.gauss(0, MASK_NOISE)
+                ry[k], iy[k] = cr * ry[k] - ci * iy[k], cr * iy[k] + ci * ry[k]
+    return istft(frames, N_FFT, HOP, N)
+
+irm, crm = masked("IRM"), masked("CRM")
+labels = ("未处理", "IRM oracle", "CRM+预测误差")
+signals = (noisy, irm, crm)
+snrs = [seg_snr_db(clean, scale_align(s, clean)) for s in signals]
+sdrs = [si_sdr_db(s, clean) for s in signals]
+c = Chart(FIG / "22-masks.svg", "三种情形的分段 SNR 与 SI-SDR", xlabel="方法", ylabel="dB",
+          xticks=[(i, m) for i, m in enumerate(labels)])
+c.bars(range(3), snrs, BLUE, label="分段 SNR (dB)")
+c.bars(range(3), sdrs, GREEN, label="SI-SDR (dB)")
+print("掩码图:", c.save())
+h = Chart(FIG / "22-phase.svg", "干净谱与带噪谱的相位误差分布", xlabel="|Δφ| 区间 / π", ylabel="频点计数")
+h.bars(range(BINS), hist, RED, label="相位误差")
+print("相位图:", h.save())
+write_wav(AUDIO / "22-noisy.wav", normalize_peak(noisy))
+write_wav(AUDIO / "22-irm.wav", normalize_peak(irm))
+write_wav(AUDIO / "22-crm.wav", normalize_peak(crm))
+for m, a, b in zip(labels, snrs, sdrs):
+    print("%s: segSNR=%.2f dB SI-SDR=%.2f dB" % (m, a, b))
+print("平均 |Δφ|=%.3f rad | IRM→CRM SI-SDR 增益=%.2f dB | SAMPLE_RATE=%d N_FFT=%d" %
+      (sum(phase_vals) / len(phase_vals), sdrs[2] - sdrs[1], SAMPLE_RATE, N_FFT))</code></pre>
+<p class="code-hint"><strong>操作：</strong>对照 IRM 与 CRM 的 SI-SDR；观察相位误差直方图是否集中在零附近。　<strong>预期与判读：</strong>给 oracle CRM 加上与网络预测误差同量级的扰动后，它仍能同时修正幅度与相位，SI-SDR 高于 IRM。<strong>说明幅度掩码留下的那部分误差确实来自相位</strong>；若把 MASK_NOISE 设为 0，CRM 会精确重建干净谱，SI-SDR 趋于无穷——那只是 oracle 上界。</p>
+<p class="code-hint"><strong>改参数看趋势：</strong>把 NOISE_AMP 提到 0.12，相位误差分布右移，IRM 与 CRM 的差距进一步拉大。　文件位置：<code>part4/22-complex-phase/code/22-complex-phase.py</code></p>
+<div class="chart-grid">
+<figure class="chart-figure"><img src="fig/22-masks.svg" alt="幅度掩码与复数掩码的指标对照" loading="lazy"><figcaption>图 1　幅度掩码与复数掩码的指标对照（代码合成信号 / 教学示意）</figcaption></figure>
+<figure class="chart-figure"><img src="fig/22-phase.svg" alt="相位误差分布直方图" loading="lazy"><figcaption>图 2　相位误差分布直方图（代码合成信号 / 教学示意）</figcaption></figure>
+</div>
+<div class="audio-grid">
+<div class="audio-card"><h4>22-noisy.wav</h4><audio controls preload="none" src="audio/22-noisy.wav">浏览器不支持 audio 元素，请直接打开 audio/22-noisy.wav。</audio><p>带噪输入（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+<div class="audio-card"><h4>22-irm.wav</h4><audio controls preload="none" src="audio/22-irm.wav">浏览器不支持 audio 元素，请直接打开 audio/22-irm.wav。</audio><p>IRM：只改幅度（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+<div class="audio-card"><h4>22-crm.wav</h4><audio controls preload="none" src="audio/22-crm.wav">浏览器不支持 audio 元素，请直接打开 audio/22-crm.wav。</audio><p>带预测误差的 CRM：幅度与相位一起修正（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+</div>
+<div class="card note"><p style="margin-bottom:0">代码块右上角可一键复制；仓库里的 <code>code/*.py</code> 由 <code>tools/extract_code.py</code> 从这些代码块自动抽取。脚本只用标准库、固定 <code>random.seed(7)</code>，运行后写出 <code>fig/*.svg</code> 与 <code>audio/*.wav</code>；批量运行用 <code>./tools/run_python.sh</code>。</p></div>
+</section>
+<section id="commands"><h2><span class="sec-num">§</span>可选真机命令片段</h2>
+<div class="card note"><p style="margin-bottom:0">以下命令<strong>不参与批量运行</strong>，需要本机自行安装对应工具。滤镜是否可用取决于本机 ffmpeg 版本与编译选项，请先用 <code>ffmpeg -filters</code> / <code>ffmpeg -version</code> 自查，并以 https://ffmpeg.org/ffmpeg-filters.html 与各自官方文档为准；本书不假定任何特定版本具备某项能力。</p></div>
+<h3>查看 DeepFilterNet 的推理入口</h3>
+<pre class="cmd" data-lang="shell"><code>git clone --depth 1 https://github.com/Rikorose/DeepFilterNet &amp;&amp; ls DeepFilterNet/</code></pre>
+<p class="code-hint"><strong>说明：</strong>该工程以低算力复数深度滤波做实时增强；请以其 README 与许可为准，本书实验不依赖 PyTorch。</p>
+</section>
+<section id="highlights"><h2><span class="sec-num">§</span>本章参考资料</h2><p>按本章知识点挑选的精读资料；更多检索入口见 <a href="#extra-links">扩展学习</a>。</p><div class="repo-grid">
+<div class="repo-card"><h3><a href="https://github.com/Rikorose/DeepFilterNet" target="_blank" rel="noopener noreferrer">DeepFilterNet ↗</a></h3><span class="tag">工程</span><p>低算力实时语音增强，复数滤波 + 深度掩码</p><p style="margin:0;color:var(--ink-faint)">推荐理由：复数深度滤波与低算力实时增强</p></div>
+<div class="repo-card"><h3><a href="https://docs.pytorch.org/audio/stable/index.html" target="_blank" rel="noopener noreferrer">torchaudio ↗</a></h3><span class="tag">工程</span><p>音频 I/O、STFT/ISTFT、波形与谱特征的标准实现</p><p style="margin:0;color:var(--ink-faint)">推荐理由：复数 STFT 与 ISTFT 的工业实现</p></div>
+<div class="repo-card"><h3><a href="https://en.wikipedia.org/wiki/Time%E2%80%93frequency_analysis" target="_blank" rel="noopener noreferrer">Ideal ratio mask / T-F masking ↗</a></h3><span class="tag">百科</span><p>时频掩码学习范式的背景</p><p style="margin:0;color:var(--ink-faint)">推荐理由：时频掩码与相位分析的背景</p></div>
+<div class="repo-card"><h3><a href="https://github.com/asteroid-team/asteroid" target="_blank" rel="noopener noreferrer">Asteroid ↗</a></h3><span class="tag">工程</span><p>语音分离与增强的研究框架，含 SI-SNR 等损失实现</p><p style="margin:0;color:var(--ink-faint)">推荐理由：时域 Conv-TasNet 与 SI-SDR 实现</p></div>
+</div></section>
+<section id="repos"><h2><span class="sec-num">§</span>相关开源工程</h2><p>下列工程仅作技术参照，版权与许可证归各自维护者所有。本书实验不依赖它们，也与之无从属关系。</p><div class="repo-grid">
+<div class="repo-card"><h3><a href="https://github.com/Rikorose/DeepFilterNet" target="_blank" rel="noopener noreferrer">DeepFilterNet ↗</a></h3><span class="tag">AI · 实时</span><p>复数域深度滤波，低算力实时增强的代表工程</p></div>
+<div class="repo-card"><h3><a href="https://github.com/asteroid-team/asteroid" target="_blank" rel="noopener noreferrer">Asteroid ↗</a></h3><span class="tag">AI · 框架</span><p>时域分离/增强网络与 SI-SDR 损失实现</p></div>
+</div></section>
+<section id="pitfalls"><h2><span class="sec-num">§</span>常见误区</h2><div class="card warn"><ul><li>把 oracle CRM 的分数当成可部署模型成绩。</li>
+<li>复数掩码只作用于前半频谱，破坏共轭对称性。</li>
+<li>认为相位对可懂度没影响就不必建模。</li>
+<li>忽略复数网络带来的参数量与量化误差翻倍。</li></ul></div></section>
+<section id="exercises"><h2><span class="sec-num">§</span>习题与思考</h2><ol><li>推导 M = S/Y 的实部与虚部表达式。</li>
+<li>解释为什么低 SNR 时相位误差分布会变宽。</li>
+<li>比较复数谱映射与时域模型在延迟上的差别。</li></ol></section>
+<section id="extra-links"><h2><span class="sec-num">§</span>扩展学习</h2>
+<div class="repo-grid">
+<div class="repo-card"><h3><a href="https://github.com/Rikorose/DeepFilterNet" target="_blank" rel="noopener noreferrer">DeepFilterNet ↗</a></h3><span class="tag">工程</span><p>低算力实时语音增强，复数滤波 + 深度掩码</p></div>
+<div class="repo-card"><h3><a href="https://docs.pytorch.org/audio/stable/index.html" target="_blank" rel="noopener noreferrer">torchaudio ↗</a></h3><span class="tag">工程</span><p>音频 I/O、STFT/ISTFT、波形与谱特征的标准实现</p></div>
+<div class="repo-card"><h3><a href="https://en.wikipedia.org/wiki/Time%E2%80%93frequency_analysis" target="_blank" rel="noopener noreferrer">Ideal ratio mask / T-F masking ↗</a></h3><span class="tag">百科</span><p>时频掩码学习范式的背景</p></div>
+<div class="repo-card"><h3><a href="https://github.com/asteroid-team/asteroid" target="_blank" rel="noopener noreferrer">Asteroid ↗</a></h3><span class="tag">工程</span><p>语音分离与增强的研究框架，含 SI-SNR 等损失实现</p></div>
+</div>
+<h3>继续检索</h3><ul>
+<li>Google Scholar：<a href='https://scholar.google.com/scholar?q=complex%20spectral%20mapping%20DCCRN%20Conv-TasNet%20phase' target='_blank' rel='noopener noreferrer'>complex spectral mapping DCCRN Conv-TasNet phase ↗</a></li>
+<li>arXiv：<a href='https://arxiv.org/search/?query=complex%20spectral%20mapping%20DCCRN%20Conv-TasNet%20phase&searchtype=all' target='_blank' rel='noopener noreferrer'>complex spectral mapping DCCRN Conv-TasNet phase ↗</a></li>
+<li>GitHub：<a href='https://github.com/search?q=complex%20spectral%20mapping%20DCCRN%20Conv-TasNet%20phase&type=repositories' target='_blank' rel='noopener noreferrer'>complex spectral mapping DCCRN Conv-TasNet phase ↗</a></li>
+</ul>
+<p class="code-hint">全书链接总表见 <a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a> 与 <a href="../../appendix/index.html#sA-7">附录 A.7</a>；滤镜是否可用请以本机 <code>ffmpeg -filters</code> 为准。</p>
+</section>
+<section id="further"><h2><span class="sec-num">§</span>延伸阅读与内链</h2><ul><li><a href='../19-tf-mask/index.html'>第 19 章 · 时频掩码：IBM / IRM / CRM 与监督学习形式化</a> 时频掩码；<a href='../../part5/23-neural-ns/index.html'>第 23 章 · 神经噪声抑制：从 RNNoise 到 DNS Challenge</a> 神经降噪；<a href='../../part6/29-quantization/index.html'>第 29 章 · 量化、剪枝与端侧推理</a> 量化。</li></ul></section>
+<footer class="pager" data-autofill></footer>
+<footer class="site-foot">
+<p class="credits"><strong>作者</strong>：汪亮（bertonwang）　<strong>联系邮箱</strong>：<a href="mailto:47608843@qq.com">47608843@qq.com</a></p>
+<p class="ai-note"><strong>AI 使用说明</strong>：本教材的知识框架、正文、Python 实验脚本与参考资料清单在 AI 辅助下整理生成，并经人工校订、实际运行与静态自检。公式、数值与运行结果请以Python 3 实际输出及权威教材、官方文档为准；发现错漏欢迎通过上方邮箱勘误。</p>
+<p class="imprint">音频 3A 处理：从自适应滤波到神经增强 · 每章一个 <code>code/*.py</code> 实验脚本、<code>fig/*.svg</code> 矢量图与 <code>audio/*.wav</code> 试听样本（由 <code>tools/extract_code.py</code> 与脚本运行同步） · 只用 Python 3 标准库 · 教学材料，信号全部由代码合成。</p>
+</footer>
+</main>
+</body>
+</html>

@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 430" width="780" height="430" role="img">
+<title>权重误差范数：频域逐 bin vs 时域 NLMS</title>
+<desc>由 tools/chart.py 生成的教材示意插图，数据为合成数据。</desc>
+<rect x="0" y="0" width="780" height="430" fill="#ffffff"/>
+<text x="76.0" y="24" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="15" font-weight="600" fill="#23262b">权重误差范数：频域逐 bin vs 时域 NLMS</text>
+<line x1="76.0" y1="372.0" x2="756.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="376.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">-49.26</text>
+<line x1="76.0" y1="306.8" x2="756.0" y2="306.8" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="310.8" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">-39.22</text>
+<line x1="76.0" y1="241.6" x2="756.0" y2="241.6" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="245.6" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">-29.19</text>
+<line x1="76.0" y1="176.4" x2="756.0" y2="176.4" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="180.4" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">-19.15</text>
+<line x1="76.0" y1="111.2" x2="756.0" y2="111.2" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="115.2" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">-9.12</text>
+<line x1="76.0" y1="46.0" x2="756.0" y2="46.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="50.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">0.916</text>
+<line x1="76.0" y1="46.0" x2="76.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="76.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">-2.52</text>
+<line x1="212.0" y1="46.0" x2="212.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="212.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">11.09</text>
+<line x1="348.0" y1="46.0" x2="348.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="348.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">24.70</text>
+<line x1="484.0" y1="46.0" x2="484.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="484.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">38.30</text>
+<line x1="620.0" y1="46.0" x2="620.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="620.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">51.91</text>
+<line x1="756.0" y1="46.0" x2="756.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="756.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">65.52</text>
+<line x1="76.0" y1="372.0" x2="756.0" y2="372.0" stroke="#8a909b" stroke-width="1.4"/>
+<line x1="76.0" y1="46.0" x2="76.0" y2="372.0" stroke="#8a909b" stroke-width="1.4"/>
+<text x="416.0" y="418.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="12" fill="#8a909b" text-anchor="middle">分块序号</text>
+<text x="14" y="209.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="12" fill="#8a909b" transform="rotate(-90 14 209.0)" text-anchor="middle">权重误差 (dB)</text>
+<polyline points="101.19,113.81 111.18,170.44 121.17,200.83 131.17,225.07 141.16,234.26 151.16,242.58 161.15,251.16 171.14,259.84 181.14,268.99 191.13,275.69 201.13,279.98 211.12,283.60 221.11,286.36 231.11,289.58 241.10,291.78 251.10,296.30 261.09,297.70 271.09,300.35 281.08,304.76 291.07,308.82 301.07,310.17 311.06,311.89 321.06,313.79 331.05,314.59 341.04,316.52 351.04,317.57 361.03,320.59 371.03,321.67 381.02,323.29 391.01,324.44 401.01,327.05 411.00,328.72 421.00,329.63 430.99,330.56 440.99,331.31 450.98,331.51 460.97,332.57 470.97,332.40 480.96,333.42 490.96,334.36 500.95,335.48 510.94,336.33 520.94,336.64 530.93,337.28 540.93,337.88 550.92,338.26 560.91,337.91 570.91,337.56 580.90,337.96 590.90,338.87 600.89,339.40 610.89,339.60 620.88,340.21 630.87,340.05 640.87,340.47 650.86,340.84 660.86,341.68 670.85,342.34 680.84,342.75 690.84,343.38 700.83,344.02 710.83,344.83 720.82,344.67 730.81,344.67" fill="none" stroke="#245a7a" stroke-width="2" stroke-linejoin="round" opacity="1.0"/>
+<polyline points="101.19,73.17 111.18,93.70 121.17,117.62 131.17,127.35 141.16,136.22 151.16,136.15 161.15,141.38 171.14,151.43 181.14,152.54 191.13,158.08 201.13,160.45 211.12,166.54 221.11,168.66 231.11,170.89 241.10,175.70 251.10,178.63 261.09,180.37 271.09,181.64 281.08,182.91 291.07,185.30 301.07,186.46 311.06,188.58 321.06,191.28 331.05,192.47 341.04,197.80 351.04,200.01 361.03,202.76 371.03,202.28 381.02,202.68 391.01,202.97 401.01,205.45 411.00,207.60 421.00,209.32 430.99,208.35 440.99,207.16 450.98,209.91 460.97,207.81 470.97,209.97 480.96,211.77 490.96,208.23 500.95,206.37 510.94,212.13 520.94,207.63 530.93,200.38 540.93,184.92 550.92,175.87 560.91,170.35 570.91,160.69 580.90,156.11 590.90,154.89 600.89,156.66 610.89,151.99 620.88,139.11 630.87,136.30 640.87,130.20 650.86,137.70 660.86,145.28 670.85,147.00 680.84,152.84 690.84,154.31 700.83,153.90 710.83,154.87 720.82,164.27 730.81,164.27" fill="none" stroke="#8a3b26" stroke-width="2" stroke-linejoin="round" opacity="1.0"/>
+<line x1="76.0" y1="149.41" x2="756.0" y2="149.41" stroke="#2f6b4f" stroke-width="1.2" stroke-dasharray="4 4"/>
+<rect x="80.0" y="50.0" width="178" height="68" fill="#ffffff" fill-opacity="0.86" stroke="#e8e6e0" rx="3"/>
+<line x1="86.0" y1="66.0" x2="104.0" y2="66.0" stroke="#245a7a" stroke-width="3"/>
+<text x="110.0" y="70.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="11" fill="#23262b">分块频域（逐 bin 归一化）</text>
+<line x1="86.0" y1="86.0" x2="104.0" y2="86.0" stroke="#8a3b26" stroke-width="3"/>
+<text x="110.0" y="90.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="11" fill="#23262b">时域 NLMS</text>
+<line x1="86.0" y1="106.0" x2="104.0" y2="106.0" stroke="#2f6b4f" stroke-width="3"/>
+<text x="110.0" y="110.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="11" fill="#23262b">−15 dB 收敛线</text>
+</svg>

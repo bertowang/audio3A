@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 25 章 · 神经增益控制与感知响度 | 音频 3A 处理：从自适应滤波到神经增强</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<script src="../../assets/toc.js" defer></script>
+<script src="../../assets/app.js" defer></script>
+</head>
+<body data-root="../../" data-chapter="25">
+<aside id="sidebar"></aside>
+<main class="book-page">
+<nav class="breadcrumb" data-autofill>总目录</nav>
+<header class="chapter-head">
+<span class="kicker">第五篇 · 神经 3A 与联合建模 · 下卷 · AI 算法（Data-driven）</span>
+<h1><span class="ch-num">第 25 章</span>神经增益控制与感知响度</h1>
+<p class="lede">把 AGC 的固定目标电平换成从数据里学出来的一条增益律。</p>
+<div class="meta">
+<span class="badge done">已完稿</span>
+<span class="badge s4">神经 3A</span>
+<span class="badge neural">下卷 · AI 算法</span>
+<span>建议 3 学时</span>
+<span>1 个 Python 实验 · 2 张图 · 2 段试听</span>
+<span>音频 3A 处理：从自适应滤波到神经增强</span>
+</div></header>
+<p class="bridge"><strong>本章位置：</strong><a href='../24-neural-aec/index.html'>第 24 章 · 神经 AEC 与回声/噪声联合抑制</a> 学残余抑制，本章学增益，<a href='../26-joint-3a/index.html'>第 26 章 · 联合 3A：多任务、级联与端到端建模</a> 把 AEC / ANS / AGC 三个目标合并；<a href='../../part6/28-latency-budget/index.html'>第 28 章 · 延迟预算与 RTF：实时链路账本</a> 会把这些模块的延迟一起算进预算。</p>
+<div class="analogy"><span class="card-label">给程序员的翻译</span><p style="margin-bottom:0">学习 AGC 是把控制器里的常数 <code>L_target</code> 换成一个查表/回归函数；执行层仍是一阶平滑 + 钳位 + 限幅，网络只负责给目标值。</p></div>
+<div class="card objectives"><span class="card-label">学习目标</span><ul>
+<li>能把 AGC 写成「输入电平 → 增益」的可学习映射。</li>
+<li>能说明感知响度目标与 RMS 目标的区别。</li>
+<li>能用最小二乘拟合一条增益律并在留出电平上验证。</li>
+<li>能解释为什么工业系统仍保留传统 AGC 与限幅器。</li>
+</ul></div>
+<section id="map"><h2><span class="sec-num">§</span>知识点地图</h2>
+<p class="code-hint">每个知识点都配了 1～2 个扩展学习链接；本章完整资源清单见 <a href="#extra-links">扩展学习</a>。</p>
+<table><thead><tr><th style="width:44px">#</th><th style="width:26%">知识点</th><th>扩展学习</th><th style="width:100px">状态</th></tr></thead><tbody>
+<tr><td>1</td><td>电平到增益的映射</td><td><a href="https://en.wikipedia.org/wiki/Automatic_gain_control" target="_blank" rel="noopener noreferrer">Automatic gain control ↗</a> · <a href="https://ffmpeg.org/ffmpeg-filters.html#dynaudnorm" target="_blank" rel="noopener noreferrer">ffmpeg dynaudnorm ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>2</td><td>感知偏好数据</td><td><a href="https://github.com/microsoft/DNS-Challenge" target="_blank" rel="noopener noreferrer">Microsoft DNS Challenge ↗</a> · <a href="https://www.openslr.org/12" target="_blank" rel="noopener noreferrer">LibriSpeech ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>3</td><td>对数域最小二乘</td><td><a href="https://ffmpeg.org/ffmpeg-filters.html#loudnorm" target="_blank" rel="noopener noreferrer">ffmpeg loudnorm ↗</a> · <a href="https://tech.ebu.org/docs/r/r128" target="_blank" rel="noopener noreferrer">EBU R128 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>4</td><td>响度与 RMS 目标</td><td><a href="https://tech.ebu.org/docs/r/r128" target="_blank" rel="noopener noreferrer">EBU R128 ↗</a> · <a href="https://ffmpeg.org/ffmpeg-filters.html#loudnorm" target="_blank" rel="noopener noreferrer">ffmpeg loudnorm ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>5</td><td>增益约束与钳位</td><td><a href="https://en.wikipedia.org/wiki/Automatic_gain_control" target="_blank" rel="noopener noreferrer">Automatic gain control ↗</a> · <a href="https://ffmpeg.org/ffmpeg-filters.html#dynaudnorm" target="_blank" rel="noopener noreferrer">ffmpeg dynaudnorm ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>6</td><td>留出电平验证</td><td><a href="https://ffmpeg.org/ffmpeg-filters.html#loudnorm" target="_blank" rel="noopener noreferrer">ffmpeg loudnorm ↗</a> · <a href="https://tech.ebu.org/docs/r/r128" target="_blank" rel="noopener noreferrer">EBU R128 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>7</td><td>混合部署</td><td><a href="https://onnxruntime.ai/" target="_blank" rel="noopener noreferrer">ONNX Runtime ↗</a> · <a href="https://github.com/xiph/rnnoise" target="_blank" rel="noopener noreferrer">RNNoise ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>8</td><td>增益泵浦</td><td><a href="https://en.wikipedia.org/wiki/Automatic_gain_control" target="_blank" rel="noopener noreferrer">Automatic gain control ↗</a> · <a href="https://ffmpeg.org/ffmpeg-filters.html#dynaudnorm" target="_blank" rel="noopener noreferrer">ffmpeg dynaudnorm ↗</a></td><td>正文已覆盖</td></tr>
+</tbody></table></section>
+<section id="s25-1"><h2><span class="sec-num">§25.1</span>AGC 其实是一维回归</h2>
+<p class="eq">g = f_θ(L_in)　，传统: f = L_target / L_in　；学习: log g = a·log L_in + b</p>
+<p><a href='../../part2/14-agc/index.html'>第 14 章 · AGC：包络跟踪、攻击释放、限幅与响度</a> 的 AGC 把目标电平写死成一个常数 <code>L_target</code>。但真实偏好随内容与输入电平变化：轻声说话时希望多抬一点，响亮段落则宁可少抬以避免背景噪声被放大。把它看成<strong>一维回归</strong>，就能从标注了偏好响度的数据里拟合 <code>f_θ</code>。</p>
+<table><thead><tr><th style="width:20%">方案</th><th style="width:24%">目标</th><th style="width:26%">优点</th><th style="width:30%">风险</th></tr></thead><tbody>
+<tr><td>无 AGC</td><td>保持原样</td><td>零失真</td><td>电平起伏大</td></tr>
+<tr><td>固定目标 AGC</td><td>恒到 L_target</td><td>简单可证明</td><td>弱段底噪被抬起</td></tr>
+<tr><td>学习增益律</td><td>拟合偏好曲线</td><td>听感更自然</td><td>需要标注、分布外可能失控</td></tr>
+<tr><td>传统 + 神经混合</td><td>神经给目标、传统做环路</td><td>平滑、有安全边界</td><td>两套状态需同步</td></tr>
+</tbody></table>
+</section>
+<section id="s25-2"><h2><span class="sec-num">§25.2</span>安全边界比拟合精度更重要</h2>
+<ul>
+<li><strong>钳位</strong>：增益必须限制在 <code>[g_min, g_max]</code>，否则分布外输入会直接把信号推到削波。</li>
+<li><strong>平滑</strong>：网络逐帧给的目标仍要经过攻击/释放一阶平滑，避免增益跳变（<a href='../../part2/14-agc/index.html'>第 14 章 · AGC：包络跟踪、攻击释放、限幅与响度</a>）。</li>
+<li><strong>限幅</strong>：最后一级必须是确定性限幅器，不能交给网络兜底。</li>
+<li><strong>评测</strong>：同时报响度偏差、峰值余量与语音失真，只用 LUFS 会奖励把一切都压到同一响度。</li>
+</ul>
+<div class="card note"><span class="card-label">实验口径</span><p style="margin-bottom:0">本实验用一条<strong>人为设定的偏好曲线</strong>生成标注，再用对数域最小二乘拟合两参数模型，并在未参与拟合的电平上验证。它演示的是「可学习增益律」的机制，不是任何产品的听感数据。</p></div>
+</section>
+<section id="lab"><h2><span class="sec-num">§</span>Python 实验</h2>
+<h3>实验 25-1 · 拟合增益律并在留出电平上比较三种 AGC</h3>
+<pre class="code" data-file="code/25-neural-agc.py" data-lang="Python 3 · 标准库"><code>#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""用合成偏好响度拟合对数域增益律，比较无 AGC、固定目标与学习增益律的响度偏差。
+
+全部语音 / 噪声 / 房间冲激响应均为代码合成信号，仅用于教学演示机制与量级。
+"""
+from __future__ import annotations
+
+import math
+import pathlib
+import random
+import statistics
+import sys
+import time
+
+_here = pathlib.Path(__file__).resolve()
+for _p in _here.parents:
+    if (_p / "tools" / "dsp.py").exists():
+        sys.path.insert(0, str(_p / "tools"))
+        break
+from dsp import (SAMPLE_RATE, fft, hann, stft, istft, magnitude_db, spectrum,
+                 white_noise, tone, chirp, synthetic_speech, rir, convolve,
+                 fft_convolve, delay, clip, normalize_peak, rms, rolling_rms,
+                 smooth, db, energy_db, snr_db, erle_db, seg_snr_db,
+                 scale_align, si_sdr_db, lufs_approx,
+                 write_wav, read_wav, wav_info)
+from chart import Chart, heatmap, BLUE, RED, GREEN, AMBER
+
+FIG = _here.parents[1] / "fig"
+AUDIO = _here.parents[1] / "audio"
+FIG.mkdir(exist_ok=True)
+AUDIO.mkdir(exist_ok=True)
+
+random.seed(7)
+
+# ---- 参数区 ----
+N = 4000
+LEVELS = (0.08, 0.15, 0.30, 0.50, 0.80, 1.20)
+TRAIN_N = 4                 # 前 4 个电平用于拟合，后 2 个留出验证
+FIXED_TARGET = 0.16
+G_MIN, G_MAX = 0.20, 8.0
+
+# ---- 计算与作图 ----
+rng = random.Random(7)
+base = synthetic_speech(rng, N)
+def pref(level):
+    return 0.10 + 0.06 * (1.0 - math.exp(-3.0 * level))
+signals = [(L, [L * base[i] for i in range(N)]) for L in LEVELS]
+xs, ys = [], []
+for L, x in signals[:TRAIN_N]:
+    r = rms(x) + 1e-9
+    xs.append(math.log10(r))
+    ys.append(math.log10(pref(L) / r))
+mx, my = sum(xs) / len(xs), sum(ys) / len(ys)
+var = sum((v - mx) ** 2 for v in xs)
+cov = sum((xs[i] - mx) * (ys[i] - my) for i in range(len(xs)))
+a = cov / (var + 1e-12)
+b = my - a * mx
+rows = []
+for L, x in signals:
+    r = rms(x) + 1e-9
+    gains = [1.0, min(G_MAX, FIXED_TARGET / r),
+             max(G_MIN, min(G_MAX, 10 ** (a * math.log10(r) + b)))]
+    outs = [clip([v * g for v in x]) for g in gains]
+    rows.append((L, [rms(o) for o in outs], gains, outs, pref(L)))
+c = Chart(FIG / "25-levels.svg", "各输入电平下的输出 RMS 与偏好曲线",
+          xlabel="输入电平", ylabel="RMS", xticks=[(i, "%.2f" % L) for i, L in enumerate(LEVELS)])
+c.line(range(len(LEVELS)), [r[1][0] for r in rows], "#9aa6b2", label="无 AGC")
+c.line(range(len(LEVELS)), [r[1][1] for r in rows], BLUE, label="固定目标 AGC")
+c.line(range(len(LEVELS)), [r[1][2] for r in rows], GREEN, label="学习增益律")
+c.line(range(len(LEVELS)), [r[4] for r in rows], RED, label="偏好曲线")
+print("电平图:", c.save())
+g = Chart(FIG / "25-gains.svg", "固定目标与学习增益律的增益曲线",
+          xlabel="输入电平", ylabel="增益", xticks=[(i, "%.2f" % L) for i, L in enumerate(LEVELS)])
+g.line(range(len(LEVELS)), [r[2][1] for r in rows], BLUE, label="固定目标")
+g.line(range(len(LEVELS)), [r[2][2] for r in rows], GREEN, label="学习增益律")
+print("增益图:", g.save())
+write_wav(AUDIO / "25-quiet.wav", normalize_peak(signals[0][1]))
+write_wav(AUDIO / "25-learned.wav", rows[0][3][2])
+mae = [sum(abs(r[1][m] - r[4]) for r in rows) / len(rows) for m in range(3)]
+held = [sum(abs(r[1][m] - r[4]) for r in rows[TRAIN_N:]) / (len(rows) - TRAIN_N) for m in range(3)]
+clips = sum(1 for r in rows for v in r[3][2] if abs(v) &gt;= 0.999)
+print("拟合: log g = %.3f * log L_in + %.3f | 训练电平=%d 留出=%d" % (a, b, TRAIN_N, len(LEVELS) - TRAIN_N))
+print("响度偏差 MAE 无AGC=%.4f 固定=%.4f 学习=%.4f | 留出集: %.4f/%.4f/%.4f" %
+      (mae[0], mae[1], mae[2], held[0], held[1], held[2]))
+print("学习增益钳位样本=%d | SAMPLE_RATE=%d | 偏好曲线为人为设定" % (clips, SAMPLE_RATE))</code></pre>
+<p class="code-hint"><strong>操作：</strong>对照留出电平上的响度偏差；把 TRAIN_N 改成 2 观察外推误差。　<strong>预期与判读：</strong>学习增益律在训练区间内明显更贴近偏好曲线；但在未参与拟合的电平上，两参数模型的外推误差可能反超固定目标 AGC（本例留出集即是如此）。<strong>这正说明留出验证、增益钳位、平滑与确定性限幅缺一不可</strong>。</p>
+<p class="code-hint"><strong>改参数看趋势：</strong>把 LEVELS 增加一档 3.0（远超训练范围），观察外推时钳位是否生效。　文件位置：<code>part5/25-neural-agc/code/25-neural-agc.py</code></p>
+<div class="chart-grid">
+<figure class="chart-figure"><img src="fig/25-levels.svg" alt="三种方案的输出 RMS 与偏好曲线" loading="lazy"><figcaption>图 1　三种方案的输出 RMS 与偏好曲线（代码合成信号 / 教学示意）</figcaption></figure>
+<figure class="chart-figure"><img src="fig/25-gains.svg" alt="固定目标与学习增益律的增益曲线" loading="lazy"><figcaption>图 2　固定目标与学习增益律的增益曲线（代码合成信号 / 教学示意）</figcaption></figure>
+</div>
+<div class="audio-grid">
+<div class="audio-card"><h4>25-quiet.wav</h4><audio controls preload="none" src="audio/25-quiet.wav">浏览器不支持 audio 元素，请直接打开 audio/25-quiet.wav。</audio><p>低电平输入（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+<div class="audio-card"><h4>25-learned.wav</h4><audio controls preload="none" src="audio/25-learned.wav">浏览器不支持 audio 元素，请直接打开 audio/25-learned.wav。</audio><p>学习增益律处理后的输出（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+</div>
+<div class="card note"><p style="margin-bottom:0">代码块右上角可一键复制；仓库里的 <code>code/*.py</code> 由 <code>tools/extract_code.py</code> 从这些代码块自动抽取。脚本只用标准库、固定 <code>random.seed(7)</code>，运行后写出 <code>fig/*.svg</code> 与 <code>audio/*.wav</code>；批量运行用 <code>./tools/run_python.sh</code>。</p></div>
+</section>
+<section id="commands"><h2><span class="sec-num">§</span>可选真机命令片段</h2>
+<div class="card note"><p style="margin-bottom:0">以下命令<strong>不参与批量运行</strong>，需要本机自行安装对应工具。滤镜是否可用取决于本机 ffmpeg 版本与编译选项，请先用 <code>ffmpeg -filters</code> / <code>ffmpeg -version</code> 自查，并以 https://ffmpeg.org/ffmpeg-filters.html 与各自官方文档为准；本书不假定任何特定版本具备某项能力。</p></div>
+<h3>用 ffmpeg loudnorm 核对学习增益律的输出响度</h3>
+<pre class="cmd" data-lang="shell"><code>ffmpeg -hide_banner -i out.wav -af ebur128=peak=true -f null - 2&gt;&amp;1 | tail -12</code></pre>
+<p class="code-hint"><strong>说明：</strong>ebur128 给出合规的积分响度与真峰值；本书 lufs_approx 只是教学近似。滤镜可用性以本机 `ffmpeg -filters` 与 https://ffmpeg.org/ffmpeg-filters.html 为准。</p>
+</section>
+<section id="highlights"><h2><span class="sec-num">§</span>本章参考资料</h2><p>按本章知识点挑选的精读资料；更多检索入口见 <a href="#extra-links">扩展学习</a>。</p><div class="repo-grid">
+<div class="repo-card"><h3><a href="https://ffmpeg.org/ffmpeg-filters.html#loudnorm" target="_blank" rel="noopener noreferrer">ffmpeg loudnorm ↗</a></h3><span class="tag">工具</span><p>EBU R128 响度归一化，支持单/双 pass 与 True Peak 限制</p><p style="margin:0;color:var(--ink-faint)">推荐理由：合规响度归一化的对照实现</p></div>
+<div class="repo-card"><h3><a href="https://tech.ebu.org/docs/r/r128" target="_blank" rel="noopener noreferrer">EBU R128 ↗</a></h3><span class="tag">标准</span><p>广播响度归一化规范，-23 LUFS 目标与 True Peak 上限</p><p style="margin:0;color:var(--ink-faint)">推荐理由：响度目标与真峰值规范</p></div>
+<div class="repo-card"><h3><a href="https://www.itu.int/rec/R-REC-BS.1770/en" target="_blank" rel="noopener noreferrer">ITU-R BS.1770 ↗</a></h3><span class="tag">标准</span><p>响度与真峰值测量算法，LUFS/LKFS 的规范来源</p><p style="margin:0;color:var(--ink-faint)">推荐理由：K 加权与 LUFS 的算法来源</p></div>
+<div class="repo-card"><h3><a href="https://github.com/microsoft/DNS-Challenge/tree/master/DNSMOS" target="_blank" rel="noopener noreferrer">DNSMOS ↗</a></h3><span class="tag">数据集</span><p>无需参考信号的神经语音质量评分模型（P.835 三维）</p><p style="margin:0;color:var(--ink-faint)">推荐理由：无参考评分可用来校准感知偏好</p></div>
+</div></section>
+<section id="repos"><h2><span class="sec-num">§</span>相关开源工程</h2><p>下列工程仅作技术参照，版权与许可证归各自维护者所有。本书实验不依赖它们，也与之无从属关系。</p><div class="repo-grid">
+<div class="repo-card"><h3><a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg ↗</a></h3><span class="tag">工具</span><p>loudnorm / dynaudnorm / speechnorm 的离线验证工具</p></div>
+<div class="repo-card"><h3><a href="https://github.com/microsoft/DNS-Challenge/tree/master/DNSMOS" target="_blank" rel="noopener noreferrer">DNSMOS ↗</a></h3><span class="tag">评测</span><p>无参考神经 MOS，可用于偏好数据的辅助标注</p></div>
+</div></section>
+<section id="pitfalls"><h2><span class="sec-num">§</span>常见误区</h2><div class="card warn"><ul><li>让网络直接输出逐样本增益，不经平滑导致增益跳变。</li>
+<li>没有增益钳位与确定性限幅器，分布外输入直接削波。</li>
+<li>只用 LUFS 偏差做评测，忽略语音失真与泵浦。</li>
+<li>把人为设定的偏好曲线当成真实用户数据。</li></ul></div></section>
+<section id="exercises"><h2><span class="sec-num">§</span>习题与思考</h2><ol><li>推导对数域最小二乘的 a、b 闭式解。</li>
+<li>解释为什么增益仍需攻击/释放平滑。</li>
+<li>设计一个能暴露外推失效的留出集。</li></ol></section>
+<section id="extra-links"><h2><span class="sec-num">§</span>扩展学习</h2>
+<div class="repo-grid">
+<div class="repo-card"><h3><a href="https://ffmpeg.org/ffmpeg-filters.html#loudnorm" target="_blank" rel="noopener noreferrer">ffmpeg loudnorm ↗</a></h3><span class="tag">工具</span><p>EBU R128 响度归一化，支持单/双 pass 与 True Peak 限制</p></div>
+<div class="repo-card"><h3><a href="https://tech.ebu.org/docs/r/r128" target="_blank" rel="noopener noreferrer">EBU R128 ↗</a></h3><span class="tag">标准</span><p>广播响度归一化规范，-23 LUFS 目标与 True Peak 上限</p></div>
+<div class="repo-card"><h3><a href="https://www.itu.int/rec/R-REC-BS.1770/en" target="_blank" rel="noopener noreferrer">ITU-R BS.1770 ↗</a></h3><span class="tag">标准</span><p>响度与真峰值测量算法，LUFS/LKFS 的规范来源</p></div>
+<div class="repo-card"><h3><a href="https://github.com/microsoft/DNS-Challenge/tree/master/DNSMOS" target="_blank" rel="noopener noreferrer">DNSMOS ↗</a></h3><span class="tag">数据集</span><p>无需参考信号的神经语音质量评分模型（P.835 三维）</p></div>
+</div>
+<h3>继续检索</h3><ul>
+<li>Google Scholar：<a href='https://scholar.google.com/scholar?q=neural%20gain%20control%20loudness%20normalization%20learned' target='_blank' rel='noopener noreferrer'>neural gain control loudness normalization learned ↗</a></li>
+<li>arXiv：<a href='https://arxiv.org/search/?query=neural%20gain%20control%20loudness%20normalization%20learned&searchtype=all' target='_blank' rel='noopener noreferrer'>neural gain control loudness normalization learned ↗</a></li>
+<li>GitHub：<a href='https://github.com/search?q=neural%20gain%20control%20loudness%20normalization%20learned&type=repositories' target='_blank' rel='noopener noreferrer'>neural gain control loudness normalization learned ↗</a></li>
+</ul>
+<p class="code-hint">全书链接总表见 <a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a> 与 <a href="../../appendix/index.html#sA-7">附录 A.7</a>；滤镜是否可用请以本机 <code>ffmpeg -filters</code> 为准。</p>
+</section>
+<section id="further"><h2><span class="sec-num">§</span>延伸阅读与内链</h2><ul><li><a href='../../part2/14-agc/index.html'>第 14 章 · AGC：包络跟踪、攻击释放、限幅与响度</a> 传统 AGC；<a href='../26-joint-3a/index.html'>第 26 章 · 联合 3A：多任务、级联与端到端建模</a> 联合 3A；<a href='../../part6/30-generalization/index.html'>第 30 章 · 泛化、鲁棒性与评测陷阱</a> 泛化。</li></ul></section>
+<footer class="pager" data-autofill></footer>
+<footer class="site-foot">
+<p class="credits"><strong>作者</strong>：汪亮（bertonwang）　<strong>联系邮箱</strong>：<a href="mailto:47608843@qq.com">47608843@qq.com</a></p>
+<p class="ai-note"><strong>AI 使用说明</strong>：本教材的知识框架、正文、Python 实验脚本与参考资料清单在 AI 辅助下整理生成，并经人工校订、实际运行与静态自检。公式、数值与运行结果请以Python 3 实际输出及权威教材、官方文档为准；发现错漏欢迎通过上方邮箱勘误。</p>
+<p class="imprint">音频 3A 处理：从自适应滤波到神经增强 · 每章一个 <code>code/*.py</code> 实验脚本、<code>fig/*.svg</code> 矢量图与 <code>audio/*.wav</code> 试听样本（由 <code>tools/extract_code.py</code> 与脚本运行同步） · 只用 Python 3 标准库 · 教学材料，信号全部由代码合成。</p>
+</footer>
+</main>
+</body>
+</html>

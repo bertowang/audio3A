@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 430" width="780" height="430" role="img">
+<title>小型掩码估计器的消融对照</title>
+<desc>由 tools/chart.py 生成的教材示意插图，数据为合成数据。</desc>
+<rect x="0" y="0" width="780" height="430" fill="#ffffff"/>
+<text x="76.0" y="24" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="15" font-weight="600" fill="#23262b">小型掩码估计器的消融对照</text>
+<line x1="76.0" y1="372.0" x2="756.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="376.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">-1.71</text>
+<line x1="76.0" y1="306.8" x2="756.0" y2="306.8" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="310.8" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">2.40</text>
+<line x1="76.0" y1="241.6" x2="756.0" y2="241.6" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="245.6" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">6.51</text>
+<line x1="76.0" y1="176.4" x2="756.0" y2="176.4" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="180.4" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">10.63</text>
+<line x1="76.0" y1="111.2" x2="756.0" y2="111.2" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="115.2" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">14.74</text>
+<line x1="76.0" y1="46.0" x2="756.0" y2="46.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="50.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">18.86</text>
+<line x1="101.2" y1="46.0" x2="101.2" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="101.2" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">v0 无处理</text>
+<line x1="258.6" y1="46.0" x2="258.6" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="258.6" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">v1 纯阈值</text>
+<line x1="416.0" y1="46.0" x2="416.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="416.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">v2 加下限</text>
+<line x1="573.4" y1="46.0" x2="573.4" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="573.4" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">v3 加平滑</text>
+<line x1="730.8" y1="46.0" x2="730.8" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="730.8" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">oracle IRM</text>
+<line x1="76.0" y1="372.0" x2="756.0" y2="372.0" stroke="#8a909b" stroke-width="1.4"/>
+<line x1="76.0" y1="46.0" x2="76.0" y2="372.0" stroke="#8a909b" stroke-width="1.4"/>
+<text x="416.0" y="418.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="12" fill="#8a909b" text-anchor="middle">变体</text>
+<text x="14" y="209.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="12" fill="#8a909b" transform="rotate(-90 14 209.0)" text-anchor="middle">dB</text>
+<rect x="75.19" y="253.49" width="26.00" height="91.34" fill="#245a7a" opacity="0.85"/>
+<rect x="232.59" y="200.31" width="26.00" height="144.52" fill="#245a7a" opacity="0.85"/>
+<rect x="390.00" y="200.56" width="26.00" height="144.27" fill="#245a7a" opacity="0.85"/>
+<rect x="547.41" y="182.72" width="26.00" height="162.11" fill="#245a7a" opacity="0.85"/>
+<rect x="704.81" y="134.75" width="26.00" height="210.08" fill="#245a7a" opacity="0.85"/>
+<rect x="101.19" y="182.95" width="26.00" height="161.89" fill="#2f6b4f" opacity="0.85"/>
+<rect x="258.59" y="129.91" width="26.00" height="214.93" fill="#2f6b4f" opacity="0.85"/>
+<rect x="416.00" y="130.14" width="26.00" height="214.69" fill="#2f6b4f" opacity="0.85"/>
+<rect x="573.41" y="115.14" width="26.00" height="229.70" fill="#2f6b4f" opacity="0.85"/>
+<rect x="730.81" y="73.17" width="26.00" height="271.67" fill="#2f6b4f" opacity="0.85"/>
+<line x1="76.0" y1="344.83" x2="756.0" y2="344.83" stroke="#9aa6b2" stroke-width="1.2" stroke-dasharray="4 4"/>
+<rect x="80.0" y="50.0" width="178" height="48" fill="#ffffff" fill-opacity="0.86" stroke="#e8e6e0" rx="3"/>
+<line x1="86.0" y1="66.0" x2="104.0" y2="66.0" stroke="#245a7a" stroke-width="3"/>
+<text x="110.0" y="70.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="11" fill="#23262b">分段 SNR (尺度对齐)</text>
+<line x1="86.0" y1="86.0" x2="104.0" y2="86.0" stroke="#2f6b4f" stroke-width="3"/>
+<text x="110.0" y="90.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="11" fill="#23262b">SI-SDR</text>
+</svg>

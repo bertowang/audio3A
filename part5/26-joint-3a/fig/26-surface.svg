@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 460" width="640" height="460" role="img">
+<title>最短板得分 min(S_aec,S_ans,S_agc) 的权重曲面</title>
+<desc>由 tools/chart.py 生成的矩阵热力图。</desc>
+<rect width="640" height="460" fill="#ffffff"/>
+<text x="20" y="26" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="15" font-weight="600" fill="#23262b">最短板得分 min(S_aec,S_ans,S_agc) 的权重曲面</text>
+<text x="146.0" y="48.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="11" fill="#8a909b" text-anchor="middle">w2=0.00</text>
+<text x="222.0" y="48.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="11" fill="#8a909b" text-anchor="middle">w2=0.25</text>
+<text x="298.0" y="48.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="11" fill="#8a909b" text-anchor="middle">w2=0.50</text>
+<text x="374.0" y="48.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="11" fill="#8a909b" text-anchor="middle">w2=0.75</text>
+<text x="450.0" y="48.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="11" fill="#8a909b" text-anchor="middle">w2=1.00</text>
+<text x="100.0" y="82.4" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="11" fill="#8a909b" text-anchor="end">w1=0.00</text>
+<rect x="108.0" y="56.0" width="74.0" height="42.0" fill="#674d35" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="145.0" y="81.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">0</text>
+<rect x="184.0" y="56.0" width="74.0" height="42.0" fill="#674d35" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="221.0" y="81.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">0</text>
+<rect x="260.0" y="56.0" width="74.0" height="42.0" fill="#674d35" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="297.0" y="81.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">0</text>
+<rect x="336.0" y="56.0" width="74.0" height="42.0" fill="#674d35" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="373.0" y="81.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">0</text>
+<rect x="412.0" y="56.0" width="74.0" height="42.0" fill="#674d35" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="449.0" y="81.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">0</text>
+<text x="100.0" y="126.4" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="11" fill="#8a909b" text-anchor="end">w1=0.25</text>
+<rect x="108.0" y="100.0" width="74.0" height="42.0" fill="#674d35" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="145.0" y="125.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">0</text>
+<rect x="184.0" y="100.0" width="74.0" height="42.0" fill="#6e4932" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="221.0" y="125.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">2.50</text>
+<rect x="260.0" y="100.0" width="74.0" height="42.0" fill="#6e4932" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="297.0" y="125.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">2.50</text>
+<rect x="336.0" y="100.0" width="74.0" height="42.0" fill="#674d35" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="373.0" y="125.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">0</text>
+<rect x="412.0" y="100.0" width="74.0" height="42.0" fill="#2f6b4f" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="449.0" y="125.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">-20.00</text>
+<text x="100.0" y="170.4" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="11" fill="#8a909b" text-anchor="end">w1=0.50</text>
+<rect x="108.0" y="144.0" width="74.0" height="42.0" fill="#674d35" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="145.0" y="169.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">0</text>
+<rect x="184.0" y="144.0" width="74.0" height="42.0" fill="#6e4932" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="221.0" y="169.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">2.50</text>
+<rect x="260.0" y="144.0" width="74.0" height="42.0" fill="#674d35" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="297.0" y="169.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">0</text>
+<rect x="336.0" y="144.0" width="74.0" height="42.0" fill="#2f6b4f" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="373.0" y="169.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">-20.00</text>
+<rect x="412.0" y="144.0" width="74.0" height="42.0" fill="#2f6b4f" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="449.0" y="169.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">-20.00</text>
+<text x="100.0" y="214.4" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="11" fill="#8a909b" text-anchor="end">w1=0.75</text>
+<rect x="108.0" y="188.0" width="74.0" height="42.0" fill="#674d35" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="145.0" y="213.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">0</text>
+<rect x="184.0" y="188.0" width="74.0" height="42.0" fill="#674d35" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="221.0" y="213.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">0</text>
+<rect x="260.0" y="188.0" width="74.0" height="42.0" fill="#2f6b4f" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="297.0" y="213.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">-20.00</text>
+<rect x="336.0" y="188.0" width="74.0" height="42.0" fill="#2f6b4f" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="373.0" y="213.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">-20.00</text>
+<rect x="412.0" y="188.0" width="74.0" height="42.0" fill="#2f6b4f" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="449.0" y="213.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">-20.00</text>
+<text x="100.0" y="258.4" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="11" fill="#8a909b" text-anchor="end">w1=1.00</text>
+<rect x="108.0" y="232.0" width="74.0" height="42.0" fill="#674d35" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="145.0" y="257.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">0</text>
+<rect x="184.0" y="232.0" width="74.0" height="42.0" fill="#2f6b4f" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="221.0" y="257.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">-20.00</text>
+<rect x="260.0" y="232.0" width="74.0" height="42.0" fill="#2f6b4f" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="297.0" y="257.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">-20.00</text>
+<rect x="336.0" y="232.0" width="74.0" height="42.0" fill="#2f6b4f" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="373.0" y="257.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">-20.00</text>
+<rect x="412.0" y="232.0" width="74.0" height="42.0" fill="#2f6b4f" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="449.0" y="257.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">-20.00</text>
+</svg>

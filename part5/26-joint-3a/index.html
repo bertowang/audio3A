@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 26 章 · 联合 3A：多任务、级联与端到端建模 | 音频 3A 处理：从自适应滤波到神经增强</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<script src="../../assets/toc.js" defer></script>
+<script src="../../assets/app.js" defer></script>
+</head>
+<body data-root="../../" data-chapter="26">
+<aside id="sidebar"></aside>
+<main class="book-page">
+<nav class="breadcrumb" data-autofill>总目录</nav>
+<header class="chapter-head">
+<span class="kicker">第五篇 · 神经 3A 与联合建模 · 下卷 · AI 算法（Data-driven）</span>
+<h1><span class="ch-num">第 26 章</span>联合 3A：多任务、级联与端到端建模</h1>
+<p class="lede">三个目标共用一个模型时，真正要调的不是网络深度，而是损失与约束。</p>
+<div class="meta">
+<span class="badge done">已完稿</span>
+<span class="badge s4">神经 3A</span>
+<span class="badge neural">下卷 · AI 算法</span>
+<span>建议 4 学时</span>
+<span>1 个 Python 实验 · 2 张图 · 2 段试听</span>
+<span>音频 3A 处理：从自适应滤波到神经增强</span>
+</div></header>
+<p class="bridge"><strong>本章位置：</strong><a href='../24-neural-aec/index.html'>第 24 章 · 神经 AEC 与回声/噪声联合抑制</a>～<a href='../25-neural-agc/index.html'>第 25 章 · 神经增益控制与感知响度</a> 分头替换模块，本章合并；<a href='../../part6/27-causal-streaming/index.html'>第 27 章 · 因果性与流式推理：状态缓存、感受野</a> 起转入部署三本账：因果、延迟、量化。</p>
+<div class="analogy"><span class="card-label">给程序员的翻译</span><p style="margin-bottom:0">多任务学习是共享底座 + 三个 head，损失权重 λ 就是三个 SLO 的优先级；扫 λ 相当于画系统的 Pareto 前沿。</p></div>
+<div class="card objectives"><span class="card-label">学习目标</span><ul>
+<li>能比较级联式、多任务式与端到端式三种联合 3A 结构。</li>
+<li>能写出多任务损失并解释权重对结果的影响。</li>
+<li>能量化 AEC / ANS / AGC 三个校正加权后的权衡曲面。</li>
+<li>能说明联合模型的失效模式与可观测性代价。</li>
+</ul></div>
+<section id="map"><h2><span class="sec-num">§</span>知识点地图</h2>
+<p class="code-hint">每个知识点都配了 1～2 个扩展学习链接；本章完整资源清单见 <a href="#extra-links">扩展学习</a>。</p>
+<table><thead><tr><th style="width:44px">#</th><th style="width:26%">知识点</th><th>扩展学习</th><th style="width:100px">状态</th></tr></thead><tbody>
+<tr><td>1</td><td>级联与联合</td><td><a href="https://github.com/speechbrain/speechbrain" target="_blank" rel="noopener noreferrer">SpeechBrain ↗</a> · <a href="https://github.com/modelscope/ClearerVoice-Studio" target="_blank" rel="noopener noreferrer">ClearerVoice-Studio ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>2</td><td>多任务损失</td><td><a href="https://github.com/asteroid-team/asteroid" target="_blank" rel="noopener noreferrer">Asteroid ↗</a> · <a href="https://github.com/speechbrain/speechbrain" target="_blank" rel="noopener noreferrer">SpeechBrain ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>3</td><td>损失权重与 Pareto 前沿</td><td><a href="https://github.com/asteroid-team/asteroid" target="_blank" rel="noopener noreferrer">Asteroid ↗</a> · <a href="https://github.com/speechbrain/speechbrain" target="_blank" rel="noopener noreferrer">SpeechBrain ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>4</td><td>共享编码器</td><td><a href="https://github.com/speechbrain/speechbrain" target="_blank" rel="noopener noreferrer">SpeechBrain ↗</a> · <a href="https://github.com/modelscope/ClearerVoice-Studio" target="_blank" rel="noopener noreferrer">ClearerVoice-Studio ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>5</td><td>任务冲突与负迁移</td><td><a href="https://github.com/speechbrain/speechbrain" target="_blank" rel="noopener noreferrer">SpeechBrain ↗</a> · <a href="https://github.com/modelscope/ClearerVoice-Studio" target="_blank" rel="noopener noreferrer">ClearerVoice-Studio ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>6</td><td>端到端可微分链路</td><td><a href="https://github.com/speechbrain/speechbrain" target="_blank" rel="noopener noreferrer">SpeechBrain ↗</a> · <a href="https://github.com/modelscope/ClearerVoice-Studio" target="_blank" rel="noopener noreferrer">ClearerVoice-Studio ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>7</td><td>可观测性下降</td><td><a href="https://github.com/speechbrain/speechbrain" target="_blank" rel="noopener noreferrer">SpeechBrain ↗</a> · <a href="https://github.com/modelscope/ClearerVoice-Studio" target="_blank" rel="noopener noreferrer">ClearerVoice-Studio ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>8</td><td>消融实验</td><td><a href="https://github.com/speechbrain/speechbrain" target="_blank" rel="noopener noreferrer">SpeechBrain ↗</a> · <a href="https://github.com/modelscope/ClearerVoice-Studio" target="_blank" rel="noopener noreferrer">ClearerVoice-Studio ↗</a></td><td>正文已覆盖</td></tr>
+</tbody></table></section>
+<section id="s26-1"><h2><span class="sec-num">§26.1</span>三种结构，一条链路</h2>
+<p class="eq">L = λ₁·L_AEC + λ₂·L_ANS + λ₃·L_AGC + λ₄·L_SI-SDR</p>
+<table><thead><tr><th style="width:16%">结构</th><th style="width:30%">模块关系</th><th style="width:26%">优点</th><th style="width:28%">缺点</th></tr></thead><tbody>
+<tr><td>级联式</td><td>AEC → NS → AGC 各自独立</td><td>可定位失效、可分别调优</td><td>误差逐级累积，无法联合优化</td></tr>
+<tr><td>多任务式</td><td>共享编码器 + 三个输出头</td><td>特征复用、算力省</td><td>任务冲突时负迁移</td></tr>
+<tr><td>端到端式</td><td>一个网络直接输出波形</td><td>全局目标最优</td><td>需要海量数据、可解释性最差</td></tr>
+</tbody></table>
+<p>从 <a href='../../part3/16-cascade-order/index.html'>第 16 章 · 3A 级联顺序与模块间相互干扰</a> 的级联顺序到本章的联合模型，<strong>不变量一个都没少</strong>：参考信号必须未经加工、因果性不能破、AGC 之后评测要尺度对齐。变的是「谁来负责每一项误差」从三个模块变成一个损失组合。</p>
+</section>
+<section id="s26-2"><h2><span class="sec-num">§26.2</span>权重不是超参，是产品规格</h2>
+<ul>
+<li><strong>任务冲突</strong>：AEC 想压掉远端相关成分，ANS 想保留一切像语音的成分；双讲时二者方向相反，需要显式的双讲条件或任务门控。</li>
+<li><strong>Pareto 前沿</strong>：把 λ 扫一遍画出 ERLE—segSNR 曲线，才能说明「没有免费午餐」，单点分数没有意义。</li>
+<li><strong>消融</strong>：必须单独关掉每个任务头，验证它确实有贡献；否则共享编码器可能只是把最简单的任务做对了。</li>
+<li><strong>可观测性</strong>：级联链路能旁路定位，端到端模型出问题只能靠输入/输出对比。</li>
+</ul>
+<div class="card note"><span class="card-label">实验口径</span><p style="margin-bottom:0">本实验构造三种彼此独立的退化（回声、噪声、时变电平），并给出三个只在自己那一轴上有效的 oracle 校正；权重之和固定为 1，模拟「多任务头共享有限容量」。扫描权重画出权衡曲面，不代表任何真实多任务网络的训练结果。</p></div>
+</section>
+<section id="lab"><h2><span class="sec-num">§</span>Python 实验</h2>
+<h3>实验 26-1 · 三类 oracle 校正的加权扫描与权衡曲面</h3>
+<pre class="code" data-file="code/26-joint-3a.py" data-lang="Python 3 · 标准库"><code>#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""构造回声、噪声、时变电平三种退化与三个 oracle 校正，扫描权重画出综合得分热力图。
+
+全部语音 / 噪声 / 房间冲激响应均为代码合成信号，仅用于教学演示机制与量级。
+"""
+from __future__ import annotations
+
+import math
+import pathlib
+import random
+import statistics
+import sys
+import time
+
+_here = pathlib.Path(__file__).resolve()
+for _p in _here.parents:
+    if (_p / "tools" / "dsp.py").exists():
+        sys.path.insert(0, str(_p / "tools"))
+        break
+from dsp import (SAMPLE_RATE, fft, hann, stft, istft, magnitude_db, spectrum,
+                 white_noise, tone, chirp, synthetic_speech, rir, convolve,
+                 fft_convolve, delay, clip, normalize_peak, rms, rolling_rms,
+                 smooth, db, energy_db, snr_db, erle_db, seg_snr_db,
+                 scale_align, si_sdr_db, lufs_approx,
+                 write_wav, read_wav, wav_info)
+from chart import Chart, heatmap, BLUE, RED, GREEN, AMBER
+
+FIG = _here.parents[1] / "fig"
+AUDIO = _here.parents[1] / "audio"
+FIG.mkdir(exist_ok=True)
+AUDIO.mkdir(exist_ok=True)
+
+random.seed(7)
+
+# ---- 参数区 ----
+N = 6000
+LEVEL_MIN, LEVEL_SWING = 0.85, 0.15   # 时变电平（AGC 要修的退化）
+GRID = (0.0, 0.25, 0.50, 0.75, 1.00)
+
+# ---- 计算与作图 ----
+rng = random.Random(7)
+clean = synthetic_speech(rng, N)
+far = synthetic_speech(rng, N)
+h = rir(rng, 128, decay=0.006)
+echo = [0.35 * v for v in fft_convolve(far, h)[:N]]
+noise = white_noise(rng, N, 0.070)
+level = [LEVEL_MIN + LEVEL_SWING * math.sin(2 * math.pi * i / N) for i in range(N)]
+base = [clean[i] + echo[i] + noise[i] for i in range(N)]
+y = [level[i] * base[i] for i in range(N)]
+# 三个 oracle 校正：各自只负责一种退化，权重之和为 1 意味着算力/预算被分摊
+corr_aec = [-level[i] * echo[i] for i in range(N)]
+corr_ans = [-level[i] * noise[i] for i in range(N)]
+corr_agc = [(1.0 - level[i]) * base[i] for i in range(N)]
+echo_scaled = [level[i] * echo[i] for i in range(N)]
+
+def task_score(w):
+    return min(35.0, -20.0 * math.log10(max(1e-4, 1.0 - w)))
+def apply(w1, w2):
+    w3 = 1.0 - w1 - w2
+    out = [y[i] + w1 * corr_aec[i] + w2 * corr_ans[i] + w3 * corr_agc[i] for i in range(N)]
+    residual = [out[i] - clean[i] for i in range(N)]
+    e = erle_db(echo_scaled, residual)
+    s = seg_snr_db(clean, scale_align(out, clean))
+    tasks = [task_score(w) for w in (w1, w2, w3)]
+    return min(tasks), tasks, out, e, s
+matrix, best = [], (-1e9, 0.0, 0.0, None)
+for w1 in GRID:
+    row = []
+    for w2 in GRID:
+        if w1 + w2 &gt; 1.0 + 1e-9:
+            row.append(-20.0)
+            continue
+        score, tasks, out, e, s = apply(w1, w2)
+        row.append(round(score, 2))
+        if score &gt; best[0]:
+            best = (score, w1, w2, out)
+    matrix.append(row)
+eq_out = apply(1.0 / 3, 1.0 / 3)[2]
+a1, a2, a3 = apply(0.75, 0.15), apply(1.0 / 3, 1.0 / 3), apply(0.15, 0.75)
+c = Chart(FIG / "26-grid.svg", "三种权重下三个任务各自的抑制比", xlabel="权重组合", ylabel="dB",
+          xticks=[(0, "偏AEC"), (1, "均衡"), (2, "偏ANS")])
+for j, (name, color) in enumerate((("AEC 抑制比", BLUE), ("ANS 抑制比", GREEN), ("AGC 抑制比", AMBER))):
+    dx = (j - 1) * 0.24
+    c.bars([i + dx for i in range(3)], [a[1][j] for a in (a1, a2, a3)], color, label=name)
+print("任务图:", c.save())
+heatmap(FIG / "26-surface.svg", matrix,
+        ["w1=%.2f" % v for v in GRID], ["w2=%.2f" % v for v in GRID],
+        title="最短板得分 min(S_aec,S_ans,S_agc) 的权重曲面", vmin=-20, vmax=12, annotate=True)
+print("曲面图:", str(FIG / "26-surface.svg"))
+write_wav(AUDIO / "26-equal.wav", normalize_peak(eq_out))
+write_wav(AUDIO / "26-best.wav", normalize_peak(best[3]))
+for name, a in (("偏AEC", a1), ("均衡", a2), ("偏ANS", a3)):
+    print("%s 三项抑制比(AEC/ANS/AGC)=%.1f/%.1f/%.1f dB | 最短板=%.1f dB" %
+          (name, a[1][0], a[1][1], a[1][2], a[0]))
+print("最短板最优=%.2f dB (w1=%.2f w2=%.2f w3=%.2f) | SAMPLE_RATE=%d" %
+      (best[0], best[1], best[2], 1.0 - best[1] - best[2], SAMPLE_RATE))</code></pre>
+<p class="code-hint"><strong>操作：</strong>观察哪个权重组合让三项抑制比都不至于太低；对照热力图的高分区位置。　<strong>预期与判读：</strong>偏重任一任务都会让另外两项成为短板：偏 AEC 时 ANS/AGC 抑制比只有 1 dB 左右，偏 ANS 时反之。以「最短板」为综合分时，最优落在三项都不太低的内部区域（本例网格上为 <code>w1=w2=0.25, w3=0.50</code>）。<strong>λ 的选择本质上是产品规格，不是纯调参</strong>。</p>
+<p class="code-hint"><strong>改参数看趋势：</strong>把综合分改成 0.4*ERLE+segSNR（单一指标），最优点会跑到角落——这正是单指标评测的陷阱。　文件位置：<code>part5/26-joint-3a/code/26-joint-3a.py</code></p>
+<div class="chart-grid">
+<figure class="chart-figure"><img src="fig/26-grid.svg" alt="三种权重下各任务的抑制比" loading="lazy"><figcaption>图 1　三种权重下各任务的抑制比（代码合成信号 / 教学示意）</figcaption></figure>
+<figure class="chart-figure"><img src="fig/26-surface.svg" alt="最短板得分的权重曲面" loading="lazy"><figcaption>图 2　最短板得分的权重曲面（代码合成信号 / 教学示意）</figcaption></figure>
+</div>
+<div class="audio-grid">
+<div class="audio-card"><h4>26-equal.wav</h4><audio controls preload="none" src="audio/26-equal.wav">浏览器不支持 audio 元素，请直接打开 audio/26-equal.wav。</audio><p>三个任务等权重的输出（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+<div class="audio-card"><h4>26-best.wav</h4><audio controls preload="none" src="audio/26-best.wav">浏览器不支持 audio 元素，请直接打开 audio/26-best.wav。</audio><p>扫描得到的最优权重输出（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+</div>
+<div class="card note"><p style="margin-bottom:0">代码块右上角可一键复制；仓库里的 <code>code/*.py</code> 由 <code>tools/extract_code.py</code> 从这些代码块自动抽取。脚本只用标准库、固定 <code>random.seed(7)</code>，运行后写出 <code>fig/*.svg</code> 与 <code>audio/*.wav</code>；批量运行用 <code>./tools/run_python.sh</code>。</p></div>
+</section>
+<section id="commands"><h2><span class="sec-num">§</span>可选真机命令片段</h2>
+<div class="card note"><p style="margin-bottom:0">以下命令<strong>不参与批量运行</strong>，需要本机自行安装对应工具。滤镜是否可用取决于本机 ffmpeg 版本与编译选项，请先用 <code>ffmpeg -filters</code> / <code>ffmpeg -version</code> 自查，并以 https://ffmpeg.org/ffmpeg-filters.html 与各自官方文档为准；本书不假定任何特定版本具备某项能力。</p></div>
+<h3>查看多任务/联合增强的开源配方</h3>
+<pre class="cmd" data-lang="shell"><code>git clone --depth 1 https://github.com/modelscope/ClearerVoice-Studio &amp;&amp; ls ClearerVoice-Studio/</code></pre>
+<p class="code-hint"><strong>说明：</strong>该框架含增强、分离与超分的多任务配方；请以其 README 与许可为准，本书实验不依赖 PyTorch。</p>
+</section>
+<section id="highlights"><h2><span class="sec-num">§</span>本章参考资料</h2><p>按本章知识点挑选的精读资料；更多检索入口见 <a href="#extra-links">扩展学习</a>。</p><div class="repo-grid">
+<div class="repo-card"><h3><a href="https://github.com/speechbrain/speechbrain" target="_blank" rel="noopener noreferrer">SpeechBrain ↗</a></h3><span class="tag">工程</span><p>基于 PyTorch 的语音工具箱，含 SE / 分离 / 识别配方</p><p style="margin:0;color:var(--ink-faint)">推荐理由：多任务训练与损失组合的参考实现</p></div>
+<div class="repo-card"><h3><a href="https://github.com/modelscope/ClearerVoice-Studio" target="_blank" rel="noopener noreferrer">ClearerVoice-Studio ↗</a></h3><span class="tag">工程</span><p>语音增强/分离/超分的开源训练与推理框架</p><p style="margin:0;color:var(--ink-faint)">推荐理由：增强/分离/超分一体化框架</p></div>
+<div class="repo-card"><h3><a href="https://github.com/asteroid-team/asteroid" target="_blank" rel="noopener noreferrer">Asteroid ↗</a></h3><span class="tag">工程</span><p>语音分离与增强的研究框架，含 SI-SNR 等损失实现</p><p style="margin:0;color:var(--ink-faint)">推荐理由：SI-SDR 与多任务损失实现</p></div>
+<div class="repo-card"><h3><a href="https://github.com/microsoft/DNS-Challenge" target="_blank" rel="noopener noreferrer">Microsoft DNS Challenge ↗</a></h3><span class="tag">数据集</span><p>深度噪声抑制挑战赛，含大规模合成数据脚本与基线</p><p style="margin:0;color:var(--ink-faint)">推荐理由：联合任务的训练数据与基线</p></div>
+</div></section>
+<section id="repos"><h2><span class="sec-num">§</span>相关开源工程</h2><p>下列工程仅作技术参照，版权与许可证归各自维护者所有。本书实验不依赖它们，也与之无从属关系。</p><div class="repo-grid">
+<div class="repo-card"><h3><a href="https://github.com/modelscope/ClearerVoice-Studio" target="_blank" rel="noopener noreferrer">ClearerVoice-Studio ↗</a></h3><span class="tag">AI · 框架</span><p>语音增强/分离/超分一体化训练与推理框架</p></div>
+<div class="repo-card"><h3><a href="https://github.com/speechbrain/speechbrain" target="_blank" rel="noopener noreferrer">SpeechBrain ↗</a></h3><span class="tag">AI · 框架</span><p>多任务语音配方齐全，适合复现损失组合</p></div>
+</div></section>
+<section id="pitfalls"><h2><span class="sec-num">§</span>常见误区</h2><div class="card warn"><ul><li>把三个任务的损失直接相加而不做量级归一化。</li>
+<li>只报综合得分，不画 ERLE—segSNR 权衡曲线。</li>
+<li>不做任务消融就宣称多任务带来收益。</li>
+<li>联合后丢掉级联链路的旁路定位能力却没有补偿监控。</li></ul></div></section>
+<section id="exercises"><h2><span class="sec-num">§</span>习题与思考</h2><ol><li>写出含四项的多任务损失并说明每项的量级。</li>
+<li>解释双讲时 AEC 与 ANS 目标为何冲突。</li>
+<li>设计一组能验证「共享编码器是否真的有用」的消融。</li></ol></section>
+<section id="extra-links"><h2><span class="sec-num">§</span>扩展学习</h2>
+<div class="repo-grid">
+<div class="repo-card"><h3><a href="https://github.com/speechbrain/speechbrain" target="_blank" rel="noopener noreferrer">SpeechBrain ↗</a></h3><span class="tag">工程</span><p>基于 PyTorch 的语音工具箱，含 SE / 分离 / 识别配方</p></div>
+<div class="repo-card"><h3><a href="https://github.com/modelscope/ClearerVoice-Studio" target="_blank" rel="noopener noreferrer">ClearerVoice-Studio ↗</a></h3><span class="tag">工程</span><p>语音增强/分离/超分的开源训练与推理框架</p></div>
+<div class="repo-card"><h3><a href="https://github.com/asteroid-team/asteroid" target="_blank" rel="noopener noreferrer">Asteroid ↗</a></h3><span class="tag">工程</span><p>语音分离与增强的研究框架，含 SI-SNR 等损失实现</p></div>
+<div class="repo-card"><h3><a href="https://github.com/microsoft/DNS-Challenge" target="_blank" rel="noopener noreferrer">Microsoft DNS Challenge ↗</a></h3><span class="tag">数据集</span><p>深度噪声抑制挑战赛，含大规模合成数据脚本与基线</p></div>
+</div>
+<h3>继续检索</h3><ul>
+<li>Google Scholar：<a href='https://scholar.google.com/scholar?q=joint%203A%20multi%20task%20speech%20enhancement' target='_blank' rel='noopener noreferrer'>joint 3A multi task speech enhancement ↗</a></li>
+<li>arXiv：<a href='https://arxiv.org/search/?query=joint%203A%20multi%20task%20speech%20enhancement&searchtype=all' target='_blank' rel='noopener noreferrer'>joint 3A multi task speech enhancement ↗</a></li>
+<li>GitHub：<a href='https://github.com/search?q=joint%203A%20multi%20task%20speech%20enhancement&type=repositories' target='_blank' rel='noopener noreferrer'>joint 3A multi task speech enhancement ↗</a></li>
+</ul>
+<p class="code-hint">全书链接总表见 <a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a> 与 <a href="../../appendix/index.html#sA-7">附录 A.7</a>；滤镜是否可用请以本机 <code>ffmpeg -filters</code> 为准。</p>
+</section>
+<section id="further"><h2><span class="sec-num">§</span>延伸阅读与内链</h2><ul><li><a href='../../part3/16-cascade-order/index.html'>第 16 章 · 3A 级联顺序与模块间相互干扰</a> 级联顺序；<a href='../../part6/27-causal-streaming/index.html'>第 27 章 · 因果性与流式推理：状态缓存、感受野</a> 因果性；<a href='../../part6/30-generalization/index.html'>第 30 章 · 泛化、鲁棒性与评测陷阱</a> 泛化。</li></ul></section>
+<footer class="pager" data-autofill></footer>
+<footer class="site-foot">
+<p class="credits"><strong>作者</strong>：汪亮（bertonwang）　<strong>联系邮箱</strong>：<a href="mailto:47608843@qq.com">47608843@qq.com</a></p>
+<p class="ai-note"><strong>AI 使用说明</strong>：本教材的知识框架、正文、Python 实验脚本与参考资料清单在 AI 辅助下整理生成，并经人工校订、实际运行与静态自检。公式、数值与运行结果请以Python 3 实际输出及权威教材、官方文档为准；发现错漏欢迎通过上方邮箱勘误。</p>
+<p class="imprint">音频 3A 处理：从自适应滤波到神经增强 · 每章一个 <code>code/*.py</code> 实验脚本、<code>fig/*.svg</code> 矢量图与 <code>audio/*.wav</code> 试听样本（由 <code>tools/extract_code.py</code> 与脚本运行同步） · 只用 Python 3 标准库 · 教学材料，信号全部由代码合成。</p>
+</footer>
+</main>
+</body>
+</html>

@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 430" width="780" height="430" role="img">
+<title>a=0.98 时首帧各频率箱的 Wiener 增益</title>
+<desc>由 tools/chart.py 生成的教材示意插图，数据为合成数据。</desc>
+<rect x="0" y="0" width="780" height="430" fill="#ffffff"/>
+<text x="76.0" y="24" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="15" font-weight="600" fill="#23262b">a=0.98 时首帧各频率箱的 Wiener 增益</text>
+<line x1="76.0" y1="372.0" x2="756.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="376.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">0.493</text>
+<line x1="76.0" y1="306.8" x2="756.0" y2="306.8" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="310.8" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">0.497</text>
+<line x1="76.0" y1="241.6" x2="756.0" y2="241.6" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="245.6" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">0.501</text>
+<line x1="76.0" y1="176.4" x2="756.0" y2="176.4" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="180.4" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">0.504</text>
+<line x1="76.0" y1="111.2" x2="756.0" y2="111.2" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="115.2" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">0.508</text>
+<line x1="76.0" y1="46.0" x2="756.0" y2="46.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="50.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">0.511</text>
+<line x1="76.0" y1="46.0" x2="76.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="76.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">-5.08</text>
+<line x1="212.0" y1="46.0" x2="212.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="212.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">22.35</text>
+<line x1="348.0" y1="46.0" x2="348.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="348.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">49.78</text>
+<line x1="484.0" y1="46.0" x2="484.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="484.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">77.22</text>
+<line x1="620.0" y1="46.0" x2="620.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="620.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">104.6</text>
+<line x1="756.0" y1="46.0" x2="756.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="756.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">132.1</text>
+<line x1="76.0" y1="372.0" x2="756.0" y2="372.0" stroke="#8a909b" stroke-width="1.4"/>
+<line x1="76.0" y1="46.0" x2="76.0" y2="372.0" stroke="#8a909b" stroke-width="1.4"/>
+<text x="416.0" y="418.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="12" fill="#8a909b" text-anchor="middle">频率箱 k</text>
+<text x="14" y="209.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="12" fill="#8a909b" transform="rotate(-90 14 209.0)" text-anchor="middle">增益</text>
+<polyline points="101.19,236.99 106.14,293.57 111.10,254.66 116.06,226.24 121.02,339.15 125.97,344.83 130.93,344.83 135.89,344.83 140.85,344.83 145.80,344.83 150.76,344.83 155.72,344.83 160.68,344.83 165.64,344.83 170.59,344.83 175.55,344.83 180.51,344.83 185.47,344.83 190.42,344.83 195.38,317.72 200.34,342.81 205.30,344.83 210.25,344.83 215.21,344.83 220.17,344.83 225.13,344.83 230.09,344.83 235.04,327.38 240.00,335.35 244.96,344.83 249.92,344.83 254.87,344.83 259.83,344.83 264.79,344.83 269.75,344.83 274.71,344.83 279.66,344.83 284.62,344.83 289.58,344.83 294.54,344.83 299.49,344.83 304.45,341.55 309.41,335.98 314.37,300.66 319.32,344.83 324.28,344.83 329.24,344.83 334.20,344.83 339.16,344.83 344.11,344.83 349.07,344.83 354.03,344.83 358.99,344.83 363.94,344.83 368.90,344.83 373.86,344.83 378.82,344.83 383.77,344.83 388.73,344.83 393.69,344.83 398.65,344.83 403.61,344.83 408.56,344.83 413.52,344.83 418.48,344.83 423.44,344.83 428.39,344.83 433.35,344.83 438.31,344.83 443.27,344.83 448.23,344.83 453.18,344.83 458.14,344.83 463.10,344.83 468.06,344.83 473.01,344.83 477.97,344.83 482.93,344.83 487.89,344.83 492.84,331.89 497.80,344.83 502.76,344.83 507.72,344.83 512.68,344.83 517.63,344.83 522.59,344.83 527.55,344.83 532.51,344.83 537.46,344.83 542.42,344.83 547.38,344.83 552.34,344.83 557.29,344.83 562.25,344.83 567.21,344.83 572.17,344.83 577.13,344.83 582.08,344.83 587.04,344.83 592.00,344.83 596.96,344.83 601.91,344.83 606.87,344.83 611.83,344.83 616.79,344.83 621.75,344.83 626.70,344.83 631.66,344.83 636.62,344.83 641.58,344.83 646.53,344.83 651.49,344.83 656.45,344.83 661.41,338.76 666.36,241.63 671.32,344.83 676.28,344.83 681.24,344.83 686.20,344.83 691.15,344.83 696.11,344.83 701.07,227.66 706.03,73.17 710.98,216.63 715.94,299.31 720.90,344.83 725.86,344.83 730.81,344.83" fill="none" stroke="#2f6b4f" stroke-width="2" stroke-linejoin="round" opacity="1.0"/>
+<rect x="80.0" y="50.0" width="178" height="28" fill="#ffffff" fill-opacity="0.86" stroke="#e8e6e0" rx="3"/>
+<line x1="86.0" y1="66.0" x2="104.0" y2="66.0" stroke="#2f6b4f" stroke-width="3"/>
+<text x="110.0" y="70.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="11" fill="#23262b">G[k]</text>
+</svg>

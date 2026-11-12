@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 430" width="780" height="430" role="img">
+<title>非平稳噪声功率：真实 / 固定估计 / MCRA 跟踪</title>
+<desc>由 tools/chart.py 生成的教材示意插图，数据为合成数据。</desc>
+<rect x="0" y="0" width="780" height="430" fill="#ffffff"/>
+<text x="76.0" y="24" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="15" font-weight="600" fill="#23262b">非平稳噪声功率：真实 / 固定估计 / MCRA 跟踪</text>
+<line x1="76.0" y1="372.0" x2="756.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="376.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">-5.96</text>
+<line x1="76.0" y1="306.8" x2="756.0" y2="306.8" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="310.8" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">11.54</text>
+<line x1="76.0" y1="241.6" x2="756.0" y2="241.6" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="245.6" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">29.03</text>
+<line x1="76.0" y1="176.4" x2="756.0" y2="176.4" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="180.4" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">46.53</text>
+<line x1="76.0" y1="111.2" x2="756.0" y2="111.2" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="115.2" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">64.02</text>
+<line x1="76.0" y1="46.0" x2="756.0" y2="46.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="50.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">81.52</text>
+<line x1="76.0" y1="46.0" x2="76.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="76.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">-2.48</text>
+<line x1="212.0" y1="46.0" x2="212.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="212.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">10.91</text>
+<line x1="348.0" y1="46.0" x2="348.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="348.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">24.30</text>
+<line x1="484.0" y1="46.0" x2="484.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="484.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">37.70</text>
+<line x1="620.0" y1="46.0" x2="620.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="620.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">51.09</text>
+<line x1="756.0" y1="46.0" x2="756.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="756.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">64.48</text>
+<line x1="76.0" y1="372.0" x2="756.0" y2="372.0" stroke="#8a909b" stroke-width="1.4"/>
+<line x1="76.0" y1="46.0" x2="76.0" y2="372.0" stroke="#8a909b" stroke-width="1.4"/>
+<text x="416.0" y="418.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="12" fill="#8a909b" text-anchor="middle">帧 t</text>
+<text x="14" y="209.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="12" fill="#8a909b" transform="rotate(-90 14 209.0)" text-anchor="middle">全带功率（线性求和）</text>
+<polyline points="101.19,344.21 111.34,335.74 121.50,336.41 131.65,338.12 141.81,337.83 151.96,335.17 162.12,336.91 172.27,337.94 182.43,336.25 192.58,334.48 202.74,336.96 212.89,338.25 223.05,335.87 233.20,338.26 243.36,338.01 253.51,336.11 263.67,338.77 273.83,336.82 283.98,337.63 294.14,335.54 304.29,337.80 314.45,336.51 324.60,337.24 334.76,334.94 344.91,334.34 355.07,334.39 365.22,336.96 375.38,335.96 385.53,333.86 395.69,337.61 405.84,339.05 416.00,311.35 426.16,153.05 436.31,180.81 446.47,152.29 456.62,190.71 466.78,156.70 476.93,156.81 487.09,168.27 497.24,164.87 507.40,178.91 517.55,146.51 527.71,199.06 537.86,196.92 548.02,192.31 558.17,161.29 568.33,143.86 578.49,183.41 588.64,167.20 598.80,183.20 608.95,151.93 619.11,131.15 629.26,158.31 639.42,157.02 649.57,165.08 659.73,176.95 669.88,210.14 680.04,167.32 690.19,172.78 700.35,141.63 710.50,182.13 720.66,179.79 730.81,196.01" fill="none" stroke="#9aa6b2" stroke-width="2" stroke-linejoin="round" opacity="0.85"/>
+<polyline points="101.19,344.21 111.34,344.12 121.50,344.17 131.65,344.24 141.81,344.35 151.96,344.44 162.12,344.50 172.27,344.61 182.43,344.65 192.58,344.73 202.74,344.80 212.89,344.83 223.05,344.82 233.20,344.81 243.36,344.79 253.51,344.78 263.67,344.74 273.83,344.70 283.98,344.61 294.14,344.59 304.29,344.38 314.45,344.09 324.60,341.12 334.76,288.64 344.91,266.84 355.07,263.59 365.22,268.62 375.38,275.35 385.53,281.62 395.69,287.50 405.84,292.79 416.00,297.05 426.16,300.45 436.31,303.39 446.47,305.89 456.62,307.64 466.78,308.88 476.93,308.88 487.09,308.88 497.24,308.88 507.40,308.88 517.55,308.88 527.71,308.74 537.86,306.06 548.02,301.40 558.17,296.73 568.33,293.43 578.49,290.47 588.64,285.27 598.80,166.35 608.95,99.60 619.11,73.17 629.26,73.40 639.42,85.30 649.57,101.28 659.73,113.89 669.88,127.27 680.04,137.76 690.19,148.26 700.35,157.15 710.50,166.10 720.66,174.21 730.81,181.92" fill="none" stroke="#2f6b4f" stroke-width="2" stroke-linejoin="round" opacity="1.0"/>
+<polyline points="101.19,338.62 111.34,338.62 121.50,338.62 131.65,338.62 141.81,338.62 151.96,338.62 162.12,338.62 172.27,338.62 182.43,338.62 192.58,338.62 202.74,338.62 212.89,338.62 223.05,338.62 233.20,338.62 243.36,338.62 253.51,338.62 263.67,338.62 273.83,338.62 283.98,338.62 294.14,338.62 304.29,338.62 314.45,338.62 324.60,338.62 334.76,338.62 344.91,338.62 355.07,338.62 365.22,338.62 375.38,338.62 385.53,338.62 395.69,338.62 405.84,338.62 416.00,338.62 426.16,338.62 436.31,338.62 446.47,338.62 456.62,338.62 466.78,338.62 476.93,338.62 487.09,338.62 497.24,338.62 507.40,338.62 517.55,338.62 527.71,338.62 537.86,338.62 548.02,338.62 558.17,338.62 568.33,338.62 578.49,338.62 588.64,338.62 598.80,338.62 608.95,338.62 619.11,338.62 629.26,338.62 639.42,338.62 649.57,338.62 659.73,338.62 669.88,338.62 680.04,338.62 690.19,338.62 700.35,338.62 710.50,338.62 720.66,338.62 730.81,338.62" fill="none" stroke="#8a3b26" stroke-width="2" stroke-linejoin="round" opacity="1.0"/>
+<rect x="80.0" y="50.0" width="178" height="68" fill="#ffffff" fill-opacity="0.86" stroke="#e8e6e0" rx="3"/>
+<line x1="86.0" y1="66.0" x2="104.0" y2="66.0" stroke="#9aa6b2" stroke-width="3"/>
+<text x="110.0" y="70.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="11" fill="#23262b">真实噪声帧功率</text>
+<line x1="86.0" y1="86.0" x2="104.0" y2="86.0" stroke="#2f6b4f" stroke-width="3"/>
+<text x="110.0" y="90.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="11" fill="#23262b">MCRA 跟踪 λ_n</text>
+<line x1="86.0" y1="106.0" x2="104.0" y2="106.0" stroke="#8a3b26" stroke-width="3"/>
+<text x="110.0" y="110.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="11" fill="#23262b">固定估计（前 4 帧）</text>
+</svg>

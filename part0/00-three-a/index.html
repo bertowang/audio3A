@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 00 章 · 3A 是什么：一条实时语音链路上的三个约束 | 音频 3A 处理：从自适应滤波到神经增强</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<script src="../../assets/toc.js" defer></script>
+<script src="../../assets/app.js" defer></script>
+</head>
+<body data-root="../../" data-chapter="00">
+<aside id="sidebar"></aside>
+<main class="book-page">
+<nav class="breadcrumb" data-autofill>总目录</nav>
+<header class="chapter-head">
+<span class="kicker">卷首 · 3A 问题全景 · 卷首 · 共同语言与问题定义</span>
+<h1><span class="ch-num">第 00 章</span>3A 是什么：一条实时语音链路上的三个约束</h1>
+<p class="lede">把「通话里听起来不舒服」拆成三个可建模、可测量、可分别优化的估计问题。</p>
+<div class="meta">
+<span class="badge done">已完稿</span>
+<span class="badge s1">问题定义</span>
+<span>建议 2 学时</span>
+<span>1 个 Python 实验 · 2 张图 · 3 段试听</span>
+<span>音频 3A 处理：从自适应滤波到神经增强</span>
+</div></header>
+<p class="bridge"><strong>本章位置：</strong>全书入口。<a href='../01-acoustic-path/index.html'>第 01 章 · 声学链路与信号模型：房间、麦克风与回声路径</a> 把 <code>h</code> 与房间讲清楚，<a href='../02-time-frequency/index.html'>第 02 章 · 采样、量化与时频表示：从 PCM 到 STFT</a> 建立时频工具，<a href='../03-metrics/index.html'>第 03 章 · 怎么算「变好了」：客观指标、尺度与主观听测</a> 约定「变好了」怎么算；上卷从 <a href='../../part1/04-lti-convolution/index.html'>第 04 章 · 线性系统、卷积与频域实现</a> 开始实现。</p>
+<div class="analogy"><span class="card-label">给程序员的翻译</span><p style="margin-bottom:0">3A 是一条流式处理管道：<code>x[n]</code> 是旁路输入，<code>y[n]</code> 是主数据流，AEC 是有参考的抵消器、ANS 是统计滤波器、AGC 是输出限幅器。<strong>任何一环用了未来帧，整条链路就不再是因果系统。</strong></p></div>
+<div class="card objectives"><span class="card-label">学习目标</span><ul>
+<li>能画出一条实时语音链路，并标出 AEC / ANS / AGC 各自作用的位置。</li>
+<li>能说明为什么三者的顺序不能随意交换。</li>
+<li>能写出每个模块的输入、输出与典型指标。</li>
+<li>能运行全书第一个实验，听到处理前后的差别并核对数值。</li>
+</ul></div>
+<section id="map"><h2><span class="sec-num">§</span>知识点地图</h2>
+<p class="code-hint">每个知识点都配了 1～2 个扩展学习链接；本章完整资源清单见 <a href="#extra-links">扩展学习</a>。</p>
+<table><thead><tr><th style="width:44px">#</th><th style="width:26%">知识点</th><th>扩展学习</th><th style="width:100px">状态</th></tr></thead><tbody>
+<tr><td>1</td><td>实时语音链路</td><td><a href="https://www.rfc-editor.org/rfc/rfc3550" target="_blank" rel="noopener noreferrer">RFC 3550 RTP ↗</a> · <a href="https://webrtc.org/" target="_blank" rel="noopener noreferrer">WebRTC 官网 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>2</td><td>AEC 回声消除</td><td><a href="https://en.wikipedia.org/wiki/Echo_cancellation" target="_blank" rel="noopener noreferrer">Echo cancellation ↗</a> · <a href="https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/aec3/" target="_blank" rel="noopener noreferrer">WebRTC AEC3 模块 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>3</td><td>ANS 噪声抑制</td><td><a href="https://ffmpeg.org/ffmpeg-filters.html#afftdn" target="_blank" rel="noopener noreferrer">ffmpeg afftdn ↗</a> · <a href="https://github.com/microsoft/DNS-Challenge" target="_blank" rel="noopener noreferrer">Microsoft DNS Challenge ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>4</td><td>AGC 自动增益控制</td><td><a href="https://en.wikipedia.org/wiki/Automatic_gain_control" target="_blank" rel="noopener noreferrer">Automatic gain control ↗</a> · <a href="https://ffmpeg.org/ffmpeg-filters.html#dynaudnorm" target="_blank" rel="noopener noreferrer">ffmpeg dynaudnorm ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>5</td><td>三个约束的耦合</td><td><a href="https://en.wikipedia.org/wiki/Echo_cancellation" target="_blank" rel="noopener noreferrer">Echo cancellation ↗</a> · <a href="https://webrtc.org/" target="_blank" rel="noopener noreferrer">WebRTC 官网 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>6</td><td>3A 处理顺序</td><td><a href="https://en.wikipedia.org/wiki/Echo_cancellation" target="_blank" rel="noopener noreferrer">Echo cancellation ↗</a> · <a href="https://webrtc.org/" target="_blank" rel="noopener noreferrer">WebRTC 官网 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>7</td><td>因果性与算法延迟</td><td><a href="https://www.rfc-editor.org/rfc/rfc3550" target="_blank" rel="noopener noreferrer">RFC 3550 RTP ↗</a> · <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API" target="_blank" rel="noopener noreferrer">MDN Web Audio API ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>8</td><td>客观与主观评价</td><td><a href="https://www.itu.int/rec/T-REC-P.862/en" target="_blank" rel="noopener noreferrer">ITU-T P.862 PESQ ↗</a> · <a href="https://github.com/microsoft/DNS-Challenge/tree/master/DNSMOS" target="_blank" rel="noopener noreferrer">DNSMOS ↗</a></td><td>正文已覆盖</td></tr>
+</tbody></table></section>
+<section id="s0-1"><h2><span class="sec-num">§0.1</span>从一次视频会议说起</h2>
+<p>你对着笔记本说话，对方的声音从扬声器放出来，又被同一个麦克风收回去——这就是<strong>声学回声</strong>；空调、键盘、风扇是<strong>加性噪声</strong>；你离麦克风忽远忽近、有人轻声有人大嗓门，是<strong>电平起伏</strong>。三类退化同时出现在一段波形里，却在数学上是三种不同的可估计量。</p>
+<p class="eq">y[n] = d[n] + h * x[n] + v[n]　，g（增益）在采集后端作用</p>
+<p>其中 <code>x[n]</code> 是远端参考信号、<code>h</code> 是房间回声路径、<code>d[n]</code> 是近端语音、<code>v[n]</code> 是环境噪声、<code>y[n]</code> 是麦克风信号。3A 的任务就是：在只知道 <code>x[n]</code> 与 <code>y[n]</code> 的条件下，把 <code>d[n]</code> 尽量干净、等响地交给编码器。</p>
+<table><thead><tr><th style="width:10%">模块</th><th style="width:20%">要消掉什么</th><th style="width:18%">已知什么</th><th style="width:30%">核心方法</th><th style="width:22%">典型指标</th></tr></thead><tbody>
+<tr><td>AEC</td><td>h * x（回声）</td><td>远端参考 x</td><td>自适应辨识 ĥ + 残余抑制</td><td>ERLE / 双讲MOS</td></tr>
+<tr><td>ANS</td><td>v（噪声）</td><td>只有 y</td><td>噪声功率估计 + 谱增益</td><td>segSNR / STOI / DNSMOS</td></tr>
+<tr><td>AGC</td><td>电平起伏</td><td>输出电平</td><td>包络跟踪 + 平滑增益</td><td>LUFS / 峰值余量</td></tr>
+</tbody></table>
+</section>
+<section id="s0-2"><h2><span class="sec-num">§0.2</span>为什么是「三」个而不是一个</h2>
+<p>三者的<strong>可观测性</strong>不同：AEC 有参考信号，是监督式系统辨识；ANS 没有参考，只能靠统计假设区分语音与噪声；AGC 不区分内容，只改整体尺度。把它们做成一个黑箱模型并非不行，但工程上分开有三个硬理由：</p>
+<ul>
+<li><strong>顺序有物理约束</strong>：AGC 若放在 AEC 前面会改变回声路径增益，使自适应滤波器不断追一个移动的目标；AEC 必须在 AGC 之前、且用未加工的参考信号。</li>
+<li><strong>失效模式可隔离</strong>：双讲漏回声、音乐噪声、增益泵浦分别可定位到具体模块。</li>
+<li><strong>算力与延迟可预算</strong>：每块单独估算 MIPS、内存与算法延迟，便于端侧裁剪。</li>
+</ul>
+<div class="card note"><span class="card-label">全书主线</span><p style="margin-bottom:0">信号 → 系统 → 估计 → 适应 → 感知 → 数据驱动 → 部署。上卷把每个模块写成可手推的估计器；下卷把同一批估计器换成可学习的函数，但链路结构、因果约束与评价指标完全不变。</p></div>
+</section>
+<section id="s0-3"><h2><span class="sec-num">§0.3</span>两卷的分工与阅读方式</h2>
+<table><thead><tr><th style="width:14%"></th><th style="width:43%">上卷 · 传统算法（04–18）</th><th style="width:43%">下卷 · AI 算法（19–31）</th></tr></thead><tbody>
+<tr><td>先验</td><td>声学模型 + 统计假设 + 最优滤波</td><td>数据分布 + 网络归纳偏置</td></tr>
+<tr><td>参数</td><td>步长、滤波器长度、时间常数，可解释</td><td>权重由数据训练得到，需专门做可解释性</td></tr>
+<tr><td>数据</td><td>不需要训练集，逐帧在线自适应</td><td>需要成对的干净/退化语料与增强策略</td></tr>
+<tr><td>优势</td><td>低算力、低延迟、可证明收敛</td><td>非线性失真、非平稳噪声下上限更高</td></tr>
+<tr><td>弱点</td><td>非线性回声、突发噪声、强混响</td><td>分布外泛化、算力与黑箱</td></tr>
+<tr><td>主流做法</td><td>WebRTC AEC3 / SpeexDSP</td><td>RNNoise / DNS Challenge 系列 / 混合系统</td></tr>
+</tbody></table>
+<p>今天的工业系统几乎都是<strong>混合式</strong>：经典 AEC 做线性消除，神经网络做残余回声与噪声抑制，再用传统 AGC 收尾。因此两卷不是替代关系，而是同一条链路的两层。</p>
+</section>
+<section id="lab"><h2><span class="sec-num">§</span>Python 实验</h2>
+<h3>实验 0-1 · 造一条含回声、噪声与电平起伏的链路，逐个打开 3A</h3>
+<pre class="code" data-file="code/00-three-a.py" data-lang="Python 3 · 标准库"><code>#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""合成一整段退化语音，依次施加理想 AEC、谱减 ANS 与 AGC，打印每步指标并生成可试听 WAV。
+
+全部语音 / 噪声 / 房间冲激响应均为代码合成信号，仅用于教学演示机制与量级。
+"""
+from __future__ import annotations
+
+import math
+import pathlib
+import random
+import statistics
+import sys
+import time
+
+_here = pathlib.Path(__file__).resolve()
+for _p in _here.parents:
+    if (_p / "tools" / "dsp.py").exists():
+        sys.path.insert(0, str(_p / "tools"))
+        break
+from dsp import (SAMPLE_RATE, fft, hann, stft, istft, magnitude_db, spectrum,
+                 white_noise, tone, chirp, synthetic_speech, rir, convolve,
+                 fft_convolve, delay, clip, normalize_peak, rms, rolling_rms,
+                 smooth, db, energy_db, snr_db, erle_db, seg_snr_db,
+                 scale_align, si_sdr_db, lufs_approx,
+                 write_wav, read_wav, wav_info)
+from chart import Chart, heatmap, BLUE, RED, GREEN, AMBER
+
+FIG = _here.parents[1] / "fig"
+AUDIO = _here.parents[1] / "audio"
+FIG.mkdir(exist_ok=True)
+AUDIO.mkdir(exist_ok=True)
+
+random.seed(7)
+
+# ---- 参数区 ----
+N = 16000                  # 1 秒 @ 16 kHz
+NOISE_AMP = 0.020           # 环境噪声幅度
+ECHO_GAIN = 2.00            # 回声路径整体增益
+FAR_GAIN = 0.35             # 近端语音电平（模拟说话人忽远忽近）
+SUB_FACTOR = 1.20           # 谱减过减因子
+FLOOR = 0.12                # 谱增益下限（抑制音乐噪声）
+
+# ---- 计算与作图 ----
+rng = random.Random(7)
+far = synthetic_speech(rng, N)            # 远端说话（将成为回声）
+near = synthetic_speech(rng, N)           # 近端说话（目标）
+h = rir(rng, 192, decay=0.012)
+echo = [ECHO_GAIN * v for v in fft_convolve(far, h)[:N]]
+noise = white_noise(rng, N, NOISE_AMP)
+level = [FAR_GAIN * (0.6 + 0.4 * math.sin(2 * math.pi * i / N)) for i in range(N)]
+clean = [near[i] * level[i] for i in range(N)]
+mic = [clean[i] + echo[i] + noise[i] for i in range(N)]
+
+# AEC：本实验用「已知真实 h」演示理想上界（真正的辨识从第 05 章开始）
+after_aec = [mic[i] - echo[i] for i in range(N)]
+# ANS：频域谱减 —— 每个频率箱一个增益，帧内恒定，不会逐样本调制语音
+#      噪声谱用合成噪声的前 4 帧均值（理想上界，第 08 章再讲如何在线估计）
+frames = stft(after_aec, 512, 256)
+nf = stft(noise, 512, 256)[:4]
+noise_mag = [sum(math.hypot(re[k], im[k]) for re, im in nf) / len(nf)
+             for k in range(512)]
+for re, im in frames:
+    for k in range(512):
+        mag = math.hypot(re[k], im[k])
+        g = max(FLOOR, 1.0 - SUB_FACTOR * noise_mag[k] / (mag + 1e-9))
+        re[k] *= g
+        im[k] *= g
+after_ans = istft(frames, 512, 256, N)
+# AGC：概览章用静态归一化做上界（逐帧动态增益与攻击/释放见第 14 章）
+target_rms = 0.16
+gain = min(8.0, target_rms / (rms(after_ans) + 1e-6))
+out = clip([v * gain for v in after_ans])
+
+c = Chart(FIG / "00-waveform.svg", "3A 链路各阶段波形（前 2000 样本）",
+          xlabel="样本", ylabel="幅度")
+c.line(range(2000), mic[:2000], "#9aa6b2", label="麦克风信号 y[n]", opacity=0.85)
+c.line(range(2000), clean[:2000], BLUE, label="目标近端语音 d[n]")
+c.line(range(2000), out[:2000], GREEN, label="3A 输出", opacity=0.9)
+print("波形图:", c.save())
+b = Chart(FIG / "00-metrics.svg", "各阶段的客观指标变化", xlabel="阶段", ylabel="dB / 电平",
+          xticks=[(0, "原始"), (1, "AEC后"), (2, "ANS后"), (3, "AGC后")])
+stages = [mic, after_aec, after_ans, out]
+scores = [seg_snr_db(clean, scale_align(s, clean)) for s in stages]
+b.bars(range(4), scores, BLUE, label="分段 SNR (dB)")
+b.hline(0.0, "#9aa6b2")
+print("指标图:", b.save())
+write_wav(AUDIO / "00-mic.wav", normalize_peak(mic))
+write_wav(AUDIO / "00-processed.wav", normalize_peak(out))
+write_wav(AUDIO / "00-clean.wav", normalize_peak(clean))
+print("WAV: %d 帧 / %d Hz / %.2f s / %d 字节" % wav_info(AUDIO / "00-mic.wav"))
+print("ERLE(理想AEC)=%.2f dB | segSNR 原始=%.2f → AEC后=%.2f → ANS后=%.2f → 3A输出=%.2f dB" %
+      (erle_db(echo, [after_aec[i] - clean[i] for i in range(N)]), *scores))
+print("RMS 原始=%.4f → 输出=%.4f | 目标=%.4f" % (rms(mic), rms(out), target_rms))</code></pre>
+<p class="code-hint"><strong>操作：</strong>先听 <code>00-mic.wav</code> 再听 <code>00-processed.wav</code>；把 <code>ECHO_GAIN</code> 与 <code>NOISE_AMP</code> 调大，看图与指标如何变化。　<strong>预期与判读：</strong>理想 AEC 能获得很高的 ERLE（本例用真实 <code>h</code>，是上界而非真实算法性能）；ANS 与 AGC 逐步抬升分段 SNR、把 RMS 拉到目标电平。<strong>请特别注意：AGC 之后的波形幅度变了，直接比较波形不再等价于比较质量。</strong></p>
+<p class="code-hint"><strong>改参数看趋势：</strong>把 <code>FAR_GAIN</code> 改成常数 1.0（无电平起伏），AGC 的作用会明显变小。　文件位置：<code>part0/00-three-a/code/00-three-a.py</code></p>
+<div class="chart-grid">
+<figure class="chart-figure"><img src="fig/00-waveform.svg" alt="麦克风信号、目标语音与 3A 输出波形" loading="lazy"><figcaption>图 1　麦克风信号、目标语音与 3A 输出波形（代码合成信号 / 教学示意）</figcaption></figure>
+<figure class="chart-figure"><img src="fig/00-metrics.svg" alt="逐阶段分段 SNR 变化" loading="lazy"><figcaption>图 2　逐阶段分段 SNR 变化（代码合成信号 / 教学示意）</figcaption></figure>
+</div>
+<div class="audio-grid">
+<div class="audio-card"><h4>00-mic.wav</h4><audio controls preload="none" src="audio/00-mic.wav">浏览器不支持 audio 元素，请直接打开 audio/00-mic.wav。</audio><p>未处理：可同时听到回声与噪声（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+<div class="audio-card"><h4>00-clean.wav</h4><audio controls preload="none" src="audio/00-clean.wav">浏览器不支持 audio 元素，请直接打开 audio/00-clean.wav。</audio><p>目标近端语音（参考）（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+<div class="audio-card"><h4>00-processed.wav</h4><audio controls preload="none" src="audio/00-processed.wav">浏览器不支持 audio 元素，请直接打开 audio/00-processed.wav。</audio><p>依次打开 3A 后的输出（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+</div>
+<div class="card note"><p style="margin-bottom:0">代码块右上角可一键复制；仓库里的 <code>code/*.py</code> 由 <code>tools/extract_code.py</code> 从这些代码块自动抽取。脚本只用标准库、固定 <code>random.seed(7)</code>，运行后写出 <code>fig/*.svg</code> 与 <code>audio/*.wav</code>；批量运行用 <code>./tools/run_python.sh</code>。</p></div>
+</section>
+<section id="commands"><h2><span class="sec-num">§</span>可选真机命令片段</h2>
+<div class="card note"><p style="margin-bottom:0">以下命令<strong>不参与批量运行</strong>，需要本机自行安装对应工具。滤镜是否可用取决于本机 ffmpeg 版本与编译选项，请先用 <code>ffmpeg -filters</code> / <code>ffmpeg -version</code> 自查，并以 https://ffmpeg.org/ffmpeg-filters.html 与各自官方文档为准；本书不假定任何特定版本具备某项能力。</p></div>
+<h3>用 ffmpeg 查本机到底有哪些 3A 相关滤镜</h3>
+<pre class="cmd" data-lang="shell"><code>ffmpeg -hide_banner -version | head -3
+ffmpeg -hide_banner -filters | grep -E 'arnndn|afftdn|anlmdn|loudnorm|dynaudnorm|speechnorm|ebur128|acompressor|alimiter|silencedetect|astats|volumedetect|aecho|aresample'</code></pre>
+<p class="code-hint"><strong>说明：</strong>滤镜是否可用取决于本机 ffmpeg 版本与编译选项；本书不假定任何特定版本，所有引入版本请以 https://ffmpeg.org/ffmpeg-filters.html 为准。</p>
+</section>
+<section id="highlights"><h2><span class="sec-num">§</span>本章参考资料</h2><p>按本章知识点挑选的精读资料；更多检索入口见 <a href="#extra-links">扩展学习</a>。</p><div class="repo-grid">
+<div class="repo-card"><h3><a href="https://webrtc.org/" target="_blank" rel="noopener noreferrer">WebRTC 官网 ↗</a></h3><span class="tag">工程</span><p>实时通信标准与参考实现，3A 是浏览器通话的默认链路</p><p style="margin:0;color:var(--ink-faint)">推荐理由：3A 的工业级参考实现，先建立整体印象</p></div>
+<div class="repo-card"><h3><a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a></h3><span class="tag">工具</span><p>全部音频滤镜的权威说明页，每个滤镜有独立锚点</p><p style="margin:0;color:var(--ink-faint)">推荐理由：离线验证与实验的权威文档</p></div>
+<div class="repo-card"><h3><a href="https://en.wikipedia.org/wiki/Echo_cancellation" target="_blank" rel="noopener noreferrer">Echo cancellation ↗</a></h3><span class="tag">百科</span><p>回声消除的问题定义、自适应滤波与双讲概述</p><p style="margin:0;color:var(--ink-faint)">推荐理由：回声消除问题定义</p></div>
+<div class="repo-card"><h3><a href="https://www.rfc-editor.org/rfc/rfc3550" target="_blank" rel="noopener noreferrer">RFC 3550 RTP ↗</a></h3><span class="tag">标准</span><p>实时音视频传输的时间戳、抖动与序列号基础</p><p style="margin:0;color:var(--ink-faint)">推荐理由：实时链路里延迟与抖动的来源</p></div>
+</div></section>
+<section id="pitfalls"><h2><span class="sec-num">§</span>常见误区</h2><div class="card warn"><ul><li>把 AGC 放在 AEC 之前，破坏参考信号与回声的线性关系。</li>
+<li>用处理后信号与处理前信号直接算波形差，忽略 AGC 的尺度变化。</li>
+<li>以为 ERLE 高就等于通话好听（还需看双讲与语音失真）。</li>
+<li>把离线处理的结果当成实时可用，忽略因果性与算法延迟。</li></ul></div></section>
+<section id="exercises"><h2><span class="sec-num">§</span>习题与思考</h2><ol><li>画出 3A 链路框图，标出每个模块的输入、输出与可观测信号。</li>
+<li>解释为什么 AEC 需要参考信号而 ANS 不需要。</li>
+<li>列举两种「客观指标变好但主观变差」的情形。</li></ol></section>
+<section id="extra-links"><h2><span class="sec-num">§</span>扩展学习</h2>
+<div class="repo-grid">
+<div class="repo-card"><h3><a href="https://en.wikipedia.org/wiki/Echo_cancellation" target="_blank" rel="noopener noreferrer">Echo cancellation ↗</a></h3><span class="tag">百科</span><p>回声消除的问题定义、自适应滤波与双讲概述</p></div>
+<div class="repo-card"><h3><a href="https://webrtc.org/" target="_blank" rel="noopener noreferrer">WebRTC 官网 ↗</a></h3><span class="tag">工程</span><p>实时通信标准与参考实现，3A 是浏览器通话的默认链路</p></div>
+<div class="repo-card"><h3><a href="https://www.rfc-editor.org/rfc/rfc3550" target="_blank" rel="noopener noreferrer">RFC 3550 RTP ↗</a></h3><span class="tag">标准</span><p>实时音视频传输的时间戳、抖动与序列号基础</p></div>
+<div class="repo-card"><h3><a href="https://en.wikipedia.org/wiki/Automatic_gain_control" target="_blank" rel="noopener noreferrer">Automatic gain control ↗</a></h3><span class="tag">百科</span><p>AGC 的环路结构与时间常数</p></div>
+<div class="repo-card"><h3><a href="https://ffmpeg.org/documentation.html" target="_blank" rel="noopener noreferrer">FFmpeg 官方文档 ↗</a></h3><span class="tag">工具</span><p>文档总入口；用 `ffmpeg -filters` 查本机实际支持的滤镜</p></div>
+</div>
+<h3>继续检索</h3><ul>
+<li>Google Scholar：<a href='https://scholar.google.com/scholar?q=audio%203A%20pipeline%20AEC%20ANS%20AGC%20overview' target='_blank' rel='noopener noreferrer'>audio 3A pipeline AEC ANS AGC overview ↗</a></li>
+<li>arXiv：<a href='https://arxiv.org/search/?query=audio%203A%20pipeline%20AEC%20ANS%20AGC%20overview&searchtype=all' target='_blank' rel='noopener noreferrer'>audio 3A pipeline AEC ANS AGC overview ↗</a></li>
+<li>GitHub：<a href='https://github.com/search?q=audio%203A%20pipeline%20AEC%20ANS%20AGC%20overview&type=repositories' target='_blank' rel='noopener noreferrer'>audio 3A pipeline AEC ANS AGC overview ↗</a></li>
+</ul>
+<p class="code-hint">全书链接总表见 <a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a> 与 <a href="../../appendix/index.html#sA-7">附录 A.7</a>；滤镜是否可用请以本机 <code>ffmpeg -filters</code> 为准。</p>
+</section>
+<section id="further"><h2><span class="sec-num">§</span>延伸阅读与内链</h2><ul><li><a href='../../part3/16-cascade-order/index.html'>第 16 章 · 3A 级联顺序与模块间相互干扰</a> 级联顺序的工程细节；<a href='../../part3/17-toolchain/index.html'>第 17 章 · ffmpeg / WebRTC / SpeexDSP 工具链实操</a> ffmpeg / WebRTC 命令实操；<a href='../../index.html#roadmap'>全书学习路线</a> 两卷路线。</li></ul></section>
+<footer class="pager" data-autofill></footer>
+<footer class="site-foot">
+<p class="credits"><strong>作者</strong>：汪亮（bertonwang）　<strong>联系邮箱</strong>：<a href="mailto:47608843@qq.com">47608843@qq.com</a></p>
+<p class="ai-note"><strong>AI 使用说明</strong>：本教材的知识框架、正文、Python 实验脚本与参考资料清单在 AI 辅助下整理生成，并经人工校订、实际运行与静态自检。公式、数值与运行结果请以Python 3 实际输出及权威教材、官方文档为准；发现错漏欢迎通过上方邮箱勘误。</p>
+<p class="imprint">音频 3A 处理：从自适应滤波到神经增强 · 每章一个 <code>code/*.py</code> 实验脚本、<code>fig/*.svg</code> 矢量图与 <code>audio/*.wav</code> 试听样本（由 <code>tools/extract_code.py</code> 与脚本运行同步） · 只用 Python 3 标准库 · 教学材料，信号全部由代码合成。</p>
+</footer>
+</main>
+</body>
+</html>

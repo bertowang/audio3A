@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 31 章 · 结课项目：小型掩码估计器与全链路验证 | 音频 3A 处理：从自适应滤波到神经增强</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<script src="../../assets/toc.js" defer></script>
+<script src="../../assets/app.js" defer></script>
+</head>
+<body data-root="../../" data-chapter="31">
+<aside id="sidebar"></aside>
+<main class="book-page">
+<nav class="breadcrumb" data-autofill>总目录</nav>
+<header class="chapter-head">
+<span class="kicker">第六篇 · 实时部署、评测与前沿 · 下卷 · AI 算法（Data-driven）</span>
+<h1><span class="ch-num">第 31 章</span>结课项目：小型掩码估计器与全链路验证</h1>
+<p class="lede">把全书收束成一个可交付项目：合成数据、可解释掩码、消融矩阵、验收清单与复现脚本。</p>
+<div class="meta">
+<span class="badge done">已完稿</span>
+<span class="badge s4">部署 · 前沿</span>
+<span class="badge neural">下卷 · AI 算法</span>
+<span>建议 4 学时</span>
+<span>1 个 Python 实验 · 2 张图 · 4 段试听</span>
+<span>音频 3A 处理：从自适应滤波到神经增强</span>
+</div></header>
+<p class="bridge"><strong>本章位置：</strong>承接 <a href='../30-generalization/index.html'>第 30 章 · 泛化、鲁棒性与评测陷阱</a> 的评测协议，收束 <a href='../../part4/19-tf-mask/index.html'>第 19 章 · 时频掩码：IBM / IRM / CRM 与监督学习形式化</a> 的时频掩码、<a href='../../part5/26-joint-3a/index.html'>第 26 章 · 联合 3A：多任务、级联与端到端建模</a> 的联合 3A、<a href='../28-latency-budget/index.html'>第 28 章 · 延迟预算与 RTF：实时链路账本</a> 的延迟预算；附录 A 提供公式、术语、命令与复现约定的总表。</p>
+<div class="analogy"><span class="card-label">给程序员的翻译</span><p style="margin-bottom:0">结课项目是一个带 CI 的小服务：<code>stft → 掩码 → istft</code> 是处理管线，五个变体是 feature flag 的逐级打开，oracle 是 mock 掉依赖后的理想返回值，验收清单就是合并请求模板。<strong>先让流水线可复现，再谈模型多大。</strong></p></div>
+<div class="card objectives"><span class="card-label">学习目标</span><ul>
+<li>能写出结课项目的输入、输出、因果约束与不可变口径。</li>
+<li>能实现一个零第三方依赖的 STFT 阈值掩码估计器并跑通消融矩阵。</li>
+<li>能计算理想比率掩码 oracle 上界，说明它与可解释模型的差距来源。</li>
+<li>能按验收清单报告数据、指标、消融、复现命令与失败样本。</li>
+</ul></div>
+<section id="map"><h2><span class="sec-num">§</span>知识点地图</h2>
+<p class="code-hint">每个知识点都配了 1～2 个扩展学习链接；本章完整资源清单见 <a href="#extra-links">扩展学习</a>。</p>
+<table><thead><tr><th style="width:44px">#</th><th style="width:26%">知识点</th><th>扩展学习</th><th style="width:100px">状态</th></tr></thead><tbody>
+<tr><td>1</td><td>结课项目规格</td><td><a href="https://github.com/speechbrain/speechbrain" target="_blank" rel="noopener noreferrer">SpeechBrain ↗</a> · <a href="https://github.com/microsoft/DNS-Challenge" target="_blank" rel="noopener noreferrer">Microsoft DNS Challenge ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>2</td><td>合成数据配方</td><td><a href="https://github.com/microsoft/DNS-Challenge" target="_blank" rel="noopener noreferrer">Microsoft DNS Challenge ↗</a> · <a href="https://www.openslr.org/12" target="_blank" rel="noopener noreferrer">LibriSpeech ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>3</td><td>STFT 与 WOLA</td><td><a href="https://en.wikipedia.org/wiki/Short-time_Fourier_transform" target="_blank" rel="noopener noreferrer">Short-time Fourier transform ↗</a> · <a href="https://librosa.org/" target="_blank" rel="noopener noreferrer">librosa ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>4</td><td>理想比率掩码 IRM</td><td><a href="https://en.wikipedia.org/wiki/Time%E2%80%93frequency_analysis" target="_blank" rel="noopener noreferrer">Ideal ratio mask / T-F masking ↗</a> · <a href="https://github.com/microsoft/DNS-Challenge" target="_blank" rel="noopener noreferrer">Microsoft DNS Challenge ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>5</td><td>可解释阈值掩码</td><td><a href="https://en.wikipedia.org/wiki/Time%E2%80%93frequency_analysis" target="_blank" rel="noopener noreferrer">Ideal ratio mask / T-F masking ↗</a> · <a href="https://github.com/microsoft/DNS-Challenge" target="_blank" rel="noopener noreferrer">Microsoft DNS Challenge ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>6</td><td>消融矩阵</td><td><a href="https://github.com/speechbrain/speechbrain" target="_blank" rel="noopener noreferrer">SpeechBrain ↗</a> · <a href="https://github.com/microsoft/DNS-Challenge" target="_blank" rel="noopener noreferrer">Microsoft DNS Challenge ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>7</td><td>因果与延迟约束</td><td><a href="https://www.rfc-editor.org/rfc/rfc3550" target="_blank" rel="noopener noreferrer">RFC 3550 RTP ↗</a> · <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API" target="_blank" rel="noopener noreferrer">MDN Web Audio API ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>8</td><td>验收清单与复现</td><td><a href="https://github.com/speechbrain/speechbrain" target="_blank" rel="noopener noreferrer">SpeechBrain ↗</a> · <a href="https://github.com/microsoft/DNS-Challenge" target="_blank" rel="noopener noreferrer">Microsoft DNS Challenge ↗</a></td><td>正文已覆盖</td></tr>
+</tbody></table></section>
+<section id="s31-1"><h2><span class="sec-num">§31.1</span>项目规格：一条可交付的 3A 链路</h2>
+<p>目标不是刷新分数，而是交付一份<strong>别人能重跑、能改、能判对错</strong>的工程。输入是麦克风信号 <code>y[n]</code>，输出是增强后的 <code>ŝ[n]</code>；中间只允许一个逐时频单元的增益 <code>G[t,k]</code>，这样整条链路仍可放进 <a href='../28-latency-budget/index.html'>第 28 章 · 延迟预算与 RTF：实时链路账本</a> 的延迟预算里。</p>
+<p class="eq">ŝ = ISTFT( G ⊙ STFT(y) )　，G ∈ [0,1]^{T×F}　，G[t,·] 只依赖第 t 帧及之前的帧</p>
+<table><thead><tr><th style="width:16%">项</th><th style="width:42%">规格</th><th style="width:42%">不可变约束</th></tr></thead><tbody>
+<tr><td>采样率 / 位深</td><td>16 kHz / 16-bit 单声道 PCM</td><td>全书统一，write_wav() 写出</td></tr>
+<tr><td>帧 / 窗</td><td>N=256 或 512，hop=N/2，Hann</td><td>修改频谱后必须 WOLA 归一化</td></tr>
+<tr><td>模型</td><td>可解释阈值掩码（本实验）+ 可选神经掩码</td><td>零第三方依赖版必须只含标准库</td></tr>
+<tr><td>因果性</td><td>不使用未来帧，不依赖整段统计</td><td>见 <a href='../27-causal-streaming/index.html'>第 27 章 · 因果性与流式推理：状态缓存、感受野</a> 的流式状态缓存</td></tr>
+<tr><td>产物</td><td>fig/*.svg、audio/*.wav、终端数值</td><td>由脚本一次性生成，不手工改图</td></tr>
+</tbody></table>
+<div class="card note"><span class="card-label">规格边界</span><p style="margin-bottom:0">本实验的全部语音与噪声均为 <code>tools/dsp.py</code> 合成信号，不是真实录音，也不是任何产品的性能数据；结论只用于说明机制与量级。</p></div>
+</section>
+<section id="s31-2"><h2><span class="sec-num">§31.2</span>数据：合成配方与三组划分</h2>
+<p>用 <code>synthetic_speech()</code> 生成具备谐波结构、音节包络与少量清音的类语音，叠加 <code>white_noise()</code>、低频音调与房间冲激响应；每条样本带唯一的录音 ID，按 ID 分组切分，避免 <a href='../30-generalization/index.html'>第 30 章 · 泛化、鲁棒性与评测陷阱</a> 说的同源泄漏。</p>
+<table><thead><tr><th style="width:12%">集合</th><th style="width:26%">用途</th><th style="width:38%">配方</th><th style="width:24%">可否调参</th></tr></thead><tbody>
+<tr><td>D_train</td><td>估计噪声谱先验、拟合阈值</td><td>干净语音 + 白噪声 / 色调噪声</td><td>可以</td></tr>
+<tr><td>D_val</td><td>选阈值、下限、平滑系数</td><td>与训练同分布，独立样本</td><td>可以</td></tr>
+<tr><td>D_test</td><td>报告最终指标</td><td>同分布 + OOD 两个子集</td><td>不可以</td></tr>
+<tr><td>D_blind</td><td>结项一次前向</td><td>固定种子、全程不可见</td><td>不可以</td></tr>
+</tbody></table>
+<p class="eq">y[n] = s[n] + v[n]　，v 可由 white_noise / tone / chirp / rir 组合；分组键 = 录音 ID</p>
+</section>
+<section id="s31-3"><h2><span class="sec-num">§31.3</span>指标、消融与验收清单</h2>
+<p>指标必须成组报告：尺度对齐后的分段 SNR、尺度不变的 SI-SDR、响度近似 LUFS，再补一个无参考分数（DNSMOS 或主观听测）。消融每次只改一个变量，记录它在 D_val 与 D_test 上的收益差。</p>
+<table><thead><tr><th style="width:10%">编号</th><th style="width:20%">变体</th><th style="width:34%">改了什么</th><th style="width:36%">要回答的问题</th></tr></thead><tbody>
+<tr><td>v0</td><td>无处理</td><td>基线</td><td>退化有多严重</td></tr>
+<tr><td>v1</td><td>纯阈值</td><td>只加 1 − θ·N̂/|Y|</td><td>阈值本身贡献多少</td></tr>
+<tr><td>v2</td><td>加增益下限</td><td>再加 FLOOR</td><td>音乐噪声是否被压住</td></tr>
+<tr><td>v3</td><td>加帧间平滑</td><td>再加一阶递归</td><td>增益抖动是否下降</td></tr>
+<tr><td>oracle</td><td>理想 IRM</td><td>用真实 |S|、|N| 构造</td><td>可解释模型的上界在哪</td></tr>
+</tbody></table>
+<ol>
+<li>交付 <code>code/*.py</code> 一份，参数集中在参数区，固定 <code>random.seed(7)</code> 与 <code>rng = random.Random(7)</code>。</li>
+<li>报告每个变体的 segSNR、SI-SDR、LUFS 三列数值，并注明是否做尺度对齐。</li>
+<li>报告 oracle 与 v3 的差值，说明差距来自噪声谱估计误差还是掩码函数形式。</li>
+<li>报告因果性检查：逐帧处理时是否存在未来帧依赖；给出单帧算法延迟估计。</li>
+<li>报告复现命令、产物清单（SVG / WAV 文件名与数量）与至少两个失败样本。</li>
+<li>附上 <a href='../30-generalization/index.html'>第 30 章 · 泛化、鲁棒性与评测陷阱</a> 的划分与泄漏自查表，确认没有用测试集选任何参数。</li>
+</ol>
+<div class="card warn"><span class="card-label">不要预写结论</span><p style="margin-bottom:0">规格里不填任何「达到 X dB」的目标值；所有分数由脚本在读者本机打印，报告只记录实测值与口径。替换成真实语料或 PyTorch 模型后，同一份验收清单原样复用。</p></div>
+</section>
+<section id="s31-4"><h2><span class="sec-num">§31.4</span>从标准库原型到 PyTorch 工程</h2>
+<ul>
+<li>把 <code>masked()</code> 换成可训练掩码网络：<a href='https://pytorch.org/docs/stable/index.html' target='_blank' rel='noopener noreferrer'>PyTorch ↗</a> 负责张量与自动微分，<a href='https://docs.pytorch.org/audio/stable/index.html' target='_blank' rel='noopener noreferrer'>torchaudio ↗</a> 负责 STFT/ISTFT 与流式推理。</li>
+<li>训练框架与损失函数配方：<a href='https://github.com/speechbrain/speechbrain' target='_blank' rel='noopener noreferrer'>SpeechBrain ↗</a>、<a href='https://github.com/asteroid-team/asteroid' target='_blank' rel='noopener noreferrer'>Asteroid ↗</a>（含 SI-SNR 损失），数据用 <a href='https://github.com/microsoft/DNS-Challenge' target='_blank' rel='noopener noreferrer'>DNS-Challenge ↗</a>。</li>
+<li>一体化增强/分离框架：<a href='https://github.com/modelscope/ClearerVoice-Studio' target='_blank' rel='noopener noreferrer'>ClearerVoice-Studio ↗</a>；部署对照 <a href='https://onnxruntime.ai/' target='_blank' rel='noopener noreferrer'>ONNX Runtime ↗</a> 与 <a href='../29-quantization/index.html'>第 29 章 · 量化、剪枝与端侧推理</a> 的量化。</li>
+<li>离线链路核对用 ffmpeg 的 afftdn / arnndn / loudnorm；是否可用以本机 <code>ffmpeg -filters</code> 与官方 Filters 文档为准。</li>
+</ul>
+<div class="card note"><span class="card-label">迁移时不变的东西</span><p style="margin-bottom:0">信号模型、因果约束、指标口径、数据划分、验收清单。换掉的只是 <code>G</code> 从手写阈值变成网络输出——这正是全书从 <a href='../../part0/00-three-a/index.html'>第 00 章 · 3A 是什么：一条实时语音链路上的三个约束</a> 到 <a href='../30-generalization/index.html'>第 30 章 · 泛化、鲁棒性与评测陷阱</a> 一直保持的骨架。</p></div>
+</section>
+<section id="lab"><h2><span class="sec-num">§</span>Python 实验</h2>
+<h3>实验 31-1 · 理想掩码 oracle 与小型阈值掩码的消融对照</h3>
+<pre class="code" data-file="code/31-capstone.py" data-lang="Python 3 · 标准库"><code>#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""用纯标准库构造 IRM 上界与四个可解释变体，打印指标三列、画出消融图与掩码热力图。
+
+全部语音 / 噪声 / 房间冲激响应均为代码合成信号，仅用于教学演示机制与量级。
+"""
+from __future__ import annotations
+
+import math
+import pathlib
+import random
+import statistics
+import sys
+import time
+
+_here = pathlib.Path(__file__).resolve()
+for _p in _here.parents:
+    if (_p / "tools" / "dsp.py").exists():
+        sys.path.insert(0, str(_p / "tools"))
+        break
+from dsp import (SAMPLE_RATE, fft, hann, stft, istft, magnitude_db, spectrum,
+                 white_noise, tone, chirp, synthetic_speech, rir, convolve,
+                 fft_convolve, delay, clip, normalize_peak, rms, rolling_rms,
+                 smooth, db, energy_db, snr_db, erle_db, seg_snr_db,
+                 scale_align, si_sdr_db, lufs_approx,
+                 write_wav, read_wav, wav_info)
+from chart import Chart, heatmap, BLUE, RED, GREEN, AMBER
+
+FIG = _here.parents[1] / "fig"
+AUDIO = _here.parents[1] / "audio"
+FIG.mkdir(exist_ok=True)
+AUDIO.mkdir(exist_ok=True)
+
+random.seed(7)
+
+# ---- 参数区 ----
+N = 4096                    # 0.256 s @ 16 kHz
+N_FFT, HOP = 256, 128
+NOISE_AMP = 0.040
+THETA = 0.65                # 阈值掩码的过减系数
+FLOOR = 0.12                # 消融项 B：增益下限
+SMOOTH_A = 0.55             # 消融项 C：帧间平滑系数
+ORACLE_FLOOR = 0.02
+
+# ---- 计算与作图 ----
+rng = random.Random(7)
+clean = synthetic_speech(rng, N)
+wn = white_noise(rng, N, NOISE_AMP)
+nz = [wn[i] + 0.35 * NOISE_AMP * math.sin(2 * math.pi * 137 * i / SAMPLE_RATE)
+      for i in range(N)]
+noisy = [clean[i] + nz[i] for i in range(N)]
+
+frames_y = stft(noisy, N_FFT, HOP)
+frames_s = stft(clean, N_FFT, HOP)
+frames_n = stft(nz, N_FFT, HOP)
+half = N_FFT // 2
+ns = [sum(math.hypot(re[k], im[k]) for re, im in frames_n) / len(frames_n)
+      for k in range(N_FFT)]
+
+# oracle：用真实干净谱与噪声谱构造理想比率掩码，只作为上界
+oracle_frames = []
+for (ry, iy), (rs, is_), (rn, in_) in zip(frames_y, frames_s, frames_n):
+    rr, ii = list(ry), list(iy)
+    for k in range(N_FFT):
+        ms = math.hypot(rs[k], is_[k])
+        mn = math.hypot(rn[k], in_[k])
+        g = max(ORACLE_FLOOR, ms / (ms + mn + 1e-9))
+        rr[k] *= g
+        ii[k] *= g
+    oracle_frames.append((rr, ii))
+
+
+def masked(theta, floor, smoothing):
+    out_frames, prev = [], [0.0] * N_FFT
+    for re, im in frames_y:
+        rr, ii = list(re), list(im)
+        for k in range(N_FFT):
+            mag = math.hypot(rr[k], ii[k])
+            raw = max(floor, 1.0 - theta * ns[k] / (mag + 1e-9))
+            g = smoothing * prev[k] + (1.0 - smoothing) * raw if smoothing &gt; 0.0 else raw
+            prev[k] = g
+            rr[k] *= g
+            ii[k] *= g
+        out_frames.append((rr, ii))
+    return istft(out_frames, N_FFT, HOP, N)
+
+
+def metrics(est):
+    aligned = scale_align(est, clean)
+    return seg_snr_db(clean, aligned), si_sdr_db(est, clean), lufs_approx(est)
+
+
+variants = [("v0 无处理", noisy),
+            ("v1 纯阈值", masked(THETA, 0.0, 0.0)),
+            ("v2 加下限", masked(THETA, FLOOR, 0.0)),
+            ("v3 加平滑", masked(THETA, FLOOR, SMOOTH_A)),
+            ("oracle IRM", istft(oracle_frames, N_FFT, HOP, N))]
+scores = [metrics(v[1]) for v in variants]
+
+c = Chart(FIG / "31-ablation.svg", "小型掩码估计器的消融对照", xlabel="变体", ylabel="dB",
+          xticks=[(i, v[0]) for i, v in enumerate(variants)])
+c.bars(range(len(variants)), [s[0] for s in scores], BLUE, label="分段 SNR (尺度对齐)")
+c.bars(range(len(variants)), [s[1] for s in scores], GREEN, label="SI-SDR")
+c.hline(0.0, "#9aa6b2")
+print("消融图:", c.save())
+
+# 掩码热力图：行是降采样后的频率箱，列是帧
+grid, prev = [], [0.0] * half
+for re, im in frames_y:
+    row = []
+    for k in range(0, half, 8):
+        mag = math.hypot(re[k], im[k])
+        raw = max(FLOOR, 1.0 - THETA * ns[k] / (mag + 1e-9))
+        g = SMOOTH_A * prev[k] + (1.0 - SMOOTH_A) * raw
+        prev[k] = g
+        row.append(round(g, 3))
+    grid.append(row)
+matrix = [list(col) for col in zip(*grid)]
+heatmap(FIG / "31-mask.svg", matrix,
+        ["%d Hz" % int(k * SAMPLE_RATE / N_FFT) for k in range(0, half, 8)],
+        ["t%d" % i for i in range(len(matrix[0]))],
+        title="可解释阈值掩码（行=频率箱，列=帧）", vmin=0.0, vmax=1.0)
+print("掩码图:", str(FIG / "31-mask.svg"))
+
+write_wav(AUDIO / "31-clean.wav", normalize_peak(clean))
+write_wav(AUDIO / "31-noisy.wav", normalize_peak(noisy))
+write_wav(AUDIO / "31-threshold.wav", normalize_peak(variants[3][1]))
+write_wav(AUDIO / "31-oracle.wav", normalize_peak(variants[4][1]))
+print("WAV: %d 帧 / %d Hz / %.2f s / %d 字节" % wav_info(AUDIO / "31-noisy.wav"))
+for name, sc in zip([v[0] for v in variants], scores):
+    print("%s: segSNR=%.2f dB SI-SDR=%.2f dB LUFS≈%.1f" % (name, sc[0], sc[1], sc[2]))
+print("oracle 与阈值掩码 segSNR 差=%.2f dB | 下限增益=%.2f dB | 平滑增益=%.2f dB | SAMPLE_RATE=%d Hz" %
+      (scores[4][0] - scores[3][0], scores[2][0] - scores[1][0],
+       scores[3][0] - scores[2][0], SAMPLE_RATE))</code></pre>
+<p class="code-hint"><strong>操作：</strong>先跑脚本看打印的五行指标，再对照 <code>31-ablation.svg</code>；依次试听 clean / noisy / threshold / oracle 四个 WAV。　<strong>预期与判读：</strong>五个变体的三列指标会逐行打印；oracle 是用真实谱构造的上界，与可解释阈值掩码之间存在可观察的差距（本例约 3 dB）；增益下限与帧间平滑各自的贡献会单独打印，下限在本例略为负值，说明阈值掩码很少触底。全部数值以本机运行输出为准，不在规格里预设目标分。</p>
+<p class="code-hint"><strong>改参数看趋势：</strong>把 <code>FLOOR</code> 设为 0、<code>SMOOTH_A</code> 设为 0，观察 v1 与 v3 的差别；把 <code>N_FFT</code> 改成 512，观察时频分辨率与耗时的变化。　文件位置：<code>part6/31-capstone/code/31-capstone.py</code></p>
+<div class="chart-grid">
+<figure class="chart-figure"><img src="fig/31-ablation.svg" alt="五个变体的分段 SNR 与 SI-SDR 消融对照" loading="lazy"><figcaption>图 1　五个变体的分段 SNR 与 SI-SDR 消融对照（代码合成信号 / 教学示意）</figcaption></figure>
+<figure class="chart-figure"><img src="fig/31-mask.svg" alt="可解释阈值掩码的频率—帧热力图" loading="lazy"><figcaption>图 2　可解释阈值掩码的频率—帧热力图（代码合成信号 / 教学示意）</figcaption></figure>
+</div>
+<div class="audio-grid">
+<div class="audio-card"><h4>31-clean.wav</h4><audio controls preload="none" src="audio/31-clean.wav">浏览器不支持 audio 元素，请直接打开 audio/31-clean.wav。</audio><p>干净参考语音（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+<div class="audio-card"><h4>31-noisy.wav</h4><audio controls preload="none" src="audio/31-noisy.wav">浏览器不支持 audio 元素，请直接打开 audio/31-noisy.wav。</audio><p>带噪输入（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+<div class="audio-card"><h4>31-threshold.wav</h4><audio controls preload="none" src="audio/31-threshold.wav">浏览器不支持 audio 元素，请直接打开 audio/31-threshold.wav。</audio><p>v3 阈值掩码输出（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+<div class="audio-card"><h4>31-oracle.wav</h4><audio controls preload="none" src="audio/31-oracle.wav">浏览器不支持 audio 元素，请直接打开 audio/31-oracle.wav。</audio><p>理想 IRM 上界输出（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+</div>
+<div class="card note"><p style="margin-bottom:0">代码块右上角可一键复制；仓库里的 <code>code/*.py</code> 由 <code>tools/extract_code.py</code> 从这些代码块自动抽取。脚本只用标准库、固定 <code>random.seed(7)</code>，运行后写出 <code>fig/*.svg</code> 与 <code>audio/*.wav</code>；批量运行用 <code>./tools/run_python.sh</code>。</p></div>
+</section>
+<section id="commands"><h2><span class="sec-num">§</span>可选真机命令片段</h2>
+<div class="card note"><p style="margin-bottom:0">以下命令<strong>不参与批量运行</strong>，需要本机自行安装对应工具。滤镜是否可用取决于本机 ffmpeg 版本与编译选项，请先用 <code>ffmpeg -filters</code> / <code>ffmpeg -version</code> 自查，并以 https://ffmpeg.org/ffmpeg-filters.html 与各自官方文档为准；本书不假定任何特定版本具备某项能力。</p></div>
+<h3>本机自查 ffmpeg 滤镜清单再对照官方文档</h3>
+<pre class="cmd" data-lang="shell"><code>ffmpeg -hide_banner -filters | grep -E 'afftdn|arnndn|loudnorm|dynaudnorm|astats'</code></pre>
+<p class="code-hint"><strong>说明：</strong>滤镜可用性与参数以本机输出和 https://ffmpeg.org/ffmpeg-filters.html 为准，不写死版本。</p>
+<h3>用 Python 标准库做语法自检并运行结课脚本</h3>
+<pre class="cmd" data-lang="shell"><code>python3 -m compileall -q tools part6/31-capstone/code &amp;&amp; python3 part6/31-capstone/code/31-capstone.py</code></pre>
+<p class="code-hint"><strong>说明：</strong>两条都是单行命令；先编译检查，再实跑生成 fig 与 audio 产物并打印数值。</p>
+</section>
+<section id="highlights"><h2><span class="sec-num">§</span>本章参考资料</h2><p>按本章知识点挑选的精读资料；更多检索入口见 <a href="#extra-links">扩展学习</a>。</p><div class="repo-grid">
+<div class="repo-card"><h3><a href="https://github.com/speechbrain/speechbrain" target="_blank" rel="noopener noreferrer">SpeechBrain ↗</a></h3><span class="tag">工程</span><p>基于 PyTorch 的语音工具箱，含 SE / 分离 / 识别配方</p><p style="margin:0;color:var(--ink-faint)">推荐理由：把阈值掩码换成可训练网络的现成配方</p></div>
+<div class="repo-card"><h3><a href="https://github.com/microsoft/DNS-Challenge" target="_blank" rel="noopener noreferrer">Microsoft DNS Challenge ↗</a></h3><span class="tag">数据集</span><p>深度噪声抑制挑战赛，含大规模合成数据脚本与基线</p><p style="margin:0;color:var(--ink-faint)">推荐理由：真实噪声与官方评测协议，替换合成数据</p></div>
+<div class="repo-card"><h3><a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a></h3><span class="tag">工具</span><p>全部音频滤镜的权威说明页，每个滤镜有独立锚点</p><p style="margin:0;color:var(--ink-faint)">推荐理由：离线全链路核对与滤镜自查入口</p></div>
+<div class="repo-card"><h3><a href="https://docs.python.org/3/library/index.html" target="_blank" rel="noopener noreferrer">Python 标准库文档 ↗</a></h3><span class="tag">教材</span><p>wave / array / struct / math / random 等标准模块说明</p><p style="margin:0;color:var(--ink-faint)">推荐理由：标准库 wave / math / random 的权威说明</p></div>
+</div></section>
+<section id="repos"><h2><span class="sec-num">§</span>相关开源工程</h2><p>下列工程仅作技术参照，版权与许可证归各自维护者所有。本书实验不依赖它们，也与之无从属关系。</p><div class="repo-grid">
+<div class="repo-card"><h3><a href="https://github.com/speechbrain/speechbrain" target="_blank" rel="noopener noreferrer">SpeechBrain ↗</a></h3><span class="tag">AI · 框架</span><p>语音任务配方齐全，适合复现 SE / 掩码 / 损失函数</p></div>
+<div class="repo-card"><h3><a href="https://github.com/asteroid-team/asteroid" target="_blank" rel="noopener noreferrer">Asteroid ↗</a></h3><span class="tag">AI · 框架</span><p>语音分离与 SI-SNR 损失的研究型框架</p></div>
+<div class="repo-card"><h3><a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg ↗</a></h3><span class="tag">工具</span><p>afftdn / arnndn / loudnorm / dynaudnorm 等滤镜的离线验证工具</p></div>
+</div></section>
+<section id="pitfalls"><h2><span class="sec-num">§</span>常见误区</h2><div class="card warn"><ul><li>用真实干净谱构造 oracle 后，把它当成可部署模型的分数汇报。</li>
+<li>频谱改完不做 WOLA 归一化，边界出现爆音。</li>
+<li>消融时一次改多个变量，无法把收益归因到具体项。</li>
+<li>在测试集上选阈值或改后处理，还把结果写成最终成绩。</li></ul></div></section>
+<section id="exercises"><h2><span class="sec-num">§</span>习题与思考</h2><ol><li>补齐验收清单里的因果性检查：说明本实验的掩码是否只依赖当前帧及之前帧。</li>
+<li>推导 IRM 与维纳增益的关系，解释 oracle 为什么只是上界。</li>
+<li>把 v3 换成一节小型 PyTorch 掩码网络，列出需要保持不变的五项口径。</li></ol></section>
+<section id="extra-links"><h2><span class="sec-num">§</span>扩展学习</h2>
+<div class="repo-grid">
+<div class="repo-card"><h3><a href="https://github.com/speechbrain/speechbrain" target="_blank" rel="noopener noreferrer">SpeechBrain ↗</a></h3><span class="tag">工程</span><p>基于 PyTorch 的语音工具箱，含 SE / 分离 / 识别配方</p></div>
+<div class="repo-card"><h3><a href="https://github.com/microsoft/DNS-Challenge" target="_blank" rel="noopener noreferrer">Microsoft DNS Challenge ↗</a></h3><span class="tag">数据集</span><p>深度噪声抑制挑战赛，含大规模合成数据脚本与基线</p></div>
+<div class="repo-card"><h3><a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a></h3><span class="tag">工具</span><p>全部音频滤镜的权威说明页，每个滤镜有独立锚点</p></div>
+<div class="repo-card"><h3><a href="https://docs.python.org/3/library/index.html" target="_blank" rel="noopener noreferrer">Python 标准库文档 ↗</a></h3><span class="tag">教材</span><p>wave / array / struct / math / random 等标准模块说明</p></div>
+</div>
+<h3>继续检索</h3><ul>
+<li>Google Scholar：<a href='https://scholar.google.com/scholar?q=train%20small%20mask%20estimator%20end%20to%20end%203A%20project' target='_blank' rel='noopener noreferrer'>train small mask estimator end to end 3A project ↗</a></li>
+<li>arXiv：<a href='https://arxiv.org/search/?query=train%20small%20mask%20estimator%20end%20to%20end%203A%20project&searchtype=all' target='_blank' rel='noopener noreferrer'>train small mask estimator end to end 3A project ↗</a></li>
+<li>GitHub：<a href='https://github.com/search?q=train%20small%20mask%20estimator%20end%20to%20end%203A%20project&type=repositories' target='_blank' rel='noopener noreferrer'>train small mask estimator end to end 3A project ↗</a></li>
+</ul>
+<p class="code-hint">全书链接总表见 <a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a> 与 <a href="../../appendix/index.html#sA-7">附录 A.7</a>；滤镜是否可用请以本机 <code>ffmpeg -filters</code> 为准。</p>
+</section>
+<section id="further"><h2><span class="sec-num">§</span>延伸阅读与内链</h2><ul><li><a href='../30-generalization/index.html'>第 30 章 · 泛化、鲁棒性与评测陷阱</a> 评测陷阱与数据泄漏；<a href='../../part3/18-classic-eval/index.html'>第 18 章 · 上卷综合实验：完整传统 3A 链路与评测</a> 经典 3A 全链路基线。</li>
+<li><a href='../../part4/19-tf-mask/index.html'>第 19 章 · 时频掩码：IBM / IRM / CRM 与监督学习形式化</a> 时频掩码；<a href='../../part5/26-joint-3a/index.html'>第 26 章 · 联合 3A：多任务、级联与端到端建模</a> 联合 3A；<a href='../28-latency-budget/index.html'>第 28 章 · 延迟预算与 RTF：实时链路账本</a> 延迟预算。</li></ul></section>
+<footer class="pager" data-autofill></footer>
+<footer class="site-foot">
+<p class="credits"><strong>作者</strong>：汪亮（bertonwang）　<strong>联系邮箱</strong>：<a href="mailto:47608843@qq.com">47608843@qq.com</a></p>
+<p class="ai-note"><strong>AI 使用说明</strong>：本教材的知识框架、正文、Python 实验脚本与参考资料清单在 AI 辅助下整理生成，并经人工校订、实际运行与静态自检。公式、数值与运行结果请以Python 3 实际输出及权威教材、官方文档为准；发现错漏欢迎通过上方邮箱勘误。</p>
+<p class="imprint">音频 3A 处理：从自适应滤波到神经增强 · 每章一个 <code>code/*.py</code> 实验脚本、<code>fig/*.svg</code> 矢量图与 <code>audio/*.wav</code> 试听样本（由 <code>tools/extract_code.py</code> 与脚本运行同步） · 只用 Python 3 标准库 · 教学材料，信号全部由代码合成。</p>
+</footer>
+</main>
+</body>
+</html>

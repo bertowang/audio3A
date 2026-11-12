@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.DS_Store
+*.log
+*.tmp
+verify-out/
+# 注意：fig/*.svg 是教材插图，audio/*.wav 是可试听的合成样本，二者由脚本生成后必须纳入版本控制

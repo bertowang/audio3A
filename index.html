@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>音频 3A 处理：从自适应滤波到神经增强 · 总目录</title>
+<link rel="stylesheet" href="./assets/style.css">
+<script src="./assets/toc.js" defer></script>
+<script src="./assets/app.js" defer></script>
+</head>
+<body data-root="./" data-page="index">
+<aside id="sidebar"></aside>
+<main class="book-page">
+<nav class="breadcrumb" data-autofill>总目录</nav>
+<header class="chapter-head">
+<span class="kicker">Undergraduate → Graduate · AEC / ANS / AGC · Model-based & Data-driven</span>
+<h1>音频 3A 处理：从自适应滤波到神经增强</h1>
+<p class="lede">面向<strong>爱好音频处理的计算机专业学生</strong>的一本 3A 教材。全书不按「工具使用技巧」拼盘，而沿<strong>信号模型 → 时频工具 → 评价指标 → 传统三大引擎 → 级联与工程链路 → 可学习掩码 → 神经 3A → 实时部署</strong>一条主线展开：把回声消除、噪声抑制与自动增益控制都还原成可推导的估计问题，再逐个替换为可学习的函数。每章给出原理、公式、可运行的 Python 实验、自绘 SVG 图与可试听的合成 WAV。</p>
+<div class="meta">
+<span class="badge done">全部 32 章已完稿</span>
+<span class="badge traditional">上卷 · 传统算法</span>
+<span class="badge neural">下卷 · AI 算法</span>
+<span>共 32 章 · 4 卷 · 1 附录 · 32 个 Python 实验 · 65 张 SVG 图 · 78 段 WAV · 39 条命令片段 · 69 条参考链接</span>
+<span>版本 v0.1 · 2026-11</span>
+</div></header>
+<div class="card note"><span class="card-label">本书的主张</span><p><strong>3A 是一套可验证的流式估计系统</strong>：房间是 FIR 滤波器，AEC 是在线系统辨识，ANS 是谱上的统计估计，AGC 是反馈控制器；下卷把同一批估计器换成网络，但链路结构、因果约束与评价指标完全不变。</p><p style="margin-bottom:0">每章学习闭环固定为四步：<strong>读模型 → 跑代码 → 改参数 → 写结论</strong>；脚本用固定随机种子合成全部信号，打印可手算核对的数值，并画出可提交的 SVG 图与 WAV 样本。</p></div>
+<div class="disclaimer"><p><strong>实验边界说明</strong>：本书为教学材料。全部语音、噪声与房间冲激响应都是<strong>代码合成的信号</strong>，不是真实录音，也不是任何厂商产品的性能数据；脚本中的 FFT、自适应滤波、谱减、小型网络等均为可读的教学实现，用于说明机制与量级，<strong>不能直接用于生产环境</strong>。书中提及 ffmpeg、WebRTC、SpeexDSP、RNNoise 等工具的版本与能力请以各自的官方文档与本机 <code>ffmpeg -filters</code> / <code>ffmpeg -version</code> 实际输出为准；本书与这些项目无从属关系，也不构成产品推荐。</p></div>
+<h2 id="howto">如何使用这本教材</h2>
+<table><thead><tr><th style="width:24%">栏目</th><th>作用</th></tr></thead><tbody><tr><td>本章位置 / 给程序员的翻译</td><td>说明承接什么、引出什么，并把概念映射到计算概念</td></tr><tr><td>学习目标</td><td>学完应能做什么，用可检验的动词描述</td></tr><tr><td>知识点地图</td><td>逐条列出知识点，每条挂 1～2 个直达参考链接</td></tr><tr><td>原理小节 §x.y</td><td>概念、公式、对照表、边界条件与常见误区</td></tr><tr><td>Python 实验</td><td>完整脚本 + 操作步骤 + 预期数值 + SVG 图 + 可试听 WAV</td></tr><tr><td>命令片段</td><td>ffmpeg / WebRTC / 开源工程的可选真机实验，明确「以本机自查为准」</td></tr><tr><td>参考资料 / 扩展学习</td><td>按知识点挑选的标准、课程、数据集与工具链接</td></tr><tr><td>常见误区 / 习题</td><td>典型错误与可动手验证的思考题</td></tr></tbody></table>
+<h2 id="python">运行 Python 实验（30 秒）</h2>
+<ol><li>需要 Python 3.8+，<strong>不需要安装任何第三方包</strong>：实验只用 <code>math</code>、<code>random</code>、<code>statistics</code>、<code>wave</code> 等标准库，以及仓库内的 <code>tools/dsp.py</code>（纯标准库 DSP）与 <code>tools/chart.py</code>（纯标准库 SVG 绘图）。</li><li>直接运行某一章脚本：<code>python3 part0/00-three-a/code/00-three-a.py</code>；或从页面代码块右上角「复制」。</li><li>批量运行并生成全书插图与试听样本：<code>./tools/run_python.sh</code>；只跑某几个：<code>./tools/run_python.sh part1/05-adaptive-filter/code/05-nlms.py</code>。</li><li>页面代码块与磁盘 <code>code/*.py</code> 由 <code>tools/extract_code.py</code> 自动同步，永远一致。</li></ol>
+<div class="card contract"><span class="card-label">给程序员的代码契约</span><ul style="margin-bottom:0">
+<li>1. 只用 Python 3 标准库 + 仓库内 tools/dsp.py 与 tools/chart.py，无第三方包；</li>
+<li>2. 自包含：语音 / 噪声 / 房间冲激响应由代码合成，不联网、不读外部音频文件；</li>
+<li>3. random.seed(7) 固定随机数，采样率统一 16 kHz，可调量集中在「参数区」；</li>
+<li>4. 打印可手算核对的数值（ERLE、SNR、SI-SDR、收敛迭代数等）；</li>
+<li>5. 生成 fig/*.svg 矢量图与 audio/*.wav 试听样本，页面内可看波形、可听效果；</li>
+<li>6. 页面代码块与 code/*.py 由 tools/extract_code.py 自动同步。</li>
+</ul></div>
+<p class="code-hint">为什么不用 <code>numpy</code> / <code>torch</code> / <code>matplotlib</code>？教材要展示的是算法本身与「图、声音是怎么生成的」。下卷涉及真实训练时，各章会给出 PyTorch / ONNX Runtime / 开源工程的进阶入口；附录 A.6 给出手写实现与工业库的对照表，学完之后应能无缝切换。</p>
+<p class="code-hint">本机没有 ffmpeg 也能读完全书：ffmpeg / WebRTC 命令片段是<strong>可选真机实验</strong>，一律要求先用 <code>ffmpeg -filters</code> 与 <code>ffmpeg -version</code> 自查，本书不假定任何特定版本具备某项能力。</p>
+<h2 id="roadmap">学习路线（建议两个学期）</h2>
+<ol class="roadmap"><li><strong>卷首 · 共同语言（00～03）</strong>：3A 问题、房间冲激响应、采样与 STFT、ERLE / SI-SDR / LUFS 等指标族，先把「怎么算变好了」讲清楚。</li><li><strong>上卷 · 传统算法（04～18）</strong>：卷积与 FFT、LMS/NLMS、FDAF、双讲与噪声估计，再分别实现 AEC / ANS / AGC，最后讨论级联顺序、ffmpeg/WebRTC 工具链与综合评测。</li><li><strong>下卷 · AI 算法（19～31）</strong>：时频掩码、数据合成、网络骨架、复数域与相位，再逐个替换三大模块，最后落到因果流式、延迟预算、量化与泛化。</li><li><strong>附录 A</strong>：公式、术语、命令与全书资源速查。</li></ol>
+<p>时间有限时的最短路径：<a href="part0/00-three-a/index.html">00</a> → <a href="part0/01-acoustic-path/index.html">01</a> → <a href="part0/02-time-frequency/index.html">02</a> → <a href="part0/03-metrics/index.html">03</a> → <a href="part1/05-adaptive-filter/index.html">05</a> → <a href="part2/10-nlms-aec/index.html">10</a> → <a href="part2/12-spectral-subtraction/index.html">12</a> → <a href="part2/14-agc/index.html">14</a> → <a href="part3/16-cascade-order/index.html">16</a> → <a href="part3/18-classic-eval/index.html">18</a> → <a href="part4/19-tf-mask/index.html">19</a> → <a href="part5/23-neural-ns/index.html">23</a> → <a href="part5/26-joint-3a/index.html">26</a> → <a href="part6/28-latency-budget/index.html">28</a> → <a href="part6/30-generalization/index.html">30</a> → <a href="part6/31-capstone/index.html">31</a> → <a href="appendix/index.html">A</a>。</p>
+<h2 id="toc">全书目录</h2>
+<p class="lede">每一章一个文件夹，内含 <code>index.html</code>（知识讲解）、<code>code/*.py</code>（可直接运行的实验脚本）、<code>fig/*.svg</code>（脚本生成的矢量图）与 <code>audio/*.wav</code>（16 kHz 合成试听样本）。状态徽章：<span class="badge done">已完稿</span> 表示正文、知识点地图、参考链接、实验与插图齐备。</p>
+<div class="volume-banner"><h2>卷首 · 共同语言与问题定义</h2><p>第 00～03 章。先建立一条实时语音链路的信号模型、时频语言与评价指标，把「3A 是什么、怎么算变好了」讲清楚，两卷共用这一套共同语言。</p></div>
+<section class="toc-part"><h2><span class="part-id">卷首</span>3A 问题全景</h2>
+<ul class="toc-list">
+<li>
+<div class="toc-head"><span class="num">00</span><a class="toc-title" href="part0/00-three-a/index.html">3A 是什么：一条实时语音链路上的三个约束</a> <a class="toc-extra" href="part0/00-three-a/index.html#extra-links">扩展阅读 →</a><span class="badge done">已完稿</span></div>
+<p class="toc-desc">把「通话里听起来不舒服」拆成三个可建模、可测量、可分别优化的估计问题。</p>
+<ul class="toc-points"><li>实时语音链路</li><li>AEC 回声消除</li><li>ANS 噪声抑制</li><li>AGC 自动增益控制</li><li>三个约束的耦合</li><li>3A 处理顺序</li><li>因果性与算法延迟</li><li>客观与主观评价</li></ul>
+</li>
+<li>
+<div class="toc-head"><span class="num">01</span><a class="toc-title" href="part0/01-acoustic-path/index.html">声学链路与信号模型：房间、麦克风与回声路径</a> <a class="toc-extra" href="part0/01-acoustic-path/index.html#extra-links">扩展阅读 →</a><span class="badge done">已完稿</span></div>
+<p class="toc-desc">把「扬声器放出来的声音又被自己收回去」写成可辨识的线性系统。</p>
+<ul class="toc-points"><li>声学回声链路</li><li>房间冲激响应 RIR</li><li>直达声与早期反射</li><li>混响时间与 T60</li><li>线性卷积模型</li><li>时延估计与互相关</li><li>双讲场景</li><li>非线性与时钟漂移</li></ul>
+</li>
+<li>
+<div class="toc-head"><span class="num">02</span><a class="toc-title" href="part0/02-time-frequency/index.html">采样、量化与时频表示：从 PCM 到 STFT</a> <a class="toc-extra" href="part0/02-time-frequency/index.html#extra-links">扩展阅读 →</a><span class="badge done">已完稿</span></div>
+<p class="toc-desc">3A 的所有算法都在「一帧频谱」上做决策；先把这块数据结构讲透。</p>
+<ul class="toc-points"><li>采样与混叠</li><li>量化位深与量化噪声</li><li>PCM 与 WAV 容器</li><li>DFT 与 radix-2 FFT</li><li>Parseval 定理</li><li>STFT 与 Hann 窗</li><li>重叠相加 OLA</li><li>时频分辨率折中</li></ul>
+</li>
+<li>
+<div class="toc-head"><span class="num">03</span><a class="toc-title" href="part0/03-metrics/index.html">怎么算「变好了」：客观指标、尺度与主观听测</a> <a class="toc-extra" href="part0/03-metrics/index.html#extra-links">扩展阅读 →</a><span class="badge done">已完稿</span></div>
+<p class="toc-desc">没有度量就没有工程；但每个指标都只回答一个问题，且都带自己的陷阱。</p>
+<ul class="toc-points"><li>ERLE 与回声残余</li><li>分段 SNR</li><li>SI-SDR 与尺度不变性</li><li>PESQ / POLQA / STOI</li><li>DNSMOS 无参考评分</li><li>LUFS 与真峰值</li><li>主观听测 P.835</li><li>评测集设计</li></ul>
+</li>
+</ul></section>
+<div class="volume-banner"><h2>上卷 · 传统算法（Model-based）</h2><p>第 04～18 章。从房间冲激响应、自适应滤波与统计估计出发，分别实现回声消除、噪声抑制与增益控制，再讨论级联顺序、客观评测与 ffmpeg / WebRTC 工具链。</p></div>
+<section class="toc-part"><h2><span class="part-id">第一篇</span>信号、系统与自适应滤波基础</h2>
+<ul class="toc-list">
+<li>
+<div class="toc-head"><span class="num">04</span><a class="toc-title" href="part1/04-lti-convolution/index.html">线性系统、卷积与频域实现</a> <a class="toc-extra" href="part1/04-lti-convolution/index.html#extra-links">扩展阅读 →</a><span class="badge done">已完稿</span></div>
+<p class="toc-desc">AEC 的每一次「预测回声」，都是一次带长滤波器的实时卷积。</p>
+<ul class="toc-points"><li>LTI 与冲激响应</li><li>线性卷积</li><li>循环卷积与补零</li><li>overlap-add</li><li>FFT 卷积复杂度</li><li>分块频域滤波</li><li>滤波器阶数</li><li>混响尾与尾长</li></ul>
+</li>
+<li>
+<div class="toc-head"><span class="num">05</span><a class="toc-title" href="part1/05-adaptive-filter/index.html">自适应滤波：LMS、NLMS 与收敛</a> <a class="toc-extra" href="part1/05-adaptive-filter/index.html#extra-links">扩展阅读 →</a><span class="badge done">已完稿</span></div>
+<p class="toc-desc">把「求一组滤波系数」变成逐样本的梯度下降，这是整个上卷的心脏。</p>
+<ul class="toc-points"><li>最速下降与梯度估计</li><li>LMS 更新式</li><li>NLMS 归一化</li><li>步长与稳定性</li><li>正则项 δ</li><li>学习曲线与稳态误差</li><li>权重误差范数</li><li>双讲冻结</li></ul>
+</li>
+<li>
+<div class="toc-head"><span class="num">06</span><a class="toc-title" href="part1/06-fdaf/index.html">频域自适应滤波：FDAF、分块 MDF 与收敛</a> <a class="toc-extra" href="part1/06-fdaf/index.html#extra-links">扩展阅读 →</a><span class="badge done">已完稿</span></div>
+<p class="toc-desc">把 NLMS 的逐点乘加换成 FFT 后的逐 bin 标量乘，长回声路径才跑得动。</p>
+<ul class="toc-points"><li>overlap-save 分块</li><li>循环卷积与补零</li><li>频域 LMS (FLMS)</li><li>逐 bin 功率归一化</li><li>MDF 多延迟分块</li><li>分块数与算法延迟</li><li>有色激励与特征值分散</li><li>频域权重约束</li></ul>
+</li>
+<li>
+<div class="toc-head"><span class="num">07</span><a class="toc-title" href="part1/07-doubletalk/index.html">双讲检测、时延漂移与路径突变</a> <a class="toc-extra" href="part1/07-doubletalk/index.html#extra-links">扩展阅读 →</a><span class="badge done">已完稿</span></div>
+<p class="toc-desc">自适应滤波器最怕的三件事：标签被污染、延迟在走、真值突然换了。</p>
+<ul class="toc-points"><li>双讲与近端语音</li><li>Geigel / NCC 检测量</li><li>检测阈值与驻留时间</li><li>系数冻结与阴影滤波器</li><li>时延漂移 ppm</li><li>互相关峰值跟踪</li><li>路径突变与重收敛</li><li>检测率与虚警率</li></ul>
+</li>
+<li>
+<div class="toc-head"><span class="num">08</span><a class="toc-title" href="part1/08-noise-estimation/index.html">VAD 与噪声功率谱估计（MCRA 思路）</a> <a class="toc-extra" href="part1/08-noise-estimation/index.html#extra-links">扩展阅读 →</a><span class="badge done">已完稿</span></div>
+<p class="toc-desc">没有干净参考，只能靠『噪声比语音更稳』这条统计假设把噪声谱跟出来。</p>
+<ul class="toc-points"><li>语音活动检测 VAD</li><li>噪声功率谱 N[k,t]</li><li>时频平滑</li><li>最小值跟踪</li><li>语音存在概率</li><li>MCRA 条件更新</li><li>非平稳噪声阶跃</li><li>谱减与音乐噪声</li></ul>
+</li>
+</ul></section>
+<section class="toc-part"><h2><span class="part-id">第二篇</span>AEC / ANS / AGC 三类经典引擎</h2>
+<ul class="toc-list">
+<li>
+<div class="toc-head"><span class="num">09</span><a class="toc-title" href="part2/09-aec-architecture/index.html">AEC 总体结构：参考信号、线性滤波与残余抑制</a> <a class="toc-extra" href="part2/09-aec-architecture/index.html#extra-links">扩展阅读 →</a><span class="badge done">已完稿</span></div>
+<p class="toc-desc">一条完整回声消除链路只有三类信号，却要同时管住线性、非线性与双讲。</p>
+<ul class="toc-points"><li>远端参考 x[n]</li><li>麦克风 y[n]</li><li>线性自适应滤波</li><li>误差信号 e[n]</li><li>残余回声估计</li><li>频域后滤波增益</li><li>双讲透明度</li><li>非线性回声与削波</li></ul>
+</li>
+<li>
+<div class="toc-head"><span class="num">10</span><a class="toc-title" href="part2/10-nlms-aec/index.html">用 NLMS 实现一个可验证的 AEC</a> <a class="toc-extra" href="part2/10-nlms-aec/index.html#extra-links">扩展阅读 →</a><span class="badge done">已完稿</span></div>
+<p class="toc-desc">把步长、阶数、正则、冻结条件全部摊开，让每个 ERLE 数字都能复算。</p>
+<ul class="toc-points"><li>逐样本 NLMS</li><li>滑动窗 ERLE</li><li>收敛迭代数</li><li>稳态失调</li><li>步长扫描</li><li>阶数不足与欠建模</li><li>正则 δ</li><li>双讲冻结上界</li></ul>
+</li>
+<li>
+<div class="toc-head"><span class="num">11</span><a class="toc-title" href="part2/11-residual-echo/index.html">残余回声抑制与 WebRTC AEC3 结构</a> <a class="toc-extra" href="part2/11-residual-echo/index.html#extra-links">扩展阅读 →</a><span class="badge done">已完稿</span></div>
+<p class="toc-desc">线性滤波器解释不了扬声器削波，最后一段回声要靠功率谱估计来收。</p>
+<ul class="toc-points"><li>非线性回声与削波</li><li>残余回声功率谱</li><li>泄漏系数 γ</li><li>Wiener 型后滤波</li><li>AEC3 主/阴影滤波器</li><li>延迟估计与缓冲对齐</li><li>双讲透明度</li><li>过抑制与语音失真</li></ul>
+</li>
+<li>
+<div class="toc-head"><span class="num">12</span><a class="toc-title" href="part2/12-spectral-subtraction/index.html">谱减、过减因子与音乐噪声</a> <a class="toc-extra" href="part2/12-spectral-subtraction/index.html#extra-links">扩展阅读 →</a><span class="badge done">已完稿</span></div>
+<p class="toc-desc">从「减去噪声功率谱」这一行公式出发，把 ANS 的经典基线及其副作用讲透。</p>
+<ul class="toc-points"><li>加性噪声模型</li><li>功率谱减</li><li>幅度谱减</li><li>过减因子</li><li>谱下限与谱底</li><li>音乐噪声</li><li>噪声功率谱估计</li><li>分段 SNR 权衡</li></ul>
+</li>
+<li>
+<div class="toc-head"><span class="num">13</span><a class="toc-title" href="part2/13-wiener-mmse/index.html">Wiener 滤波、先验 SNR 与 MMSE-STSA</a> <a class="toc-extra" href="part2/13-wiener-mmse/index.html#extra-links">扩展阅读 →</a><span class="badge done">已完稿</span></div>
+<p class="toc-desc">把「拍脑袋的增益」换成最小均方误差意义下的最优增益，并解释决策导向估计。</p>
+<ul class="toc-points"><li>MMSE 估计</li><li>Wiener 增益</li><li>后验 SNR γ</li><li>先验 SNR ξ</li><li>决策导向估计</li><li>MMSE-STSA</li><li>增益平滑与拖尾</li><li>噪声功率谱</li></ul>
+</li>
+<li>
+<div class="toc-head"><span class="num">14</span><a class="toc-title" href="part2/14-agc/index.html">AGC：包络跟踪、攻击释放、限幅与响度</a> <a class="toc-extra" href="part2/14-agc/index.html#extra-links">扩展阅读 →</a><span class="badge done">已完稿</span></div>
+<p class="toc-desc">AGC 不改内容只改尺度，却是 3A 里最容易破坏评测、也最容易被听出来的模块。</p>
+<ul class="toc-points"><li>峰值与 RMS 电平</li><li>响度与 LUFS</li><li>包络跟踪</li><li>攻击时间与释放时间</li><li>增益泵浦</li><li>限幅与真峰值</li><li>静态增益与动态增益</li><li>尺度对齐</li></ul>
+</li>
+</ul></section>
+<section class="toc-part"><h2><span class="part-id">第三篇</span>级联、评测与工程链路</h2>
+<ul class="toc-list">
+<li>
+<div class="toc-head"><span class="num">15</span><a class="toc-title" href="part3/15-beamforming/index.html">麦克风阵列与波束形成：从 delay-and-sum 到 MVDR</a> <a class="toc-extra" href="part3/15-beamforming/index.html#extra-links">扩展阅读 →</a><span class="badge done">已完稿</span></div>
+<p class="toc-desc">多一路空间信息，就能在频域处理之前先把方向性的干扰压掉。</p>
+<ul class="toc-points"><li>均匀线阵 ULA</li><li>到达时间差 TDOA</li><li>远场假设</li><li>delay-and-sum</li><li>指向性图</li><li>空间混叠</li><li>MVDR 与自适应波束</li><li>阵列前置与 AEC</li></ul>
+</li>
+<li>
+<div class="toc-head"><span class="num">16</span><a class="toc-title" href="part3/16-cascade-order/index.html">3A 级联顺序与模块间相互干扰</a> <a class="toc-extra" href="part3/16-cascade-order/index.html#extra-links">扩展阅读 →</a><span class="badge done">已完稿</span></div>
+<p class="toc-desc">三个模块各自都对，串错顺序却会全盘失效；本章把「顺序」变成可测量的量。</p>
+<ul class="toc-points"><li>模块接口契约</li><li>参考信号不变量</li><li>AEC → ANS → AGC</li><li>AGC 前置的危害</li><li>ANS 前置的危害</li><li>增益与尺度对齐</li><li>混合系统顺序</li><li>端到端可观测性</li></ul>
+</li>
+<li>
+<div class="toc-head"><span class="num">17</span><a class="toc-title" href="part3/17-toolchain/index.html">ffmpeg / WebRTC / SpeexDSP 工具链实操</a> <a class="toc-extra" href="part3/17-toolchain/index.html#extra-links">扩展阅读 →</a><span class="badge done">已完稿</span></div>
+<p class="toc-desc">把书里的公式映射到能在本机敲的命令与能读的源码目录。</p>
+<ul class="toc-points"><li>滤镜自查与版本</li><li>afftdn / anlmdn / arnndn</li><li>loudnorm / dynaudnorm / speechnorm</li><li>ebur128 / astats / volumedetect</li><li>WebRTC audio_processing</li><li>AEC3 源码目录</li><li>SpeexDSP 接口</li><li>离线与实时链路差异</li></ul>
+</li>
+<li>
+<div class="toc-head"><span class="num">18</span><a class="toc-title" href="part3/18-classic-eval/index.html">上卷综合实验：完整传统 3A 链路与评测</a> <a class="toc-extra" href="part3/18-classic-eval/index.html#extra-links">扩展阅读 →</a><span class="badge done">已完稿</span></div>
+<p class="toc-desc">把前十余章的模块装进一条链路，用统一的场景矩阵与指标表做一次验收。</p>
+<ul class="toc-points"><li>链路规格</li><li>场景矩阵</li><li>ERLE 与双讲</li><li>分段 SNR 与 SI-SDR</li><li>响度与真峰值</li><li>路径突变与重收敛</li><li>上卷能力上界</li><li>下卷接口</li></ul>
+</li>
+</ul></section>
+<div class="volume-banner ai"><h2>下卷 · AI 算法（Data-driven）</h2><p>第 19～31 章。把 3A 重写成可学习的映射：数据合成、损失函数与网络骨架先行，再逐个替换三大模块，最后落到因果性、延迟、量化与泛化。</p></div>
+<section class="toc-part"><h2><span class="part-id">第四篇</span>数据、表示与学习基础</h2>
+<ul class="toc-list">
+<li>
+<div class="toc-head"><span class="num">19</span><a class="toc-title" href="part4/19-tf-mask/index.html">时频掩码：IBM / IRM / CRM 与监督学习形式化</a> <a class="toc-extra" href="part4/19-tf-mask/index.html#extra-links">扩展阅读 →</a><span class="badge done">已完稿</span></div>
+<p class="toc-desc">下卷的入口：把「算一个增益」改写成「学一个函数」，链路结构一点没变。</p>
+<ul class="toc-points"><li>监督学习形式化</li><li>STFT 特征与标签</li><li>理想二值掩码 IBM</li><li>理想比值掩码 IRM</li><li>复数掩码 CRM</li><li>oracle 上界</li><li>相位保持不变</li><li>掩码与谱减的统一</li></ul>
+</li>
+<li>
+<div class="toc-head"><span class="num">20</span><a class="toc-title" href="part4/20-data-synthesis/index.html">训练数据合成：RIR、噪声、SNR 配比与数据泄漏</a> <a class="toc-extra" href="part4/20-data-synthesis/index.html#extra-links">扩展阅读 →</a><span class="badge done">已完稿</span></div>
+<p class="toc-desc">模型能力的一半来自数据；把「造数据」写成可复现、可审计的生成脚本。</p>
+<ul class="toc-points"><li>配对语料生成</li><li>RIR 与卷积</li><li>噪声库与 SNR 配比</li><li>数据增强轴</li><li>训练/验证/测试划分</li><li>说话人与房间解耦</li><li>数据泄漏</li><li>可复现脚本</li></ul>
+</li>
+<li>
+<div class="toc-head"><span class="num">21</span><a class="toc-title" href="part4/21-network-backbones/index.html">网络骨架：DNN / CRN / U-Net / TCN / Conformer</a> <a class="toc-extra" href="part4/21-network-backbones/index.html#extra-links">扩展阅读 →</a><span class="badge done">已完稿</span></div>
+<p class="toc-desc">骨架的选择，本质上是选择「上下文怎么取」与「归纳偏置放在哪」。</p>
+<ul class="toc-points"><li>帧级 DNN</li><li>卷积循环网络 CRN</li><li>U-Net 编解码</li><li>时间卷积网络 TCN</li><li>Conformer 与注意力</li><li>感受野与状态缓存</li><li>参数量与 MACs</li><li>骨架与延迟</li></ul>
+</li>
+<li>
+<div class="toc-head"><span class="num">22</span><a class="toc-title" href="part4/22-complex-phase/index.html">复数域与相位：DCCRN、深度滤波与时域模型</a> <a class="toc-extra" href="part4/22-complex-phase/index.html#extra-links">扩展阅读 →</a><span class="badge done">已完稿</span></div>
+<p class="toc-desc">只改幅度不改相位，是一条容易走到头的路；本章说明为什么以及下一步怎么走。</p>
+<ul class="toc-points"><li>相位不变假设</li><li>相位误差上界</li><li>复数比值掩码 CRM</li><li>DCCRN 与复数卷积</li><li>深度滤波 DeepFilter</li><li>时域 Conv-TasNet</li><li>复数损失与 SI-SDR</li><li>相位与可懂度</li></ul>
+</li>
+</ul></section>
+<section class="toc-part"><h2><span class="part-id">第五篇</span>神经 3A 与联合建模</h2>
+<ul class="toc-list">
+<li>
+<div class="toc-head"><span class="num">23</span><a class="toc-title" href="part5/23-neural-ns/index.html">神经噪声抑制：从 RNNoise 到 DNS Challenge</a> <a class="toc-extra" href="part5/23-neural-ns/index.html#extra-links">扩展阅读 →</a><span class="badge done">已完稿</span></div>
+<p class="toc-desc">把降噪器压缩到几个频带增益，是「神经方法能跑在端侧」的关键一步。</p>
+<ul class="toc-points"><li>混合 DSP / DNN 架构</li><li>RNNoise 频带增益</li><li>Bark / 梅尔频带</li><li>逐帧 GRU 与状态</li><li>DNS Challenge</li><li>DNSMOS 无参考评分</li><li>频带数与失真</li><li>实时算力预算</li></ul>
+</li>
+<li>
+<div class="toc-head"><span class="num">24</span><a class="toc-title" href="part5/24-neural-aec/index.html">神经 AEC 与回声/噪声联合抑制</a> <a class="toc-extra" href="part5/24-neural-aec/index.html#extra-links">扩展阅读 →</a><span class="badge done">已完稿</span></div>
+<p class="toc-desc">把远端参考接进网络：从「减掉预测回声」到「学一个残余抑制器」。</p>
+<ul class="toc-points"><li>线性 AEC + 神经后处理</li><li>参考信号条件输入</li><li>对齐与时延估计</li><li>残余回声功率谱</li><li>双讲透明度</li><li>ERLE 与近端失真权衡</li><li>端到端神经 AEC</li><li>AEC Challenge</li></ul>
+</li>
+<li>
+<div class="toc-head"><span class="num">25</span><a class="toc-title" href="part5/25-neural-agc/index.html">神经增益控制与感知响度</a> <a class="toc-extra" href="part5/25-neural-agc/index.html#extra-links">扩展阅读 →</a><span class="badge done">已完稿</span></div>
+<p class="toc-desc">把 AGC 的固定目标电平换成从数据里学出来的一条增益律。</p>
+<ul class="toc-points"><li>电平到增益的映射</li><li>感知偏好数据</li><li>对数域最小二乘</li><li>响度与 RMS 目标</li><li>增益约束与钳位</li><li>留出电平验证</li><li>混合部署</li><li>增益泵浦</li></ul>
+</li>
+<li>
+<div class="toc-head"><span class="num">26</span><a class="toc-title" href="part5/26-joint-3a/index.html">联合 3A：多任务、级联与端到端建模</a> <a class="toc-extra" href="part5/26-joint-3a/index.html#extra-links">扩展阅读 →</a><span class="badge done">已完稿</span></div>
+<p class="toc-desc">三个目标共用一个模型时，真正要调的不是网络深度，而是损失与约束。</p>
+<ul class="toc-points"><li>级联与联合</li><li>多任务损失</li><li>损失权重与 Pareto 前沿</li><li>共享编码器</li><li>任务冲突与负迁移</li><li>端到端可微分链路</li><li>可观测性下降</li><li>消融实验</li></ul>
+</li>
+</ul></section>
+<section class="toc-part"><h2><span class="part-id">第六篇</span>实时部署、评测与前沿</h2>
+<ul class="toc-list">
+<li>
+<div class="toc-head"><span class="num">27</span><a class="toc-title" href="part6/27-causal-streaming/index.html">因果性与流式推理：状态缓存、感受野</a> <a class="toc-extra" href="part6/27-causal-streaming/index.html#extra-links">扩展阅读 →</a><span class="badge done">已完稿</span></div>
+<p class="toc-desc">实时不是「跑得快」，而是「输出第 n 个样本时绝不看第 n+1 个」。</p>
+<ul class="toc-points"><li>因果性定义</li><li>算法前瞻与延迟</li><li>分块流式处理</li><li>状态缓存</li><li>膨胀卷积感受野</li><li>RNN 隐状态</li><li>注意力 KV 缓存</li><li>流式与离线等价</li></ul>
+</li>
+<li>
+<div class="toc-head"><span class="num">28</span><a class="toc-title" href="part6/28-latency-budget/index.html">延迟预算与 RTF：实时链路账本</a> <a class="toc-extra" href="part6/28-latency-budget/index.html#extra-links">扩展阅读 →</a><span class="badge done">已完稿</span></div>
+<p class="toc-desc">把「能不能实时」写成一张可以逐行相加、可以实测核对的表。</p>
+<ul class="toc-points"><li>端到端延迟</li><li>算法延迟</li><li>帧长与前瞻</li><li>缓冲与抖动</li><li>编解码延迟</li><li>实时因子 RTF</li><li>最坏单帧耗时</li><li>预算优化顺序</li></ul>
+</li>
+<li>
+<div class="toc-head"><span class="num">29</span><a class="toc-title" href="part6/29-quantization/index.html">量化、剪枝与端侧推理</a> <a class="toc-extra" href="part6/29-quantization/index.html#extra-links">扩展阅读 →</a><span class="badge done">已完稿</span></div>
+<p class="toc-desc">把浮点模型塞进端侧预算，同时守住「不能听出来」这条底线。</p>
+<ul class="toc-points"><li>均匀量化与步长</li><li>int8 与定点 DSP</li><li>量化噪声与 SNR</li><li>训练后量化 PTQ</li><li>量化感知训练 QAT</li><li>校准与激活范围</li><li>剪枝与稀疏</li><li>端侧推理检查清单</li></ul>
+</li>
+<li>
+<div class="toc-head"><span class="num">30</span><a class="toc-title" href="part6/30-generalization/index.html">泛化、鲁棒性与评测陷阱</a> <a class="toc-extra" href="part6/30-generalization/index.html#extra-links">扩展阅读 →</a><span class="badge done">已完稿</span></div>
+<p class="toc-desc">把「分数很高」和「真的好用」分开：数据划分、分布外测试与指标组合才决定结论的边界。</p>
+<ul class="toc-points"><li>训练/验证/测试划分</li><li>数据泄漏</li><li>测试集调参</li><li>样本内与样本外</li><li>分布外 OOD</li><li>鲁棒性与退化轴</li><li>指标组合与 Goodhart</li><li>可复现评测协议</li></ul>
+</li>
+<li>
+<div class="toc-head"><span class="num">31</span><a class="toc-title" href="part6/31-capstone/index.html">结课项目：小型掩码估计器与全链路验证</a> <a class="toc-extra" href="part6/31-capstone/index.html#extra-links">扩展阅读 →</a><span class="badge done">已完稿</span></div>
+<p class="toc-desc">把全书收束成一个可交付项目：合成数据、可解释掩码、消融矩阵、验收清单与复现脚本。</p>
+<ul class="toc-points"><li>结课项目规格</li><li>合成数据配方</li><li>STFT 与 WOLA</li><li>理想比率掩码 IRM</li><li>可解释阈值掩码</li><li>消融矩阵</li><li>因果与延迟约束</li><li>验收清单与复现</li></ul>
+</li>
+</ul></section>
+<div class="volume-banner lower"><h2>附录 · 速查与资源总表</h2><p>附录 A 汇总全书公式、中英术语、ffmpeg/WebRTC 命令、可运行示例与开源工程索引。</p></div>
+<section class="toc-part"><h2><span class="part-id">附录</span>公式、术语、命令与资源总表</h2>
+<ul class="toc-list">
+<li>
+<div class="toc-head"><span class="num">A</span><a class="toc-title" href="appendix/index.html">附录 A · 公式、术语、命令与资源速查</a> <a class="toc-extra" href="appendix/index.html#extra-links">扩展阅读 →</a><span class="badge done">已完稿</span></div>
+<p class="toc-desc">把全书的符号、公式、中英术语、命令与复现约定压成四张速查表；A.5～A.7 由生成器自动追加。</p>
+<ul class="toc-points"><li>符号与公式速查</li><li>信号模型</li><li>NLMS 与 ERLE</li><li>SI-SDR 与 Wiener 增益</li><li>中英术语对照</li><li>ffmpeg / WebRTC 命令</li><li>实验环境与复现</li><li>fig / audio 产物</li></ul>
+</li>
+</ul></section>
+<h2 id="resources">参考资源</h2>
+<p class="lede">以下为全书高频引用的标准、工具、开源工程与教材；完整清单（含数据集、百科条目与检索入口）见<a href="appendix/index.html#sA-7">附录 A.7 扩展学习链接总表</a>。书中提及的 ffmpeg 滤镜、WebRTC 模块与开源项目仅作技术说明，本书与这些项目无从属关系，也不构成产品推荐。</p>
+<div class="repo-grid">
+<div class="repo-card"><h3><a href="https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/" target="_blank" rel="noopener noreferrer">WebRTC 源码（audio_processing） ↗</a></h3><span class="tag">工程</span><p>AEC3 / NS / AGC2 的工业级参考实现目录</p><p style="margin:0"><code>https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/</code></p></div>
+<div class="repo-card"><h3><a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a></h3><span class="tag">工具</span><p>全部音频滤镜的权威说明页，每个滤镜有独立锚点</p><p style="margin:0"><code>https://ffmpeg.org/ffmpeg-filters.html</code></p></div>
+<div class="repo-card"><h3><a href="https://gitlab.xiph.org/xiph/speexdsp" target="_blank" rel="noopener noreferrer">speexdsp 源码 ↗</a></h3><span class="tag">工程</span><p>speex_echo_cancellation / speex_preprocess_ctl 的参考实现</p><p style="margin:0"><code>https://gitlab.xiph.org/xiph/speexdsp</code></p></div>
+<div class="repo-card"><h3><a href="https://github.com/xiph/rnnoise" target="_blank" rel="noopener noreferrer">RNNoise ↗</a></h3><span class="tag">工程</span><p>Valin 的混合 DSP/深度学习实时降噪，ffmpeg arnndn 的模型来源</p><p style="margin:0"><code>https://github.com/xiph/rnnoise</code></p></div>
+<div class="repo-card"><h3><a href="https://github.com/microsoft/DNS-Challenge" target="_blank" rel="noopener noreferrer">Microsoft DNS Challenge ↗</a></h3><span class="tag">数据集</span><p>深度噪声抑制挑战赛，含大规模合成数据脚本与基线</p><p style="margin:0"><code>https://github.com/microsoft/DNS-Challenge</code></p></div>
+<div class="repo-card"><h3><a href="https://github.com/microsoft/AEC-Challenge" target="_blank" rel="noopener noreferrer">Microsoft AEC Challenge ↗</a></h3><span class="tag">数据集</span><p>声学回声消除挑战赛，含真实双讲与非线性失真录音</p><p style="margin:0"><code>https://github.com/microsoft/AEC-Challenge</code></p></div>
+<div class="repo-card"><h3><a href="https://github.com/LCAV/pyroomacoustics" target="_blank" rel="noopener noreferrer">pyroomacoustics ↗</a></h3><span class="tag">工程</span><p>房间声学模拟、RIR 生成与波束形成实验工具</p><p style="margin:0"><code>https://github.com/LCAV/pyroomacoustics</code></p></div>
+<div class="repo-card"><h3><a href="https://www.dspguide.com/" target="_blank" rel="noopener noreferrer">The Scientist and Engineer&#x27;s Guide to DSP ↗</a></h3><span class="tag">教材</span><p>免费在线 DSP 教材，卷积/FFT/滤波器章节讲解直观</p><p style="margin:0"><code>https://www.dspguide.com/</code></p></div>
+<div class="repo-card"><h3><a href="https://ccrma.stanford.edu/~jos/" target="_blank" rel="noopener noreferrer">Stanford CCRMA · Julius O. Smith ↗</a></h3><span class="tag">教材</span><p>数字信号处理与音频 DSP 的免费在线书系</p><p style="margin:0"><code>https://ccrma.stanford.edu/~jos/</code></p></div>
+<div class="repo-card"><h3><a href="https://www.itu.int/rec/T-REC-G.168/en" target="_blank" rel="noopener noreferrer">ITU-T G.168 ↗</a></h3><span class="tag">标准</span><p>网络回声消除器的测试标准，规定 ERLE 与双讲测试信号</p><p style="margin:0"><code>https://www.itu.int/rec/T-REC-G.168/en</code></p></div>
+<div class="repo-card"><h3><a href="https://tech.ebu.org/docs/r/r128" target="_blank" rel="noopener noreferrer">EBU R128 ↗</a></h3><span class="tag">标准</span><p>广播响度归一化规范，-23 LUFS 目标与 True Peak 上限</p><p style="margin:0"><code>https://tech.ebu.org/docs/r/r128</code></p></div>
+<div class="repo-card"><h3><a href="https://docs.python.org/3/library/index.html" target="_blank" rel="noopener noreferrer">Python 标准库文档 ↗</a></h3><span class="tag">教材</span><p>wave / array / struct / math / random 等标准模块说明</p><p style="margin:0"><code>https://docs.python.org/3/library/index.html</code></p></div>
+</div>
+<h2 id="contribute">维护约定</h2>
+<p>全书由结构化数据生成，<strong>不要直接编辑章节 HTML</strong>，否则下次重建会被覆盖。改完数据后依次运行：<code>python3 tools/build_book.py --force</code> → <code>python3 tools/extract_code.py</code> → <code>./tools/run_python.sh</code> → <code>python3 tools/check_book.py --run</code>。</p>
+<table><thead><tr><th style="width:28%">想改什么</th><th>编辑哪里</th></tr></thead><tbody><tr><td>细化某章正文或 Python 实验</td><td><code>tools/chapters_*.py</code> 中对应的 <code>C(...)</code> / <code>mk_demo(...)</code></td></tr><tr><td>加参考资料链接</td><td><code>tools/book_resources.py</code> 的 <code>R</code>、<code>TOPIC_RULES</code>、<code>CHAPTER_RESOURCES</code>，以及章节的 <code>highlights</code></td></tr><tr><td>调整页面结构与总目录</td><td><code>tools/build_book.py</code> 的 <code>render()</code> / <code>render_index()</code></td></tr><tr><td>样式与交互</td><td><code>assets/style.css</code>、<code>assets/app.js</code></td></tr><tr><td>新增章节或分部</td><td><code>tools/book_schema.py</code> 的 <code>PARTS</code> + 对应 <code>chapters_*.py</code>，再重建</td></tr><tr><td>新增 DSP 原语 / 图表类型</td><td><code>tools/dsp.py</code>、<code>tools/chart.py</code></td></tr></tbody></table>
+<footer class="site-foot">
+<p class="credits"><strong>作者</strong>：汪亮（bertonwang）　<strong>联系邮箱</strong>：<a href="mailto:47608843@qq.com">47608843@qq.com</a></p>
+<p class="ai-note"><strong>AI 使用说明</strong>：本教材的知识框架、正文、Python 实验脚本与参考资料清单在 AI 辅助下整理生成，并经人工校订、实际运行与静态自检。公式、数值与运行结果请以Python 3 实际输出及权威教材、官方文档为准；发现错漏欢迎通过上方邮箱勘误。</p>
+<p class="imprint">音频 3A 处理：从自适应滤波到神经增强 · 每章一个 <code>code/*.py</code> 实验脚本、<code>fig/*.svg</code> 矢量图与 <code>audio/*.wav</code> 试听样本（由 <code>tools/extract_code.py</code> 与脚本运行同步） · 只用 Python 3 标准库 · 教学材料，信号全部由代码合成。</p>
+</footer>
+</main>
+</body>
+</html>

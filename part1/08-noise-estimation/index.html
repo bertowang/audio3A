@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 08 章 · VAD 与噪声功率谱估计（MCRA 思路） | 音频 3A 处理：从自适应滤波到神经增强</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<script src="../../assets/toc.js" defer></script>
+<script src="../../assets/app.js" defer></script>
+</head>
+<body data-root="../../" data-chapter="08">
+<aside id="sidebar"></aside>
+<main class="book-page">
+<nav class="breadcrumb" data-autofill>总目录</nav>
+<header class="chapter-head">
+<span class="kicker">第一篇 · 信号、系统与自适应滤波基础 · 上卷 · 传统算法（Model-based）</span>
+<h1><span class="ch-num">第 08 章</span>VAD 与噪声功率谱估计（MCRA 思路）</h1>
+<p class="lede">没有干净参考，只能靠『噪声比语音更稳』这条统计假设把噪声谱跟出来。</p>
+<div class="meta">
+<span class="badge done">已完稿</span>
+<span class="badge s2">基础 · 自适应</span>
+<span class="badge traditional">上卷 · 传统算法</span>
+<span>建议 3 学时</span>
+<span>1 个 Python 实验 · 2 张图 · 3 段试听</span>
+<span>音频 3A 处理：从自适应滤波到神经增强</span>
+</div></header>
+<p class="bridge"><strong>本章位置：</strong><a href='../../part0/03-metrics/index.html'>第 03 章 · 怎么算「变好了」：客观指标、尺度与主观听测</a> 给评价指标，本章给出 ANS 的第一个估计量；<a href='../../part2/12-spectral-subtraction/index.html'>第 12 章 · 谱减、过减因子与音乐噪声</a> 用 λ_n 做谱减，<a href='../../part2/13-wiener-mmse/index.html'>第 13 章 · Wiener 滤波、先验 SNR 与 MMSE-STSA</a> 把它升级为先验 SNR 与 MMSE 增益。</p>
+<div class="analogy"><span class="card-label">给程序员的翻译</span><p style="margin-bottom:0">MCRA 是一个带滞回的监控指标：滑动窗最小值是 P99 基线的反向版本（取的是下包络），比值闸门是告警条件，α_n 是指数移动平均的半衰期。<strong>它不判断『有没有语音』，只判断『这一刻能不能安全地更新基线』。</strong></p></div>
+<div class="card objectives"><span class="card-label">学习目标</span><ul>
+<li>能说明 VAD 与噪声功率谱估计为何互为前提。</li>
+<li>能写出 MCRA 的时频平滑、最小值跟踪与条件更新三步。</li>
+<li>能量化非平稳噪声下固定估计与跟踪估计的谱误差。</li>
+<li>能运行实验，用检测率、谱误差与 segSNR 核对谱减效果。</li>
+</ul></div>
+<section id="map"><h2><span class="sec-num">§</span>知识点地图</h2>
+<p class="code-hint">每个知识点都配了 1～2 个扩展学习链接；本章完整资源清单见 <a href="#extra-links">扩展学习</a>。</p>
+<table><thead><tr><th style="width:44px">#</th><th style="width:26%">知识点</th><th>扩展学习</th><th style="width:100px">状态</th></tr></thead><tbody>
+<tr><td>1</td><td>语音活动检测 VAD</td><td><a href="https://en.wikipedia.org/wiki/Voice_activity_detection" target="_blank" rel="noopener noreferrer">Voice activity detection ↗</a> · <a href="https://ffmpeg.org/ffmpeg-filters.html#silencedetect" target="_blank" rel="noopener noreferrer">ffmpeg silencedetect ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>2</td><td>噪声功率谱 N[k,t]</td><td><a href="https://ffmpeg.org/ffmpeg-filters.html#afftdn" target="_blank" rel="noopener noreferrer">ffmpeg afftdn ↗</a> · <a href="https://github.com/microsoft/DNS-Challenge" target="_blank" rel="noopener noreferrer">Microsoft DNS Challenge ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>3</td><td>时频平滑</td><td><a href="https://en.wikipedia.org/wiki/Short-time_Fourier_transform" target="_blank" rel="noopener noreferrer">Short-time Fourier transform ↗</a> · <a href="https://docs.pytorch.org/audio/stable/index.html" target="_blank" rel="noopener noreferrer">torchaudio ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>4</td><td>最小值跟踪</td><td><a href="https://en.wikipedia.org/wiki/Voice_activity_detection" target="_blank" rel="noopener noreferrer">Voice activity detection ↗</a> · <a href="https://en.wikipedia.org/wiki/Wiener_filter" target="_blank" rel="noopener noreferrer">Wiener filter ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>5</td><td>语音存在概率</td><td><a href="https://en.wikipedia.org/wiki/Voice_activity_detection" target="_blank" rel="noopener noreferrer">Voice activity detection ↗</a> · <a href="https://en.wikipedia.org/wiki/Wiener_filter" target="_blank" rel="noopener noreferrer">Wiener filter ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>6</td><td>MCRA 条件更新</td><td><a href="https://en.wikipedia.org/wiki/Voice_activity_detection" target="_blank" rel="noopener noreferrer">Voice activity detection ↗</a> · <a href="https://en.wikipedia.org/wiki/Wiener_filter" target="_blank" rel="noopener noreferrer">Wiener filter ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>7</td><td>非平稳噪声阶跃</td><td><a href="https://ffmpeg.org/ffmpeg-filters.html#afftdn" target="_blank" rel="noopener noreferrer">ffmpeg afftdn ↗</a> · <a href="https://github.com/microsoft/DNS-Challenge" target="_blank" rel="noopener noreferrer">Microsoft DNS Challenge ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>8</td><td>谱减与音乐噪声</td><td><a href="https://en.wikipedia.org/wiki/Spectral_subtraction" target="_blank" rel="noopener noreferrer">Spectral subtraction ↗</a> · <a href="https://ffmpeg.org/ffmpeg-filters.html#afftdn" target="_blank" rel="noopener noreferrer">ffmpeg afftdn ↗</a></td><td>正文已覆盖</td></tr>
+</tbody></table></section>
+<section id="s8-1"><h2><span class="sec-num">§8.1</span>两个互相依赖的估计量</h2>
+<p class="eq">Y[k,t] = S[k,t] + N[k,t]　，目标：从 |Y|² 里分离出 λ_n[k,t] = E{|N|²}</p>
+<p>VAD 需要噪声底才能判断『这一帧是不是语音』，噪声估计又只该在『没有语音的帧』更新——这是典型的鸡生蛋问题。MCRA（Minima Controlled Recursive Averaging）的解法是<strong>不硬判 VAD，而是用功率谱的最小值统计间接找噪声底</strong>：语音出现时功率上冲，静音/语音间隙回落到噪声底，滑动窗最小值就把这个底抓出来。</p>
+<table><thead><tr><th style="width:18%">步骤</th><th style="width:46%">递推式 / 操作</th><th style="width:36%">作用</th></tr></thead><tbody>
+<tr><td>频域平滑</td><td>S_f[k,t] = Σ_{j=−1..1} b_j · |Y[k+j,t]|²</td><td>抹掉谱峰的随机尖刺</td></tr>
+<tr><td>时间平滑</td><td>S[k,t] = α_s·S[k,t−1] + (1−α_s)·S_f[k,t]</td><td>抑制帧间抖动</td></tr>
+<tr><td>最小值跟踪</td><td>S_min[k,t] = min{S[k,t−W..t]}</td><td>得到噪声底的保守估计</td></tr>
+<tr><td>条件更新</td><td>若 S/S_min < δ 则 λ_n ← α_n·λ_n + (1−α_n)·|Y|²</td><td>只在疑似无语音时更新噪声</td></tr>
+</tbody></table>
+<div class="card note"><span class="card-label">与 AEC 的对称性</span><p style="margin-bottom:0">AEC 有参考信号 x，是监督式辨识；ANS 没有参考，只能靠平稳性假设。所以 <a href='../../part0/03-metrics/index.html'>第 03 章 · 怎么算「变好了」：客观指标、尺度与主观听测</a> 强调：噪声估计错了，后面 <a href='../../part2/12-spectral-subtraction/index.html'>第 12 章 · 谱减、过减因子与音乐噪声</a> 谱减与 <a href='../../part2/13-wiener-mmse/index.html'>第 13 章 · Wiener 滤波、先验 SNR 与 MMSE-STSA</a> 维纳增益一起错。</p></div>
+</section>
+<section id="s8-2"><h2><span class="sec-num">§8.2</span>语音存在概率与更新闸门</h2>
+<p class="eq">S_r[k,t] = S[k,t] / S_min[k,t]　，p̂[k,t] ≈ 1 当 S_r &gt; δ，否则按 S_r 插值</p>
+<p>实践中不必显式算概率，直接用比值做闸门：<code>S_r &lt; δ</code>（本实验 δ=2.2，约 3.4 dB）就认为该 bin 当前由噪声主导，允许更新 <code>λ_n</code>；否则冻结。<code>α_n</code> 决定跟踪速度：太大跟不上噪声阶跃，太小会把语音低谷误当噪声。</p>
+<p class="eq">增益（谱减形式）：G[k,t] = max(G_floor, 1 − β·√λ_n[k,t] / |Y[k,t]|)</p>
+<div class="card warn"><span class="card-label">音乐噪声</span><p style="margin-bottom:0">逐 bin 独立相减会留下孤立的随机谱峰，听感像鸟叫/水声。设增益下限 G_floor 并对相邻 bin 做平滑，是 <a href='../../part2/12-spectral-subtraction/index.html'>第 12 章 · 谱减、过减因子与音乐噪声</a> 要解决的第一件事。</p></div>
+</section>
+<section id="s8-3"><h2><span class="sec-num">§8.3</span>实验怎么判『跟上噪声了』</h2>
+<ul>
+<li><strong>谱误差</strong>：逐 bin 算 10log₁₀(λ̂_n/λ_n) 的绝对均值（dB），固定估计与 MCRA 对比。</li>
+<li><strong>跟踪曲线</strong>：噪声幅度在样本中段由 0.012 阶跃到 0.045，MCRA 曲线应跟着抬升。</li>
+<li><strong>VAD 帧准确率</strong>：由后验 SNR 与阈值判决，与合成门控真值逐帧比对。</li>
+<li><strong>segSNR</strong>：用两套噪声估计分别谱减，比较输出的分段 SNR。</li>
+</ul>
+</section>
+<section id="lab"><h2><span class="sec-num">§</span>Python 实验</h2>
+<h3>实验 8-1 · MCRA 噪声跟踪、VAD 判决与谱减对照</h3>
+<pre class="code" data-file="code/08-noise-estimation.py" data-lang="Python 3 · 标准库"><code>#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""合成带静音段的语音与非平稳噪声，实现最小值控制的递推平均，打印检测率、谱误差与 segSNR。
+
+全部语音 / 噪声 / 房间冲激响应均为代码合成信号，仅用于教学演示机制与量级。
+"""
+from __future__ import annotations
+
+import math
+import pathlib
+import random
+import statistics
+import sys
+import time
+
+_here = pathlib.Path(__file__).resolve()
+for _p in _here.parents:
+    if (_p / "tools" / "dsp.py").exists():
+        sys.path.insert(0, str(_p / "tools"))
+        break
+from dsp import (SAMPLE_RATE, fft, hann, stft, istft, magnitude_db, spectrum,
+                 white_noise, tone, chirp, synthetic_speech, rir, convolve,
+                 fft_convolve, delay, clip, normalize_peak, rms, rolling_rms,
+                 smooth, db, energy_db, snr_db, erle_db, seg_snr_db,
+                 scale_align, si_sdr_db, lufs_approx,
+                 write_wav, read_wav, wav_info)
+from chart import Chart, heatmap, BLUE, RED, GREEN, AMBER
+
+FIG = _here.parents[1] / "fig"
+AUDIO = _here.parents[1] / "audio"
+FIG.mkdir(exist_ok=True)
+AUDIO.mkdir(exist_ok=True)
+
+random.seed(7)
+
+# ---- 参数区 ----
+N, NF, HOP = 8000, 256, 128
+ALPHA_S, ALPHA_N = 0.50, 0.90    # 时间平滑 / 噪声更新平滑
+WIN = 12                         # 最小值跟踪窗（帧）
+RATIO_TH = 2.2                   # S/S_min 更新闸门
+VAD_TH_DB = 3.0                  # 帧级后验 SNR 阈值
+SUB_FACTOR, FLOOR = 1.0, 0.15    # 谱减过减因子与增益下限
+
+# ---- 计算与作图 ----
+rng = random.Random(7)
+base = synthetic_speech(rng, N)
+gate = [1.0 if (0.18 * N &lt;= i &lt; 0.45 * N or 0.60 * N &lt;= i &lt; 0.90 * N) else 0.0
+        for i in range(N)]
+speech = [base[i] * gate[i] for i in range(N)]
+noise = [rng.gauss(0.0, 0.012 if i &lt; N // 2 else 0.045) for i in range(N)]
+noisy = [speech[i] + noise[i] for i in range(N)]
+
+frames = stft(noisy, NF, HOP)
+T = len(frames)
+P = [[re[k] ** 2 + im[k] ** 2 for k in range(NF)] for re, im in frames]
+nframes = stft(noise, NF, HOP)
+Ntrue = [statistics.fmean(nr[k] ** 2 + ni[k] ** 2 for nr, ni in nframes) for k in range(NF)]
+Nfix = [statistics.fmean(P[t][k] for t in range(min(4, T))) for k in range(NF)]
+
+S = P[0][:]
+Nhat = S[:]
+hist, track, snr_t = [], [], []
+for t in range(T):
+    sm = [0.25 * P[t][(k - 1) % NF] + 0.5 * P[t][k] + 0.25 * P[t][(k + 1) % NF]
+          for k in range(NF)]
+    S = [ALPHA_S * S[k] + (1 - ALPHA_S) * sm[k] for k in range(NF)]
+    hist.append(S[:])
+    if len(hist) &gt; WIN:
+        hist.pop(0)
+    Smin = [min(h[k] for h in hist) for k in range(NF)]
+    for k in range(NF):
+        if S[k] / (Smin[k] + 1e-12) &lt; RATIO_TH:
+            Nhat[k] = ALPHA_N * Nhat[k] + (1 - ALPHA_N) * P[t][k]
+    track.append(sum(Nhat))
+    snr_t.append(sum(P[t]) / (sum(Nhat) + 1e-9))
+
+def spec_err(est, ref):
+    return statistics.fmean(abs(10 * math.log10((e + 1e-12) / (r + 1e-12)))
+                            for e, r in zip(est, ref))
+
+vad = [1 if 10 * math.log10(s + 1e-12) &gt; VAD_TH_DB else 0 for s in snr_t]
+truth = [1 if gate[min(t * HOP, N - 1)] &gt; 0 else 0 for t in range(T)]
+tp = sum(1 for a, b in zip(vad, truth) if a and b)
+fp = sum(1 for a, b in zip(vad, truth) if a and not b)
+fn = sum(1 for a, b in zip(vad, truth) if not a and b)
+tn = sum(1 for a, b in zip(vad, truth) if not a and not b)
+
+def suppress(noise_est):
+    out = []
+    for re, im in frames:
+        rr, ii = re[:], im[:]
+        for k in range(NF):
+            mag = math.hypot(re[k], im[k])
+            g = max(FLOOR, 1.0 - SUB_FACTOR * math.sqrt(noise_est[k]) / (mag + 1e-9))
+            rr[k] *= g
+            ii[k] *= g
+        out.append((rr, ii))
+    return istft(out, NF, HOP, N)
+
+out_fix, out_mcra = suppress(Nfix), suppress(Nhat)
+ntrack = [sum(nr[k] ** 2 + ni[k] ** 2 for k in range(NF)) for nr, ni in nframes]
+
+c = Chart(FIG / "08-noise-track.svg", "非平稳噪声功率：真实 / 固定估计 / MCRA 跟踪",
+          xlabel="帧 t", ylabel="全带功率（线性求和）")
+c.line(range(T), ntrack, "#9aa6b2", label="真实噪声帧功率", opacity=0.85)
+c.line(range(T), track, GREEN, label="MCRA 跟踪 λ_n")
+c.line(range(T), [sum(Nfix)] * T, RED, label="固定估计（前 4 帧）")
+print("跟踪图:", c.save())
+d = Chart(FIG / "08-vad.svg", "逐帧后验 SNR 与 VAD 判决", xlabel="帧 t", ylabel="dB / 判决")
+d.line(range(T), [10 * math.log10(s + 1e-12) for s in snr_t], BLUE, label="帧级 SNR (dB)")
+d.hline(VAD_TH_DB, RED, label="VAD 阈值")
+d.bars(range(T), vad, AMBER, label="VAD=1 判语音", opacity=0.35)
+print("VAD图:", d.save())
+write_wav(AUDIO / "08-noisy.wav", normalize_peak(noisy))
+write_wav(AUDIO / "08-fixed.wav", normalize_peak(out_fix))
+write_wav(AUDIO / "08-mcra.wav", normalize_peak(out_mcra))
+print("采样率=%d Hz STFT=%d/%d 帧数=%d 最小值窗=%d帧 噪声amp 0.012→0.045" %
+      (SAMPLE_RATE, NF, HOP, T, WIN))
+print("噪声谱平均绝对误差: 固定=%.2f dB MCRA=%.2f dB" %
+      (spec_err(Nfix, Ntrue), spec_err(Nhat, Ntrue)))
+print("VAD TP=%d FP=%d FN=%d TN=%d | 检测率=%.3f 虚警率=%.3f 帧准确率=%.3f" %
+      (tp, fp, fn, tn, tp / max(tp + fn, 1), fp / max(fp + tn, 1), (tp + tn) / T))
+print("segSNR 带噪=%.2f 固定谱减=%.2f MCRA谱减=%.2f dB" %
+      (seg_snr_db(speech, noisy), seg_snr_db(speech, out_fix), seg_snr_db(speech, out_mcra)))</code></pre>
+<p class="code-hint"><strong>操作：</strong>观察噪声幅度阶跃后 MCRA 曲线是否抬升；对照 VAD 判决与真值门控；试听两个谱减 WAV 的残余噪声。　<strong>预期与判读：</strong>固定估计停留在前 4 帧的低电平，MCRA 随阶跃跟踪到新噪声底，谱误差从 10.06 dB 降到 1.91 dB；但 MCRA 谱减的分段 SNR（7.93 dB）反而低于固定谱减（12.10 dB）——<strong>噪声谱估得准不等于输出质量高，过跟踪会连语音一起压掉</strong>。VAD 帧准确率 0.587、虚警率 0.630，说明阈值仍需按场景整定，可由 TP/FP/FN/TN 逐项复算。</p>
+<p class="code-hint"><strong>改参数看趋势：</strong>把 ALPHA_N 调到 0.99，跟踪变慢但更稳；把 WIN 缩到 4 帧，最小值会被语音谷值污染。　文件位置：<code>part1/08-noise-estimation/code/08-noise-estimation.py</code></p>
+<div class="chart-grid">
+<figure class="chart-figure"><img src="fig/08-noise-track.svg" alt="MCRA 噪声功率跟踪与固定估计对照" loading="lazy"><figcaption>图 1　MCRA 噪声功率跟踪与固定估计对照（代码合成信号 / 教学示意）</figcaption></figure>
+<figure class="chart-figure"><img src="fig/08-vad.svg" alt="逐帧后验 SNR、阈值与 VAD 判决" loading="lazy"><figcaption>图 2　逐帧后验 SNR、阈值与 VAD 判决（代码合成信号 / 教学示意）</figcaption></figure>
+</div>
+<div class="audio-grid">
+<div class="audio-card"><h4>08-noisy.wav</h4><audio controls preload="none" src="audio/08-noisy.wav">浏览器不支持 audio 元素，请直接打开 audio/08-noisy.wav。</audio><p>带非平稳噪声的语音（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+<div class="audio-card"><h4>08-fixed.wav</h4><audio controls preload="none" src="audio/08-fixed.wav">浏览器不支持 audio 元素，请直接打开 audio/08-fixed.wav。</audio><p>固定噪声估计谱减输出（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+<div class="audio-card"><h4>08-mcra.wav</h4><audio controls preload="none" src="audio/08-mcra.wav">浏览器不支持 audio 元素，请直接打开 audio/08-mcra.wav。</audio><p>MCRA 跟踪噪声谱减输出（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+</div>
+<div class="card note"><p style="margin-bottom:0">代码块右上角可一键复制；仓库里的 <code>code/*.py</code> 由 <code>tools/extract_code.py</code> 从这些代码块自动抽取。脚本只用标准库、固定 <code>random.seed(7)</code>，运行后写出 <code>fig/*.svg</code> 与 <code>audio/*.wav</code>；批量运行用 <code>./tools/run_python.sh</code>。</p></div>
+</section>
+<section id="commands"><h2><span class="sec-num">§</span>可选真机命令片段</h2>
+<div class="card note"><p style="margin-bottom:0">以下命令<strong>不参与批量运行</strong>，需要本机自行安装对应工具。滤镜是否可用取决于本机 ffmpeg 版本与编译选项，请先用 <code>ffmpeg -filters</code> / <code>ffmpeg -version</code> 自查，并以 https://ffmpeg.org/ffmpeg-filters.html 与各自官方文档为准；本书不假定任何特定版本具备某项能力。</p></div>
+<h3>本机自查 VAD/降噪滤镜与官方文档</h3>
+<pre class="cmd" data-lang="shell"><code>ffmpeg -hide_banner -filters | grep -E 'silencedetect|afftdn|arnndn|astats'</code></pre>
+<p class="code-hint"><strong>说明：</strong>只做本机能力自查；滤镜参数与引入版本以 https://ffmpeg.org/ffmpeg-filters.html 及本机 ffmpeg -filters 输出为准，本书不假定任何特定版本。</p>
+</section>
+<section id="highlights"><h2><span class="sec-num">§</span>本章参考资料</h2><p>按本章知识点挑选的精读资料；更多检索入口见 <a href="#extra-links">扩展学习</a>。</p><div class="repo-grid">
+<div class="repo-card"><h3><a href="https://en.wikipedia.org/wiki/Voice_activity_detection" target="_blank" rel="noopener noreferrer">Voice activity detection ↗</a></h3><span class="tag">百科</span><p>VAD 的能量/统计/学习方法概览</p><p style="margin:0;color:var(--ink-faint)">推荐理由：VAD 的能量/统计/学习方法概览</p></div>
+<div class="repo-card"><h3><a href="https://en.wikipedia.org/wiki/Wiener_filter" target="_blank" rel="noopener noreferrer">Wiener filter ↗</a></h3><span class="tag">百科</span><p>最小均方误差意义下的最优线性滤波</p><p style="margin:0;color:var(--ink-faint)">推荐理由：噪声功率估计下游的最优滤波</p></div>
+<div class="repo-card"><h3><a href="https://ffmpeg.org/ffmpeg-filters.html#silencedetect" target="_blank" rel="noopener noreferrer">ffmpeg silencedetect ↗</a></h3><span class="tag">工具</span><p>静音段检测，可用于粗粒度 VAD 与数据集切分</p><p style="margin:0;color:var(--ink-faint)">推荐理由：离线粗粒度 VAD 的现成入口</p></div>
+<div class="repo-card"><h3><a href="https://www.dsprelated.com/" target="_blank" rel="noopener noreferrer">DSPRelated ↗</a></h3><span class="tag">教材</span><p>自适应滤波、AGC 与实时实现的工程文章与博客</p><p style="margin:0;color:var(--ink-faint)">推荐理由：噪声跟踪与递推平均的工程文章</p></div>
+</div></section>
+<section id="repos"><h2><span class="sec-num">§</span>相关开源工程</h2><p>下列工程仅作技术参照，版权与许可证归各自维护者所有。本书实验不依赖它们，也与之无从属关系。</p><div class="repo-grid">
+<div class="repo-card"><h3><a href="https://github.com/microsoft/DNS-Challenge" target="_blank" rel="noopener noreferrer">Microsoft DNS-Challenge ↗</a></h3><span class="tag">数据集 · 基线</span><p>大规模语音/噪声合成脚本、基线模型与评测协议</p></div>
+<div class="repo-card"><h3><a href="https://github.com/xiph/rnnoise" target="_blank" rel="noopener noreferrer">RNNoise ↗</a></h3><span class="tag">AI · C</span><p>混合 DSP + GRU 的实时降噪，ffmpeg arnndn 的模型来源</p></div>
+<div class="repo-card"><h3><a href="https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/" target="_blank" rel="noopener noreferrer">WebRTC audio_processing ↗</a></h3><span class="tag">传统 · C++</span><p>工业级 3A 参考实现：AEC3 / NS / AGC2，读源码理解分块频域与双讲逻辑</p></div>
+</div></section>
+<section id="pitfalls"><h2><span class="sec-num">§</span>常见误区</h2><div class="card warn"><ul><li>用有声段直接平均当噪声谱，语音一停就过减。</li>
+<li>最小值窗太短，语音音节间隙被当成噪声底。</li>
+<li>α_n 太大跟不上非平稳噪声，太小又把语音低谷吸进噪声估计。</li>
+<li>谱减不设增益下限，产生音乐噪声。</li></ul></div></section>
+<section id="exercises"><h2><span class="sec-num">§</span>习题与思考</h2><ol><li>说明 VAD 与噪声估计为何互为前提，MCRA 用什么假设打破循环。</li>
+<li>推导 α_n=0.9 时噪声估计的时间常数（帧数与毫秒）。</li>
+<li>把噪声阶跃改成缓慢爬升，预测固定估计与 MCRA 的谱误差差距如何变化。</li></ol></section>
+<section id="extra-links"><h2><span class="sec-num">§</span>扩展学习</h2>
+<div class="repo-grid">
+<div class="repo-card"><h3><a href="https://en.wikipedia.org/wiki/Voice_activity_detection" target="_blank" rel="noopener noreferrer">Voice activity detection ↗</a></h3><span class="tag">百科</span><p>VAD 的能量/统计/学习方法概览</p></div>
+<div class="repo-card"><h3><a href="https://en.wikipedia.org/wiki/Wiener_filter" target="_blank" rel="noopener noreferrer">Wiener filter ↗</a></h3><span class="tag">百科</span><p>最小均方误差意义下的最优线性滤波</p></div>
+<div class="repo-card"><h3><a href="https://ffmpeg.org/ffmpeg-filters.html#silencedetect" target="_blank" rel="noopener noreferrer">ffmpeg silencedetect ↗</a></h3><span class="tag">工具</span><p>静音段检测，可用于粗粒度 VAD 与数据集切分</p></div>
+<div class="repo-card"><h3><a href="https://www.dsprelated.com/" target="_blank" rel="noopener noreferrer">DSPRelated ↗</a></h3><span class="tag">教材</span><p>自适应滤波、AGC 与实时实现的工程文章与博客</p></div>
+</div>
+<h3>继续检索</h3><ul>
+<li>Google Scholar：<a href='https://scholar.google.com/scholar?q=voice%20activity%20detection%20noise%20power%20estimation%20MCRA' target='_blank' rel='noopener noreferrer'>voice activity detection noise power estimation MCRA ↗</a></li>
+<li>arXiv：<a href='https://arxiv.org/search/?query=voice%20activity%20detection%20noise%20power%20estimation%20MCRA&searchtype=all' target='_blank' rel='noopener noreferrer'>voice activity detection noise power estimation MCRA ↗</a></li>
+<li>GitHub：<a href='https://github.com/search?q=voice%20activity%20detection%20noise%20power%20estimation%20MCRA&type=repositories' target='_blank' rel='noopener noreferrer'>voice activity detection noise power estimation MCRA ↗</a></li>
+</ul>
+<p class="code-hint">全书链接总表见 <a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a> 与 <a href="../../appendix/index.html#sA-7">附录 A.7</a>；滤镜是否可用请以本机 <code>ffmpeg -filters</code> 为准。</p>
+</section>
+<section id="further"><h2><span class="sec-num">§</span>延伸阅读与内链</h2><ul><li><a href='../../part2/12-spectral-subtraction/index.html'>第 12 章 · 谱减、过减因子与音乐噪声</a> 谱减与音乐噪声；<a href='../../part2/13-wiener-mmse/index.html'>第 13 章 · Wiener 滤波、先验 SNR 与 MMSE-STSA</a> 维纳/MMSE 与先验 SNR；<a href='../../part2/09-aec-architecture/index.html'>第 09 章 · AEC 总体结构：参考信号、线性滤波与残余抑制</a> AEC 链路里 ANS 的位置。</li></ul></section>
+<footer class="pager" data-autofill></footer>
+<footer class="site-foot">
+<p class="credits"><strong>作者</strong>：汪亮（bertonwang）　<strong>联系邮箱</strong>：<a href="mailto:47608843@qq.com">47608843@qq.com</a></p>
+<p class="ai-note"><strong>AI 使用说明</strong>：本教材的知识框架、正文、Python 实验脚本与参考资料清单在 AI 辅助下整理生成，并经人工校订、实际运行与静态自检。公式、数值与运行结果请以Python 3 实际输出及权威教材、官方文档为准；发现错漏欢迎通过上方邮箱勘误。</p>
+<p class="imprint">音频 3A 处理：从自适应滤波到神经增强 · 每章一个 <code>code/*.py</code> 实验脚本、<code>fig/*.svg</code> 矢量图与 <code>audio/*.wav</code> 试听样本（由 <code>tools/extract_code.py</code> 与脚本运行同步） · 只用 Python 3 标准库 · 教学材料，信号全部由代码合成。</p>
+</footer>
+</main>
+</body>
+</html>

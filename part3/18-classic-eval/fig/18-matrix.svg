@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 460" width="640" height="460" role="img">
+<title>四类场景的指标矩阵</title>
+<desc>由 tools/chart.py 生成的矩阵热力图。</desc>
+<rect width="640" height="460" fill="#ffffff"/>
+<text x="20" y="26" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="15" font-weight="600" fill="#23262b">四类场景的指标矩阵</text>
+<text x="146.0" y="48.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="11" fill="#8a909b" text-anchor="middle">单讲基准</text>
+<text x="222.0" y="48.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="11" fill="#8a909b" text-anchor="middle">强双讲</text>
+<text x="298.0" y="48.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="11" fill="#8a909b" text-anchor="middle">强噪声</text>
+<text x="374.0" y="48.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="11" fill="#8a909b" text-anchor="middle">路径突变</text>
+<text x="100.0" y="82.4" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="11" fill="#8a909b" text-anchor="end">ERLE</text>
+<rect x="108.0" y="56.0" width="74.0" height="42.0" fill="#823e29" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="145.0" y="81.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">30.46</text>
+<rect x="184.0" y="56.0" width="74.0" height="42.0" fill="#75452f" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="221.0" y="81.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">22.85</text>
+<rect x="260.0" y="56.0" width="74.0" height="42.0" fill="#79432d" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="297.0" y="81.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">24.88</text>
+<rect x="336.0" y="56.0" width="74.0" height="42.0" fill="#4c5b41" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="373.0" y="81.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">-2.23</text>
+<text x="100.0" y="126.4" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="11" fill="#8a909b" text-anchor="end">输入segSNR</text>
+<rect x="108.0" y="100.0" width="74.0" height="42.0" fill="#3f6247" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="145.0" y="125.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">-10.00</text>
+<rect x="184.0" y="100.0" width="74.0" height="42.0" fill="#3f6247" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="221.0" y="125.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">-10.00</text>
+<rect x="260.0" y="100.0" width="74.0" height="42.0" fill="#3f6247" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="297.0" y="125.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">-10.00</text>
+<rect x="336.0" y="100.0" width="74.0" height="42.0" fill="#426046" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="373.0" y="125.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">-7.93</text>
+<text x="100.0" y="170.4" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="11" fill="#8a909b" text-anchor="end">输出segSNR</text>
+<rect x="108.0" y="144.0" width="74.0" height="42.0" fill="#615038" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="145.0" y="169.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">10.38</text>
+<rect x="184.0" y="144.0" width="74.0" height="42.0" fill="#644e36" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="221.0" y="169.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">12.24</text>
+<rect x="260.0" y="144.0" width="74.0" height="42.0" fill="#4f5940" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="297.0" y="169.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">-0.310</text>
+<rect x="336.0" y="144.0" width="74.0" height="42.0" fill="#4f5940" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="373.0" y="169.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">-0.330</text>
+<text x="100.0" y="214.4" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="11" fill="#8a909b" text-anchor="end">SI-SDR</text>
+<rect x="108.0" y="188.0" width="74.0" height="42.0" fill="#664d35" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="145.0" y="213.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">13.79</text>
+<rect x="184.0" y="188.0" width="74.0" height="42.0" fill="#684c35" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="221.0" y="213.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">14.49</text>
+<rect x="260.0" y="188.0" width="74.0" height="42.0" fill="#54573d" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="297.0" y="213.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">2.88</text>
+<rect x="336.0" y="188.0" width="74.0" height="42.0" fill="#4d5b41" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="373.0" y="213.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">-1.75</text>
+<text x="100.0" y="258.4" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="11" fill="#8a909b" text-anchor="end">LUFS近似</text>
+<rect x="108.0" y="232.0" width="74.0" height="42.0" fill="#35674b" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="145.0" y="257.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">-15.90</text>
+<rect x="184.0" y="232.0" width="74.0" height="42.0" fill="#35674b" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="221.0" y="257.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">-15.90</text>
+<rect x="260.0" y="232.0" width="74.0" height="42.0" fill="#36674b" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="297.0" y="257.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">-15.50</text>
+<rect x="336.0" y="232.0" width="74.0" height="42.0" fill="#36664b" fill-opacity="0.78" stroke="#ffffff" stroke-width="1"/>
+<text x="373.0" y="257.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#ffffff" text-anchor="middle">-15.40</text>
+</svg>

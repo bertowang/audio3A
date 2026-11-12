@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>附录 A · 附录 A · 公式、术语、命令与资源速查 | 音频 3A 处理：从自适应滤波到神经增强</title>
+<link rel="stylesheet" href="../assets/style.css">
+<script src="../assets/toc.js" defer></script>
+<script src="../assets/app.js" defer></script>
+</head>
+<body data-root="../" data-chapter="A" data-page="appendix">
+<aside id="sidebar"></aside>
+<main class="book-page">
+<nav class="breadcrumb"><a href="../index.html">总目录</a> / 附录</nav>
+<header class="chapter-head">
+<span class="kicker">附录 · 公式、术语、命令与资源总表 · 附录 · 速查与资源总表</span>
+<h1><span class="ch-num">附录 A</span>附录 A · 公式、术语、命令与资源速查</h1>
+<p class="lede">把全书的符号、公式、中英术语、命令与复现约定压成四张速查表；A.5～A.7 由生成器自动追加。</p>
+<div class="meta">
+<span class="badge done">已完稿</span>
+<span class="badge s5">速查 · 附录</span>
+<span>建议 1 学时</span>
+<span>全书速查入口</span>
+<span>音频 3A 处理：从自适应滤波到神经增强</span>
+</div></header>
+<p class="bridge"><strong>本章位置：</strong>全书收束。<a href='../part0/03-metrics/index.html'>第 03 章 · 怎么算「变好了」：客观指标、尺度与主观听测</a> 定义指标、<a href='../part3/17-toolchain/index.html'>第 17 章 · ffmpeg / WebRTC / SpeexDSP 工具链实操</a> 实操命令、<a href='../part6/30-generalization/index.html'>第 30 章 · 泛化、鲁棒性与评测陷阱</a> 讲评测陷阱、<a href='../part6/31-capstone/index.html'>第 31 章 · 结课项目：小型掩码估计器与全链路验证</a> 给验收清单；A.5～A.7 由生成器自动补上示例总表与资源总表。</p>
+<div class="analogy"><span class="card-label">给程序员的翻译</span><p style="margin-bottom:0">附录是项目的 README + cheatsheet：A.1 是 API 签名，A.2 是术语词典，A.3 是常用 CLI，A.4 是「如何在干净环境里跑起来」。<strong>命令要以本机自查为准，等价于不要硬编码依赖版本。</strong></p></div>
+<div class="card objectives"><span class="card-label">学习目标</span><ul>
+<li>能按主题查到全书核心公式并说明每个符号的含义。</li>
+<li>能读懂 AEC / ANS / AGC / RIR / ERLE / DNSMOS / WOLA 等中英术语。</li>
+<li>能用本机命令自查 ffmpeg 滤镜与音频电平，而不依赖书里写死的版本。</li>
+<li>能按复现约定批量运行全书实验并核对 fig / audio 产物。</li>
+</ul></div>
+<section id="map"><h2><span class="sec-num">§</span>知识点地图</h2>
+<p class="code-hint">每个知识点都配了 1～2 个扩展学习链接；本章完整资源清单见 <a href="#extra-links">扩展学习</a>。</p>
+<table><thead><tr><th style="width:44px">#</th><th style="width:26%">知识点</th><th>扩展学习</th><th style="width:100px">状态</th></tr></thead><tbody>
+<tr><td>1</td><td>符号与公式速查</td><td><a href="https://www.dspguide.com/" target="_blank" rel="noopener noreferrer">The Scientist and Engineer&#x27;s Guide to DSP ↗</a> · <a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>2</td><td>信号模型</td><td><a href="https://www.dspguide.com/" target="_blank" rel="noopener noreferrer">The Scientist and Engineer&#x27;s Guide to DSP ↗</a> · <a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>3</td><td>NLMS 与 ERLE</td><td><a href="https://en.wikipedia.org/wiki/Least_mean_squares_filter" target="_blank" rel="noopener noreferrer">Least mean squares filter ↗</a> · <a href="https://gitlab.xiph.org/xiph/speexdsp" target="_blank" rel="noopener noreferrer">speexdsp 源码 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>4</td><td>SI-SDR 与 Wiener 增益</td><td><a href="https://en.wikipedia.org/wiki/Automatic_gain_control" target="_blank" rel="noopener noreferrer">Automatic gain control ↗</a> · <a href="https://ffmpeg.org/ffmpeg-filters.html#dynaudnorm" target="_blank" rel="noopener noreferrer">ffmpeg dynaudnorm ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>5</td><td>中英术语对照</td><td><a href="https://www.dspguide.com/" target="_blank" rel="noopener noreferrer">The Scientist and Engineer&#x27;s Guide to DSP ↗</a> · <a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>6</td><td>ffmpeg / WebRTC 命令</td><td><a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a> · <a href="https://ffmpeg.org/documentation.html" target="_blank" rel="noopener noreferrer">FFmpeg 官方文档 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>7</td><td>实验环境与复现</td><td><a href="https://www.dspguide.com/" target="_blank" rel="noopener noreferrer">The Scientist and Engineer&#x27;s Guide to DSP ↗</a> · <a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>8</td><td>fig / audio 产物</td><td><a href="https://www.dspguide.com/" target="_blank" rel="noopener noreferrer">The Scientist and Engineer&#x27;s Guide to DSP ↗</a> · <a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a></td><td>正文已覆盖</td></tr>
+</tbody></table></section>
+<section id="sA-1"><h2><span class="sec-num">§A.1</span>全书符号与公式速查</h2>
+<p>按「信号模型 → 自适应 → 指标 → 掩码与重建 → 电平」排列；公式是便于记忆的教学写法，工程实现请以 <code>tools/dsp.py</code> 与对应标准原文为准。</p>
+<p class="eq">信号模型：y[n] = d[n] + (h * x)[n] + v[n] = d[n] + Σ_k h[k] x[n−k] + v[n]</p>
+<p class="eq">NLMS：e[n] = d[n] − wᵀ[n] x[n]　，w[n+1] = w[n] + μ e[n] x[n] / (‖x[n]‖² + δ)</p>
+<p class="eq">ERLE = 10 log₁₀( Σ e²[n] / Σ r²[n] )　，segSNR = mean_t 10 log₁₀( Σ d² / Σ (d−d̂)² )</p>
+<p class="eq">SI-SDR：α = ⟨ŝ,s⟩ / ‖s‖²　，SI-SDR = 10 log₁₀( ‖α s‖² / ‖ŝ − α s‖² )</p>
+<p class="eq">Wiener / IRM 增益：G[t,k] = ξ/(1+ξ) ≈ |S[t,k]|² / ( |S[t,k]|² + |N[t,k]|² )</p>
+<p class="eq">WOLA 重建：x̂[n] = Σ_f X̂_f[n] w[n−fH] / Σ_f w²[n−fH]　，H = N/2</p>
+<p class="eq">量化 SNR ≈ 6.02 B + 1.76 dB　，LUFS 为 K 加权加门控的响度（本书 lufs_approx 是教学近似）</p>
+<table><thead><tr><th style="width:18%">符号</th><th style="width:58%">含义</th><th style="width:24%">首次出现</th></tr></thead><tbody>
+<tr><td>x, y, d, v</td><td>远端参考 / 麦克风 / 近端干净语音 / 加性噪声</td><td><a href='../part0/00-three-a/index.html'>第 00 章 · 3A 是什么：一条实时语音链路上的三个约束</a></td></tr>
+<tr><td>h, w, L</td><td>房间冲激响应 / 自适应权重 / 滤波器阶数</td><td><a href='../part0/01-acoustic-path/index.html'>第 01 章 · 声学链路与信号模型：房间、麦克风与回声路径</a></td></tr>
+<tr><td>N, H, w[·]</td><td>FFT 长度 / 帧移 / 窗函数（Hann）</td><td><a href='../part0/02-time-frequency/index.html'>第 02 章 · 采样、量化与时频表示：从 PCM 到 STFT</a></td></tr>
+<tr><td>μ, δ, e</td><td>NLMS 步长 / 正则项 / 误差信号</td><td><a href='../part1/05-adaptive-filter/index.html'>第 05 章 · 自适应滤波：LMS、NLMS 与收敛</a></td></tr>
+<tr><td>G, ξ, IRM</td><td>时频增益 / 先验 SNR / 理想比率掩码</td><td><a href='../part2/13-wiener-mmse/index.html'>第 13 章 · Wiener 滤波、先验 SNR 与 MMSE-STSA</a>、<a href='../part4/19-tf-mask/index.html'>第 19 章 · 时频掩码：IBM / IRM / CRM 与监督学习形式化</a></td></tr>
+<tr><td>α, ŝ, s</td><td>最小二乘投影系数 / 估计语音 / 目标语音</td><td><a href='../part0/03-metrics/index.html'>第 03 章 · 怎么算「变好了」：客观指标、尺度与主观听测</a></td></tr>
+<tr><td>B, LUFS, TP</td><td>量化位深 / 响度单位 / 真峰值</td><td><a href='../part0/02-time-frequency/index.html'>第 02 章 · 采样、量化与时频表示：从 PCM 到 STFT</a>、<a href='../part2/14-agc/index.html'>第 14 章 · AGC：包络跟踪、攻击释放、限幅与响度</a></td></tr>
+</tbody></table>
+</section>
+<section id="sA-2"><h2><span class="sec-num">§A.2</span>中英术语对照表</h2>
+<p>同一概念在论文、源码与标准里常有不同写法；下表给出本书采用的中文名与英文全称。</p>
+<table><thead><tr><th style="width:22%">缩写 / 中文</th><th style="width:40%">英文全称 / 常用写法</th><th style="width:38%">一句话释义</th></tr></thead><tbody>
+<tr><td>AEC 回声消除</td><td>Acoustic Echo Cancellation</td><td>用远端参考 x 预测并减去声学回声</td></tr>
+<tr><td>ANS 噪声抑制</td><td>Acoustic Noise Suppression / Speech Enhancement</td><td>在时频域估计增益压低加性噪声</td></tr>
+<tr><td>AGC 自动增益控制</td><td>Automatic Gain Control</td><td>按包络平滑调整整体电平</td></tr>
+<tr><td>RIR 房间冲激响应</td><td>Room Impulse Response</td><td>扬声器到麦克风的 LTI 通道 h</td></tr>
+<tr><td>ERLE</td><td>Echo Return Loss Enhancement</td><td>处理前后回声能量比，AEC 主指标</td></tr>
+<tr><td>DNSMOS</td><td>Deep Noise Suppression MOS</td><td>无需干净参考的神经语音质量分</td></tr>
+<tr><td>WOLA</td><td>Weighted Overlap-Add</td><td>加权重叠相加，改谱后无失真重建</td></tr>
+<tr><td>双讲</td><td>Double-talk</td><td>近端与远端同时说话，AEC 需冻结更新</td></tr>
+<tr><td>STFT / ISTFT</td><td>Short-Time Fourier Transform / Inverse</td><td>一维流与二维时频矩阵互转</td></tr>
+<tr><td>SI-SDR</td><td>Scale-Invariant Signal-to-Distortion Ratio</td><td>尺度不变的失真比</td></tr>
+<tr><td>NLMS</td><td>Normalized Least Mean Squares</td><td>按输入能量归一化步长的 LMS</td></tr>
+<tr><td>VAD</td><td>Voice Activity Detection</td><td>判断当前帧是否有语音</td></tr>
+<tr><td>LUFS / LKFS</td><td>Loudness Units relative to Full Scale</td><td>ITU-R BS.1770 响度单位</td></tr>
+<tr><td>PESQ / POLQA</td><td>Perceptual Evaluation of Speech Quality</td><td>有参考感知质量（P.862 / P.863）</td></tr>
+<tr><td>FDAF / MDF</td><td>Frequency-Domain / Multi-Delay Adaptive Filter</td><td>分块频域自适应滤波</td></tr>
+<tr><td>OOD</td><td>Out-of-Distribution</td><td>训练分布之外的数据，见 <a href='../part6/30-generalization/index.html'>第 30 章 · 泛化、鲁棒性与评测陷阱</a></td></tr>
+</tbody></table>
+</section>
+<section id="sA-3"><h2><span class="sec-num">§A.3</span>ffmpeg / WebRTC 命令速查</h2>
+<p>所有滤镜名称、参数与引入版本都以<strong>本机 <code>ffmpeg -filters</code> / <code>ffmpeg -version</code> 实际输出</strong>和 <a href='https://ffmpeg.org/ffmpeg-filters.html' target='_blank' rel='noopener noreferrer'>FFmpeg Filters 官方文档 ↗</a> 为准；本书不假定任何特定版本，也不写死版本号。</p>
+<table><thead><tr><th style="width:18%">用途</th><th style="width:40%">单行命令 / 滤镜</th><th style="width:42%">自查与说明</th></tr></thead><tbody>
+<tr><td>列出本机滤镜</td><td><code>ffmpeg -hide_banner -filters | grep afftdn</code></td><td>先确认滤镜存在，再谈参数；不同编译选项结果不同</td></tr>
+<tr><td>自适应降噪</td><td><code>afftdn</code> / <code>anlmdn</code></td><td>FFT 自适应降噪 / 非局部均值，见官方 Filters 文档对应锚点</td></tr>
+<tr><td>神经降噪</td><td><code>arnndn</code></td><td>加载自备 RNNoise 模型文件，模型来源见 <a href='https://github.com/xiph/rnnoise' target='_blank' rel='noopener noreferrer'>RNNoise ↗</a></td></tr>
+<tr><td>响度测量与归一</td><td><code>ebur128=peak=true</code> / <code>loudnorm</code></td><td>I / S / LRA 与 True Peak；对照 <a href='../part2/14-agc/index.html'>第 14 章 · AGC：包络跟踪、攻击释放、限幅与响度</a> 的 AGC</td></tr>
+<tr><td>电平统计</td><td><code>volumedetect</code> / <code>astats=metadata=1</code></td><td>mean_volume / max_volume / RMS / 削波计数</td></tr>
+<tr><td>重采样与回声合成</td><td><code>aresample=16000</code> / <code>aecho</code></td><td>统一采样率、造回声测试样本，见 <a href='../part0/01-acoustic-path/index.html'>第 01 章 · 声学链路与信号模型：房间、麦克风与回声路径</a></td></tr>
+<tr><td>WebRTC 参考实现</td><td><code>modules/audio_processing/</code></td><td>AEC3 / NS / AGC2 源码目录，见 <a href='https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/' target='_blank' rel='noopener noreferrer'>webrtc-src ↗</a></td></tr>
+</tbody></table>
+<div class="card note"><span class="card-label">口径提醒</span><p style="margin-bottom:0">命令示例只给入口，不给版本承诺；书里的 <code>lufs_approx()</code> 是教学近似，合规测量请用 ffmpeg ebur128 / loudnorm。</p></div>
+</section>
+<section id="sA-4"><h2><span class="sec-num">§A.4</span>实验环境与复现约定</h2>
+<ol>
+<li>运行环境：Python 3 <strong>标准库即可</strong>，不需要 numpy / scipy / torch / matplotlib / librosa / soundfile。</li>
+<li>随机数：PREAMBLE 固定 <code>random.seed(7)</code>，实验内再用 <code>rng = random.Random(7)</code>，保证逐行可复算。</li>
+<li>采样率：<code>SAMPLE_RATE = 16000</code>，WAV 为 16-bit 单声道 PCM，由 <code>write_wav()</code> 写出。</li>
+<li>产物：每个脚本在章节根目录写 <code>fig/*.svg</code>（<code>Chart().save()</code> 或 <code>heatmap()</code>）与 <code>audio/*.wav</code>；文件名带本章编号前缀以避免冲突。</li>
+<li>单章运行：<code>python3 part6/31-capstone/code/31-capstone.py</code>；语法自检：<code>python3 -m py_compile tools/chapters_30_A.py</code>。</li>
+<li>批量运行：先由生成器把 demos 的 code 落到各章 <code>code/*.py</code>，再逐个 <code>python3 &lt;路径&gt;</code>；页面代码块与 code 文件由同一份数据同步，不要手改生成的 HTML。</li>
+</ol>
+<div class="card note"><span class="card-label">可核对性</span><p style="margin-bottom:0">每个实验都打印可手算核对的数值（ERLE、SNR、SI-SDR、LUFS、WAV 帧数与字节数），并声明 fig / audio 的文件名；运行时间控制在几秒内。</p></div>
+<div class="card warn"><span class="card-label">边界</span><p style="margin-bottom:0">全部语音、噪声与 RIR 均为代码合成信号，不是真实录音，也不是任何厂商产品的性能数据；教学实现不能直接用于生产环境。</p></div>
+</section>
+<section id="sA-5"><h2><span class="sec-num">§A.5</span>Python 实验、SVG 插图与 WAV 样本索引</h2>
+<p>全书 32 个实验脚本、65 张 SVG 图、78 段 WAV 试听样本，全部只用 Python 3 标准库与 <code>tools/dsp.py</code>、<code>tools/chart.py</code>，固定 <code>random.seed(7)</code>，参数集中在「参数区」，结尾打印可核对的数值。点击文件名可直接查看源码。</p><table><thead><tr><th style="width:34%">章节</th><th style="width:30%">脚本</th><th>演示内容</th></tr></thead><tbody><tr><td>第 00 章 · 3A 是什么：一条实时语音链路上的三个约束</td><td><a href='../part0/00-three-a/code/00-three-a.py'><code>code/00-three-a.py</code></a></td><td>实验 0-1 · 造一条含回声、噪声与电平起伏的链路，逐个打开 3A</td></tr>
+<tr><td>第 01 章 · 声学链路与信号模型：房间、麦克风与回声路径</td><td><a href='../part0/01-acoustic-path/code/01-rir.py'><code>code/01-rir.py</code></a></td><td>实验 1-1 · 合成房间冲激响应并用互相关找回真实时延</td></tr>
+<tr><td>第 02 章 · 采样、量化与时频表示：从 PCM 到 STFT</td><td><a href='../part0/02-time-frequency/code/02-time-frequency.py'><code>code/02-time-frequency.py</code></a></td><td>实验 2-1 · FFT/Parseval、量化噪声与 STFT 时频谱</td></tr>
+<tr><td>第 03 章 · 怎么算「变好了」：客观指标、尺度与主观听测</td><td><a href='../part0/03-metrics/code/03-metrics.py'><code>code/03-metrics.py</code></a></td><td>实验 3-1 · 退化强度扫描下的指标族与尺度对齐陷阱</td></tr>
+<tr><td>第 04 章 · 线性系统、卷积与频域实现</td><td><a href='../part1/04-lti-convolution/code/04-convolution.py'><code>code/04-convolution.py</code></a></td><td>实验 4-1 · 朴素卷积 vs 分块频域卷积的数值与耗时</td></tr>
+<tr><td>第 05 章 · 自适应滤波：LMS、NLMS 与收敛</td><td><a href='../part1/05-adaptive-filter/code/05-nlms.py'><code>code/05-nlms.py</code></a></td><td>实验 5-1 · NLMS 辨识房间冲激响应与步长扫描</td></tr>
+<tr><td>第 06 章 · 频域自适应滤波：FDAF、分块 MDF 与收敛</td><td><a href='../part1/06-fdaf/code/06-fdaf.py'><code>code/06-fdaf.py</code></a></td><td>实验 6-1 · 分块频域辨识 vs 时域 NLMS：收敛、bin 功率与 ERLE</td></tr>
+<tr><td>第 07 章 · 双讲检测、时延漂移与路径突变</td><td><a href='../part1/07-doubletalk/code/07-doubletalk.py'><code>code/07-doubletalk.py</code></a></td><td>实验 7-1 · NCC 双讲检测、冻结更新与互相关时延跟踪</td></tr>
+<tr><td>第 08 章 · VAD 与噪声功率谱估计（MCRA 思路）</td><td><a href='../part1/08-noise-estimation/code/08-noise-estimation.py'><code>code/08-noise-estimation.py</code></a></td><td>实验 8-1 · MCRA 噪声跟踪、VAD 判决与谱减对照</td></tr>
+<tr><td>第 09 章 · AEC 总体结构：参考信号、线性滤波与残余抑制</td><td><a href='../part2/09-aec-architecture/code/09-aec-architecture.py'><code>code/09-aec-architecture.py</code></a></td><td>实验 9-1 · 搭一条三级 AEC：线性 NLMS + 残差谱增益</td></tr>
+<tr><td>第 10 章 · 用 NLMS 实现一个可验证的 AEC</td><td><a href='../part2/10-nlms-aec/code/10-nlms-aec.py'><code>code/10-nlms-aec.py</code></a></td><td>实验 10-1 · NLMS AEC 的步长扫描、阶数扫描与收敛核对</td></tr>
+<tr><td>第 11 章 · 残余回声抑制与 WebRTC AEC3 结构</td><td><a href='../part2/11-residual-echo/code/11-residual-echo.py'><code>code/11-residual-echo.py</code></a></td><td>实验 11-1 · 非线性回声下的残余抑制与 β 折中扫描</td></tr>
+<tr><td>第 12 章 · 谱减、过减因子与音乐噪声</td><td><a href='../part2/12-spectral-subtraction/code/12-spectral-subtraction.py'><code>code/12-spectral-subtraction.py</code></a></td><td>实验 12-1 · 过减因子扫描：分段 SNR 与音乐噪声的拉扯</td></tr>
+<tr><td>第 13 章 · Wiener 滤波、先验 SNR 与 MMSE-STSA</td><td><a href='../part2/13-wiener-mmse/code/13-wiener-mmse.py'><code>code/13-wiener-mmse.py</code></a></td><td>实验 13-1 · 决策导向 Wiener 增益与平滑系数扫描</td></tr>
+<tr><td>第 14 章 · AGC：包络跟踪、攻击释放、限幅与响度</td><td><a href='../part2/14-agc/code/14-agc.py'><code>code/14-agc.py</code></a></td><td>实验 14-1 · 电平跳变下的 AGC 环路、泵浦与限幅</td></tr>
+<tr><td>第 15 章 · 麦克风阵列与波束形成：从 delay-and-sum 到 MVDR</td><td><a href='../part3/15-beamforming/code/15-beamforming.py'><code>code/15-beamforming.py</code></a></td><td>实验 15-1 · 均匀线阵 delay-and-sum 与指向性扫描</td></tr>
+<tr><td>第 16 章 · 3A 级联顺序与模块间相互干扰</td><td><a href='../part3/16-cascade-order/code/16-cascade-order.py'><code>code/16-cascade-order.py</code></a></td><td>实验 16-1 · 三种级联排列的 ERLE 与分段 SNR 对照</td></tr>
+<tr><td>第 17 章 · ffmpeg / WebRTC / SpeexDSP 工具链实操</td><td><a href='../part3/17-toolchain/code/17-toolchain.py'><code>code/17-toolchain.py</code></a></td><td>实验 17-1 · 用 Python 复刻一条离线滤镜链的电平报告</td></tr>
+<tr><td>第 18 章 · 上卷综合实验：完整传统 3A 链路与评测</td><td><a href='../part3/18-classic-eval/code/18-classic-eval.py'><code>code/18-classic-eval.py</code></a></td><td>实验 18-1 · 四类场景下的完整传统 3A 链路指标矩阵</td></tr>
+<tr><td>第 19 章 · 时频掩码：IBM / IRM / CRM 与监督学习形式化</td><td><a href='../part4/19-tf-mask/code/19-tf-mask.py'><code>code/19-tf-mask.py</code></a></td><td>实验 19-1 · IBM / IRM oracle 掩码的性能上界与掩码热力图</td></tr>
+<tr><td>第 20 章 · 训练数据合成：RIR、噪声、SNR 配比与数据泄漏</td><td><a href='../part4/20-data-synthesis/code/20-data-synthesis.py'><code>code/20-data-synthesis.py</code></a></td><td>实验 20-1 · 数据泄漏导致的分数虚高与谱峰对照</td></tr>
+<tr><td>第 21 章 · 网络骨架：DNN / CRN / U-Net / TCN / Conformer</td><td><a href='../part4/21-network-backbones/code/21-network-backbones.py'><code>code/21-network-backbones.py</code></a></td><td>实验 21-1 · 训练一个 3 参数的掩码估计器并估算骨架开销</td></tr>
+<tr><td>第 22 章 · 复数域与相位：DCCRN、深度滤波与时域模型</td><td><a href='../part4/22-complex-phase/code/22-complex-phase.py'><code>code/22-complex-phase.py</code></a></td><td>实验 22-1 · 幅度掩码、复数掩码与相位误差分布</td></tr>
+<tr><td>第 23 章 · 神经噪声抑制：从 RNNoise 到 DNS Challenge</td><td><a href='../part5/23-neural-ns/code/23-neural-ns.py'><code>code/23-neural-ns.py</code></a></td><td>实验 23-1 · 频带数量对降噪精度的影响与频带增益热力图</td></tr>
+<tr><td>第 24 章 · 神经 AEC 与回声/噪声联合抑制</td><td><a href='../part5/24-neural-aec/code/24-neural-aec.py'><code>code/24-neural-aec.py</code></a></td><td>实验 24-1 · 时变残余回声下的静态抵消 vs 逐帧 oracle 抵消</td></tr>
+<tr><td>第 25 章 · 神经增益控制与感知响度</td><td><a href='../part5/25-neural-agc/code/25-neural-agc.py'><code>code/25-neural-agc.py</code></a></td><td>实验 25-1 · 拟合增益律并在留出电平上比较三种 AGC</td></tr>
+<tr><td>第 26 章 · 联合 3A：多任务、级联与端到端建模</td><td><a href='../part5/26-joint-3a/code/26-joint-3a.py'><code>code/26-joint-3a.py</code></a></td><td>实验 26-1 · 三类 oracle 校正的加权扫描与权衡曲面</td></tr>
+<tr><td>第 27 章 · 因果性与流式推理：状态缓存、感受野</td><td><a href='../part6/27-causal-streaming/code/27-causal-streaming.py'><code>code/27-causal-streaming.py</code></a></td><td>实验 27-1 · 因果、非因果与分块流式的一致性及前瞻量</td></tr>
+<tr><td>第 28 章 · 延迟预算与 RTF：实时链路账本</td><td><a href='../part6/28-latency-budget/code/28-latency-budget.py'><code>code/28-latency-budget.py</code></a></td><td>实验 28-1 · 延迟组成账本与三种帧长的 RTF 实测</td></tr>
+<tr><td>第 29 章 · 量化、剪枝与端侧推理</td><td><a href='../part6/29-quantization/code/29-quantization.py'><code>code/29-quantization.py</code></a></td><td>实验 29-1 · 掩码位深扫描：量化噪声、增强质量与模型体积</td></tr>
+<tr><td>第 30 章 · 泛化、鲁棒性与评测陷阱</td><td><a href='../part6/30-generalization/code/30-generalization.py'><code>code/30-generalization.py</code></a></td><td>实验 30-1 · 测试集调参的虚高与分布外噪声下的落差</td></tr>
+<tr><td>第 31 章 · 结课项目：小型掩码估计器与全链路验证</td><td><a href='../part6/31-capstone/code/31-capstone.py'><code>code/31-capstone.py</code></a></td><td>实验 31-1 · 理想掩码 oracle 与小型阈值掩码的消融对照</td></tr></tbody></table>
+</section>
+<section id="sA-6"><h2><span class="sec-num">§A.6</span>手写实现 → 工业库对照</h2>
+<p>本书为教学而手写实现，工业项目应切换到成熟库。下表给出迁移路径；所有脚本保持零第三方依赖，正是为了让这一步「看得见」。</p><table><thead><tr><th style="width:34%">本书手写</th><th>工业实现</th><th>对应章节</th></tr></thead><tbody><tr><td>radix-2 FFT / STFT / WOLA</td><td><code>numpy.fft</code>、<code>scipy.signal.stft</code>、<code>torchaudio.transforms.Spectrogram</code></td><td>02、19</td></tr><tr><td>手写卷积 / overlap-add</td><td><code>scipy.signal.fftconvolve</code>、<code>pyroomacoustics</code> 的 RIR 与分块卷积</td><td>01、04</td></tr><tr><td>NLMS / 频域自适应</td><td>WebRTC <code>aec3</code>、SpeexDSP <code>speex_echo_cancellation</code></td><td>05、06、10、11</td></tr><tr><td>谱减 / Wiener / MMSE 增益</td><td>ffmpeg <code>afftdn</code> / <code>anlmdn</code>、RNNoise 频带增益</td><td>12、13、23</td></tr><tr><td>包络 AGC / 响度近似</td><td>ffmpeg <code>dynaudnorm</code> / <code>loudnorm</code> / <code>speechnorm</code>、WebRTC AGC2</td><td>03、14、17、25</td></tr><tr><td>oracle 掩码与 3 参数估计器</td><td>SpeechBrain、Asteroid、ClearerVoice-Studio 的掩码/映射配方</td><td>19、21、23、31</td></tr><tr><td>因果滑动平均与状态缓存</td><td>ONNX Runtime 有状态推理、torchaudio 流式 STFT</td><td>27、28</td></tr><tr><td>均匀量化扫描</td><td>ONNX Runtime 量化工具、各硬件 SDK 的 int8 后端</td><td>29</td></tr><tr><td>纯标准库 SVG 绘图 / WAV 读写</td><td>Matplotlib、Plotly、<code>soundfile</code> / <code>librosa</code></td><td>全书</td></tr></tbody></table>
+</section>
+<section id="sA-7"><h2><span class="sec-num">§A.7</span>扩展学习链接总表</h2>
+<p>下表为全书引用的全部外部资源（共 69 条），按类型分组。所有链接指向官方文档、标准、源码仓库或免费教材；书中提及的滤镜能力请以本机 <code>ffmpeg -filters</code> 与官方 Filters 文档为准。</p>
+<h3>标准（8）</h3>
+<table><thead><tr><th style="width:26%">名称</th><th style="width:38%">链接 / 命令入口</th><th>说明</th></tr></thead><tbody>
+<tr><td><a href="https://www.itu.int/rec/T-REC-P.862/en" target="_blank" rel="noopener noreferrer">ITU-T P.862 PESQ ↗</a></td><td><code>https://www.itu.int/rec/T-REC-P.862/en</code></td><td>感知语音质量评估，传统 3A 最常用的客观分（窄带/宽带）</td></tr>
+<tr><td><a href="https://www.itu.int/rec/T-REC-P.863/en" target="_blank" rel="noopener noreferrer">ITU-T P.863 POLQA ↗</a></td><td><code>https://www.itu.int/rec/T-REC-P.863/en</code></td><td>PESQ 后继标准，支持超宽带与更多失真类型</td></tr>
+<tr><td><a href="https://www.itu.int/rec/R-REC-BS.1770/en" target="_blank" rel="noopener noreferrer">ITU-R BS.1770 ↗</a></td><td><code>https://www.itu.int/rec/R-REC-BS.1770/en</code></td><td>响度与真峰值测量算法，LUFS/LKFS 的规范来源</td></tr>
+<tr><td><a href="https://tech.ebu.org/docs/r/r128" target="_blank" rel="noopener noreferrer">EBU R128 ↗</a></td><td><code>https://tech.ebu.org/docs/r/r128</code></td><td>广播响度归一化规范，-23 LUFS 目标与 True Peak 上限</td></tr>
+<tr><td><a href="https://www.itu.int/rec/T-REC-G.168/en" target="_blank" rel="noopener noreferrer">ITU-T G.168 ↗</a></td><td><code>https://www.itu.int/rec/T-REC-G.168/en</code></td><td>网络回声消除器的测试标准，规定 ERLE 与双讲测试信号</td></tr>
+<tr><td><a href="https://www.itu.int/rec/T-REC-P.56/en" target="_blank" rel="noopener noreferrer">ITU-T P.56 ↗</a></td><td><code>https://www.itu.int/rec/T-REC-P.56/en</code></td><td>语音电平测量方法，主动语音电平与 AGC 标定相关</td></tr>
+<tr><td><a href="https://www.itu.int/rec/T-REC-P.835/en" target="_blank" rel="noopener noreferrer">ITU-T P.835 ↗</a></td><td><code>https://www.itu.int/rec/T-REC-P.835/en</code></td><td>带噪声语音的主观评分方法（语音/噪声/总体三维）</td></tr>
+<tr><td><a href="https://www.rfc-editor.org/rfc/rfc3550" target="_blank" rel="noopener noreferrer">RFC 3550 RTP ↗</a></td><td><code>https://www.rfc-editor.org/rfc/rfc3550</code></td><td>实时音视频传输的时间戳、抖动与序列号基础</td></tr>
+</tbody></table>
+<h3>工具（17）</h3>
+<table><thead><tr><th style="width:26%">名称</th><th style="width:38%">链接 / 命令入口</th><th>说明</th></tr></thead><tbody>
+<tr><td><a href="https://ffmpeg.org/documentation.html" target="_blank" rel="noopener noreferrer">FFmpeg 官方文档 ↗</a></td><td><code>https://ffmpeg.org/documentation.html</code></td><td>文档总入口；用 `ffmpeg -filters` 查本机实际支持的滤镜</td></tr>
+<tr><td><a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a></td><td><code>https://ffmpeg.org/ffmpeg-filters.html</code></td><td>全部音频滤镜的权威说明页，每个滤镜有独立锚点</td></tr>
+<tr><td><a href="https://ffmpeg.org/ffmpeg-filters.html#arnndn" target="_blank" rel="noopener noreferrer">ffmpeg arnndn ↗</a></td><td><code>https://ffmpeg.org/ffmpeg-filters.html#arnndn</code></td><td>RNN 降噪滤镜，加载 RNNoise 训练出的模型文件（需自备 .rnnn）</td></tr>
+<tr><td><a href="https://ffmpeg.org/ffmpeg-filters.html#afftdn" target="_blank" rel="noopener noreferrer">ffmpeg afftdn ↗</a></td><td><code>https://ffmpeg.org/ffmpeg-filters.html#afftdn</code></td><td>基于 FFT 的自适应降噪，含噪声指纹与自适应白噪声参数</td></tr>
+<tr><td><a href="https://ffmpeg.org/ffmpeg-filters.html#anlmdn" target="_blank" rel="noopener noreferrer">ffmpeg anlmdn ↗</a></td><td><code>https://ffmpeg.org/ffmpeg-filters.html#anlmdn</code></td><td>非局部均值降噪滤镜，适合平稳噪声</td></tr>
+<tr><td><a href="https://ffmpeg.org/ffmpeg-filters.html#loudnorm" target="_blank" rel="noopener noreferrer">ffmpeg loudnorm ↗</a></td><td><code>https://ffmpeg.org/ffmpeg-filters.html#loudnorm</code></td><td>EBU R128 响度归一化，支持单/双 pass 与 True Peak 限制</td></tr>
+<tr><td><a href="https://ffmpeg.org/ffmpeg-filters.html#dynaudnorm" target="_blank" rel="noopener noreferrer">ffmpeg dynaudnorm ↗</a></td><td><code>https://ffmpeg.org/ffmpeg-filters.html#dynaudnorm</code></td><td>动态音频归一化，按局部窗口调整增益，类似软件 AGC</td></tr>
+<tr><td><a href="https://ffmpeg.org/ffmpeg-filters.html#speechnorm" target="_blank" rel="noopener noreferrer">ffmpeg speechnorm ↗</a></td><td><code>https://ffmpeg.org/ffmpeg-filters.html#speechnorm</code></td><td>面向语音的归一化滤镜，含高通与压缩</td></tr>
+<tr><td><a href="https://ffmpeg.org/ffmpeg-filters.html#ebur128" target="_blank" rel="noopener noreferrer">ffmpeg ebur128 ↗</a></td><td><code>https://ffmpeg.org/ffmpeg-filters.html#ebur128</code></td><td>EBU R128 响度测量滤镜，输出短期/积分/真峰值</td></tr>
+<tr><td><a href="https://ffmpeg.org/ffmpeg-filters.html#volumedetect" target="_blank" rel="noopener noreferrer">ffmpeg volumedetect ↗</a></td><td><code>https://ffmpeg.org/ffmpeg-filters.html#volumedetect</code></td><td>测量 mean_volume / max_volume，用于 AGC 前后的电平核对</td></tr>
+<tr><td><a href="https://ffmpeg.org/ffmpeg-filters.html#astats" target="_blank" rel="noopener noreferrer">ffmpeg astats ↗</a></td><td><code>https://ffmpeg.org/ffmpeg-filters.html#astats</code></td><td>逐通道统计 RMS、峰值、动态范围、削波计数</td></tr>
+<tr><td><a href="https://ffmpeg.org/ffmpeg-filters.html#silencedetect" target="_blank" rel="noopener noreferrer">ffmpeg silencedetect ↗</a></td><td><code>https://ffmpeg.org/ffmpeg-filters.html#silencedetect</code></td><td>静音段检测，可用于粗粒度 VAD 与数据集切分</td></tr>
+<tr><td><a href="https://ffmpeg.org/ffmpeg-filters.html#acompressor" target="_blank" rel="noopener noreferrer">ffmpeg acompressor ↗</a></td><td><code>https://ffmpeg.org/ffmpeg-filters.html#acompressor</code></td><td>动态范围压缩器，AGC 的阈值/比率/启动释放实现参照</td></tr>
+<tr><td><a href="https://ffmpeg.org/ffmpeg-filters.html#alimiter" target="_blank" rel="noopener noreferrer">ffmpeg alimiter ↗</a></td><td><code>https://ffmpeg.org/ffmpeg-filters.html#alimiter</code></td><td>前瞻限幅器，防止 AGC 之后削波</td></tr>
+<tr><td><a href="https://ffmpeg.org/ffmpeg-filters.html#aecho" target="_blank" rel="noopener noreferrer">ffmpeg aecho ↗</a></td><td><code>https://ffmpeg.org/ffmpeg-filters.html#aecho</code></td><td>给音频叠加延时衰减副本，可用来合成回声测试样本</td></tr>
+<tr><td><a href="https://ffmpeg.org/ffmpeg-filters.html#aresample" target="_blank" rel="noopener noreferrer">ffmpeg aresample ↗</a></td><td><code>https://ffmpeg.org/ffmpeg-filters.html#aresample</code></td><td>重采样与抖动补偿，AEC 参考/采集时钟不一致时的预处理</td></tr>
+<tr><td><a href="https://ffmpeg.org/ffmpeg.html" target="_blank" rel="noopener noreferrer">FFmpeg 滤波命令示例 ↗</a></td><td><code>https://ffmpeg.org/ffmpeg.html</code></td><td>命令行总文档，包含 -af 滤镜链、滤镜图与参数写法</td></tr>
+</tbody></table>
+<h3>工程（16）</h3>
+<table><thead><tr><th style="width:26%">名称</th><th style="width:38%">链接 / 命令入口</th><th>说明</th></tr></thead><tbody>
+<tr><td><a href="https://webrtc.org/" target="_blank" rel="noopener noreferrer">WebRTC 官网 ↗</a></td><td><code>https://webrtc.org/</code></td><td>实时通信标准与参考实现，3A 是浏览器通话的默认链路</td></tr>
+<tr><td><a href="https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/" target="_blank" rel="noopener noreferrer">WebRTC 源码（audio_processing） ↗</a></td><td><code>https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/</code></td><td>AEC3 / NS / AGC2 的工业级参考实现目录</td></tr>
+<tr><td><a href="https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/aec3/" target="_blank" rel="noopener noreferrer">WebRTC AEC3 模块 ↗</a></td><td><code>https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/aec3/</code></td><td>分块频域自适应滤波 + 残余回声估计的现代 AEC 结构</td></tr>
+<tr><td><a href="https://www.speex.org/" target="_blank" rel="noopener noreferrer">Speex / SpeexDSP ↗</a></td><td><code>https://www.speex.org/</code></td><td>经典开源语音编解码与预处理库，含 AEC 与降噪</td></tr>
+<tr><td><a href="https://gitlab.xiph.org/xiph/speexdsp" target="_blank" rel="noopener noreferrer">speexdsp 源码 ↗</a></td><td><code>https://gitlab.xiph.org/xiph/speexdsp</code></td><td>speex_echo_cancellation / speex_preprocess_ctl 的参考实现</td></tr>
+<tr><td><a href="https://github.com/xiph/rnnoise" target="_blank" rel="noopener noreferrer">RNNoise ↗</a></td><td><code>https://github.com/xiph/rnnoise</code></td><td>Valin 的混合 DSP/深度学习实时降噪，ffmpeg arnndn 的模型来源</td></tr>
+<tr><td><a href="https://github.com/Rikorose/DeepFilterNet" target="_blank" rel="noopener noreferrer">DeepFilterNet ↗</a></td><td><code>https://github.com/Rikorose/DeepFilterNet</code></td><td>低算力实时语音增强，复数滤波 + 深度掩码</td></tr>
+<tr><td><a href="https://github.com/modelscope/ClearerVoice-Studio" target="_blank" rel="noopener noreferrer">ClearerVoice-Studio ↗</a></td><td><code>https://github.com/modelscope/ClearerVoice-Studio</code></td><td>语音增强/分离/超分的开源训练与推理框架</td></tr>
+<tr><td><a href="https://github.com/speechbrain/speechbrain" target="_blank" rel="noopener noreferrer">SpeechBrain ↗</a></td><td><code>https://github.com/speechbrain/speechbrain</code></td><td>基于 PyTorch 的语音工具箱，含 SE / 分离 / 识别配方</td></tr>
+<tr><td><a href="https://github.com/asteroid-team/asteroid" target="_blank" rel="noopener noreferrer">Asteroid ↗</a></td><td><code>https://github.com/asteroid-team/asteroid</code></td><td>语音分离与增强的研究框架，含 SI-SNR 等损失实现</td></tr>
+<tr><td><a href="https://docs.pytorch.org/audio/stable/index.html" target="_blank" rel="noopener noreferrer">torchaudio ↗</a></td><td><code>https://docs.pytorch.org/audio/stable/index.html</code></td><td>音频 I/O、STFT/ISTFT、波形与谱特征的标准实现</td></tr>
+<tr><td><a href="https://librosa.org/" target="_blank" rel="noopener noreferrer">librosa ↗</a></td><td><code>https://librosa.org/</code></td><td>音频特征提取与 STFT/ISTFT 的 Python 工业实现</td></tr>
+<tr><td><a href="https://github.com/LCAV/pyroomacoustics" target="_blank" rel="noopener noreferrer">pyroomacoustics ↗</a></td><td><code>https://github.com/LCAV/pyroomacoustics</code></td><td>房间声学模拟、RIR 生成与波束形成实验工具</td></tr>
+<tr><td><a href="https://numpy.org/doc/stable/" target="_blank" rel="noopener noreferrer">NumPy 文档 ↗</a></td><td><code>https://numpy.org/doc/stable/</code></td><td>向量化 DSP 的事实标准；本书手写实现可逐步替换为 ndarray</td></tr>
+<tr><td><a href="https://docs.scipy.org/doc/scipy/reference/signal.html" target="_blank" rel="noopener noreferrer">SciPy signal ↗</a></td><td><code>https://docs.scipy.org/doc/scipy/reference/signal.html</code></td><td>lfilter / fftconvolve / stft / firwin 等工业级 DSP 原语</td></tr>
+<tr><td><a href="https://onnxruntime.ai/" target="_blank" rel="noopener noreferrer">ONNX Runtime ↗</a></td><td><code>https://onnxruntime.ai/</code></td><td>端侧推理运行时，神经 3A 部署常用目标</td></tr>
+</tbody></table>
+<h3>数据集（8）</h3>
+<table><thead><tr><th style="width:26%">名称</th><th style="width:38%">链接 / 命令入口</th><th>说明</th></tr></thead><tbody>
+<tr><td><a href="https://github.com/microsoft/DNS-Challenge" target="_blank" rel="noopener noreferrer">Microsoft DNS Challenge ↗</a></td><td><code>https://github.com/microsoft/DNS-Challenge</code></td><td>深度噪声抑制挑战赛，含大规模合成数据脚本与基线</td></tr>
+<tr><td><a href="https://github.com/microsoft/AEC-Challenge" target="_blank" rel="noopener noreferrer">Microsoft AEC Challenge ↗</a></td><td><code>https://github.com/microsoft/AEC-Challenge</code></td><td>声学回声消除挑战赛，含真实双讲与非线性失真录音</td></tr>
+<tr><td><a href="https://github.com/microsoft/DNS-Challenge/tree/master/DNSMOS" target="_blank" rel="noopener noreferrer">DNSMOS ↗</a></td><td><code>https://github.com/microsoft/DNS-Challenge/tree/master/DNSMOS</code></td><td>无需参考信号的神经语音质量评分模型（P.835 三维）</td></tr>
+<tr><td><a href="https://www.openslr.org/12" target="_blank" rel="noopener noreferrer">LibriSpeech ↗</a></td><td><code>https://www.openslr.org/12</code></td><td>常用的干净语音语料，用于合成带噪/带回声训练对</td></tr>
+<tr><td><a href="https://www.openslr.org/17" target="_blank" rel="noopener noreferrer">MUSAN ↗</a></td><td><code>https://www.openslr.org/17</code></td><td>音乐/语音/噪声语料，常作为 3A 数据增强的噪声源</td></tr>
+<tr><td><a href="https://zenodo.org/records/1227121" target="_blank" rel="noopener noreferrer">DEMAND 噪声库 ↗</a></td><td><code>https://zenodo.org/records/1227121</code></td><td>多环境真实噪声录音，用于噪声泛化测试</td></tr>
+<tr><td><a href="https://github.com/ludlows/PESQ" target="_blank" rel="noopener noreferrer">PESQ 开源实现检索 ↗</a></td><td><code>https://github.com/ludlows/PESQ</code></td><td>社区 PESQ 实现之一；商业使用请确认 ITU 授权</td></tr>
+<tr><td><a href="https://github.com/mpariente/pystoi" target="_blank" rel="noopener noreferrer">STOI / ESTOI ↗</a></td><td><code>https://github.com/mpariente/pystoi</code></td><td>语音可懂度客观指标，与增强模型的相关性常优于 SNR</td></tr>
+</tbody></table>
+<h3>教材（7）</h3>
+<table><thead><tr><th style="width:26%">名称</th><th style="width:38%">链接 / 命令入口</th><th>说明</th></tr></thead><tbody>
+<tr><td><a href="https://www.dspguide.com/" target="_blank" rel="noopener noreferrer">The Scientist and Engineer&#x27;s Guide to DSP ↗</a></td><td><code>https://www.dspguide.com/</code></td><td>免费在线 DSP 教材，卷积/FFT/滤波器章节讲解直观</td></tr>
+<tr><td><a href="https://ccrma.stanford.edu/~jos/" target="_blank" rel="noopener noreferrer">Stanford CCRMA · Julius O. Smith ↗</a></td><td><code>https://ccrma.stanford.edu/~jos/</code></td><td>数字信号处理与音频 DSP 的免费在线书系</td></tr>
+<tr><td><a href="https://ocw.mit.edu/search/?q=signals%20and%20systems" target="_blank" rel="noopener noreferrer">MIT OpenCourseWare · Signals and Systems ↗</a></td><td><code>https://ocw.mit.edu/search/?q=signals%20and%20systems</code></td><td>信号与系统、离散时间处理的公开课检索入口</td></tr>
+<tr><td><a href="https://www.dsprelated.com/" target="_blank" rel="noopener noreferrer">DSPRelated ↗</a></td><td><code>https://www.dsprelated.com/</code></td><td>自适应滤波、AGC 与实时实现的工程文章与博客</td></tr>
+<tr><td><a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API" target="_blank" rel="noopener noreferrer">MDN Web Audio API ↗</a></td><td><code>https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API</code></td><td>浏览器里观察 AudioWorklet / 延迟 / 采样率的权威文档</td></tr>
+<tr><td><a href="https://developer.mozilla.org/en-US/docs/Web/SVG" target="_blank" rel="noopener noreferrer">MDN SVG 文档 ↗</a></td><td><code>https://developer.mozilla.org/en-US/docs/Web/SVG</code></td><td>本书自绘波形与频谱图的矢量格式参考</td></tr>
+<tr><td><a href="https://docs.python.org/3/library/index.html" target="_blank" rel="noopener noreferrer">Python 标准库文档 ↗</a></td><td><code>https://docs.python.org/3/library/index.html</code></td><td>wave / array / struct / math / random 等标准模块说明</td></tr>
+</tbody></table>
+<h3>百科（12）</h3>
+<table><thead><tr><th style="width:26%">名称</th><th style="width:38%">链接 / 命令入口</th><th>说明</th></tr></thead><tbody>
+<tr><td><a href="https://en.wikipedia.org/wiki/Echo_cancellation" target="_blank" rel="noopener noreferrer">Echo cancellation ↗</a></td><td><code>https://en.wikipedia.org/wiki/Echo_cancellation</code></td><td>回声消除的问题定义、自适应滤波与双讲概述</td></tr>
+<tr><td><a href="https://en.wikipedia.org/wiki/Least_mean_squares_filter" target="_blank" rel="noopener noreferrer">Least mean squares filter ↗</a></td><td><code>https://en.wikipedia.org/wiki/Least_mean_squares_filter</code></td><td>LMS / NLMS 的更新式与收敛条件</td></tr>
+<tr><td><a href="https://en.wikipedia.org/wiki/Wiener_filter" target="_blank" rel="noopener noreferrer">Wiener filter ↗</a></td><td><code>https://en.wikipedia.org/wiki/Wiener_filter</code></td><td>最小均方误差意义下的最优线性滤波</td></tr>
+<tr><td><a href="https://en.wikipedia.org/wiki/Short-time_Fourier_transform" target="_blank" rel="noopener noreferrer">Short-time Fourier transform ↗</a></td><td><code>https://en.wikipedia.org/wiki/Short-time_Fourier_transform</code></td><td>STFT、窗函数、重叠相加与谱图</td></tr>
+<tr><td><a href="https://en.wikipedia.org/wiki/Automatic_gain_control" target="_blank" rel="noopener noreferrer">Automatic gain control ↗</a></td><td><code>https://en.wikipedia.org/wiki/Automatic_gain_control</code></td><td>AGC 的环路结构与时间常数</td></tr>
+<tr><td><a href="https://en.wikipedia.org/wiki/Voice_activity_detection" target="_blank" rel="noopener noreferrer">Voice activity detection ↗</a></td><td><code>https://en.wikipedia.org/wiki/Voice_activity_detection</code></td><td>VAD 的能量/统计/学习方法概览</td></tr>
+<tr><td><a href="https://en.wikipedia.org/wiki/Spectral_subtraction" target="_blank" rel="noopener noreferrer">Spectral subtraction ↗</a></td><td><code>https://en.wikipedia.org/wiki/Spectral_subtraction</code></td><td>谱减法与音乐噪声的成因</td></tr>
+<tr><td><a href="https://en.wikipedia.org/wiki/Beamforming" target="_blank" rel="noopener noreferrer">Beamforming ↗</a></td><td><code>https://en.wikipedia.org/wiki/Beamforming</code></td><td>阵列信号处理与 delay-and-sum / MVDR</td></tr>
+<tr><td><a href="https://en.wikipedia.org/wiki/LUFS" target="_blank" rel="noopener noreferrer">LUFS / Loudness ↗</a></td><td><code>https://en.wikipedia.org/wiki/LUFS</code></td><td>响度单位与 K 加权、真峰值</td></tr>
+<tr><td><a href="https://en.wikipedia.org/wiki/Cooley%E2%80%93Tukey_FFT_algorithm" target="_blank" rel="noopener noreferrer">Cooley–Tukey FFT ↗</a></td><td><code>https://en.wikipedia.org/wiki/Cooley%E2%80%93Tukey_FFT_algorithm</code></td><td>本书手写 radix-2 FFT 的算法依据</td></tr>
+<tr><td><a href="https://en.wikipedia.org/wiki/Time%E2%80%93frequency_analysis" target="_blank" rel="noopener noreferrer">Ideal ratio mask / T-F masking ↗</a></td><td><code>https://en.wikipedia.org/wiki/Time%E2%80%93frequency_analysis</code></td><td>时频掩码学习范式的背景</td></tr>
+<tr><td><a href="https://en.wikipedia.org/wiki/Quantization_(signal_processing)" target="_blank" rel="noopener noreferrer">Quantization (signal processing) ↗</a></td><td><code>https://en.wikipedia.org/wiki/Quantization_(signal_processing)</code></td><td>模型 int8 量化与定点 DSP 的共同基础</td></tr>
+</tbody></table>
+<h3>论文（1）</h3>
+<table><thead><tr><th style="width:26%">名称</th><th style="width:38%">链接 / 命令入口</th><th>说明</th></tr></thead><tbody>
+<tr><td><a href="https://arxiv.org/abs/1709.08243" target="_blank" rel="noopener noreferrer">RNNoise 论文（arXiv 1709.08243） ↗</a></td><td><code>https://arxiv.org/abs/1709.08243</code></td><td>A Hybrid DSP/Deep Learning Approach to Real-Time Full-Band Speech Enhancement</td></tr>
+</tbody></table>
+<h3>开源工程速查</h3><div class="repo-grid">
+<div class="repo-card"><h3><a href="https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/" target="_blank" rel="noopener noreferrer">WebRTC audio_processing ↗</a></h3><span class="tag">传统 · C++</span><p>工业级 3A 参考实现：AEC3 / NS / AGC2，读源码理解分块频域与双讲逻辑</p></div>
+<div class="repo-card"><h3><a href="https://gitlab.xiph.org/xiph/speexdsp" target="_blank" rel="noopener noreferrer">speexdsp ↗</a></h3><span class="tag">传统 · C</span><p>最易读的经典 AEC / 预处理实现，适合对照本书 NLMS 代码</p></div>
+<div class="repo-card"><h3><a href="https://github.com/xiph/rnnoise" target="_blank" rel="noopener noreferrer">RNNoise ↗</a></h3><span class="tag">AI · C</span><p>混合 DSP + GRU 的实时降噪，ffmpeg arnndn 的模型来源</p></div>
+<div class="repo-card"><h3><a href="https://github.com/microsoft/DNS-Challenge" target="_blank" rel="noopener noreferrer">Microsoft DNS-Challenge ↗</a></h3><span class="tag">数据集 · 基线</span><p>大规模语音/噪声合成脚本、基线模型与评测协议</p></div>
+<div class="repo-card"><h3><a href="https://github.com/microsoft/AEC-Challenge" target="_blank" rel="noopener noreferrer">Microsoft AEC-Challenge ↗</a></h3><span class="tag">数据集 · 基线</span><p>真实双讲、非线性失真与远端单讲录音，AEC 必测</p></div>
+<div class="repo-card"><h3><a href="https://github.com/Rikorose/DeepFilterNet" target="_blank" rel="noopener noreferrer">DeepFilterNet ↗</a></h3><span class="tag">AI · 实时</span><p>低算力实时增强，复数域深度滤波思路</p></div>
+<div class="repo-card"><h3><a href="https://github.com/modelscope/ClearerVoice-Studio" target="_blank" rel="noopener noreferrer">ClearerVoice-Studio ↗</a></h3><span class="tag">AI · 框架</span><p>增强/分离/超分一体化训练与推理框架，含 FRCRN、MossFormer</p></div>
+<div class="repo-card"><h3><a href="https://github.com/speechbrain/speechbrain" target="_blank" rel="noopener noreferrer">SpeechBrain ↗</a></h3><span class="tag">AI · 框架</span><p>语音任务配方齐全，适合复现 SE / 掩码 / 损失函数</p></div>
+<div class="repo-card"><h3><a href="https://github.com/asteroid-team/asteroid" target="_blank" rel="noopener noreferrer">Asteroid ↗</a></h3><span class="tag">AI · 框架</span><p>语音分离与 SI-SNR 损失的研究型框架</p></div>
+<div class="repo-card"><h3><a href="https://github.com/LCAV/pyroomacoustics" target="_blank" rel="noopener noreferrer">pyroomacoustics ↗</a></h3><span class="tag">仿真 · Python</span><p>房间声学模拟、RIR 生成与波束形成，构造可复现训练集</p></div>
+<div class="repo-card"><h3><a href="https://docs.pytorch.org/audio/stable/index.html" target="_blank" rel="noopener noreferrer">torchaudio ↗</a></h3><span class="tag">AI · Python</span><p>STFT/ISTFT、波形 I/O 与流式推理的工业实现</p></div>
+<div class="repo-card"><h3><a href="https://onnxruntime.ai/" target="_blank" rel="noopener noreferrer">ONNX Runtime ↗</a></h3><span class="tag">部署</span><p>端侧推理目标，配合量化把神经 3A 放进 RTC 预算</p></div>
+<div class="repo-card"><h3><a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg ↗</a></h3><span class="tag">工具</span><p>afftdn / arnndn / loudnorm / dynaudnorm 等滤镜的离线验证工具</p></div>
+<div class="repo-card"><h3><a href="https://github.com/microsoft/DNS-Challenge/tree/master/DNSMOS" target="_blank" rel="noopener noreferrer">DNSMOS ↗</a></h3><span class="tag">评测</span><p>无参考神经 MOS，用于没有干净参考时的快速评估</p></div>
+<div class="repo-card"><h3><a href="https://github.com/mpariente/pystoi" target="_blank" rel="noopener noreferrer">pystoi ↗</a></h3><span class="tag">评测</span><p>STOI / ESTOI 可懂度指标实现</p></div>
+<div class="repo-card"><h3><a href="https://pyroomacoustics.readthedocs.io/" target="_blank" rel="noopener noreferrer">pyroomacoustics RIR 教程 ↗</a></h3><span class="tag">仿真 · 文档</span><p>镜像源模型与波束形成的完整文档</p></div>
+</div>
+</section>
+<section id="lab"><h2><span class="sec-num">§</span>全书实验与工具</h2><div class="card note"><p style="margin-bottom:0">附录不新增实验脚本；全部可运行实例见 <a href="#sA-5">A.5 实验索引</a>，手写实现与工业库的迁移对照见 <a href="#sA-6">A.6</a>。生成、抽取、批量运行与自检命令见 <a href='../index.html#contribute'>维护约定</a>。</p></div></section>
+<section id="commands"><h2><span class="sec-num">§</span>可选真机命令片段</h2>
+<div class="card note"><p style="margin-bottom:0">以下命令<strong>不参与批量运行</strong>，需要本机自行安装对应工具。滤镜是否可用取决于本机 ffmpeg 版本与编译选项，请先用 <code>ffmpeg -filters</code> / <code>ffmpeg -version</code> 自查，并以 https://ffmpeg.org/ffmpeg-filters.html 与各自官方文档为准；本书不假定任何特定版本具备某项能力。</p></div>
+<h3>本机自查 ffmpeg 滤镜与版本，再对照官方文档</h3>
+<pre class="cmd" data-lang="shell"><code>ffmpeg -hide_banner -filters | grep -E 'afftdn|arnndn|loudnorm|ebur128|astats'</code></pre>
+<p class="code-hint"><strong>说明：</strong>滤镜清单随版本与编译选项变化；以本机输出与 https://ffmpeg.org/ffmpeg-filters.html 为准，不写死版本。</p>
+<h3>用 Python 标准库做全书语法自检</h3>
+<pre class="cmd" data-lang="shell"><code>python3 -m compileall -q tools</code></pre>
+<p class="code-hint"><strong>说明：</strong>只依赖 Python 3 标准库；该命令检查语法而不运行实验，随后再逐个实跑 code/*.py。</p>
+</section>
+<section id="highlights"><h2><span class="sec-num">§</span>本章参考资料</h2><p>按本章知识点挑选的精读资料；更多检索入口见 <a href="#extra-links">扩展学习</a>。</p><div class="repo-grid">
+<div class="repo-card"><h3><a href="https://www.dspguide.com/" target="_blank" rel="noopener noreferrer">The Scientist and Engineer&#x27;s Guide to DSP ↗</a></h3><span class="tag">教材</span><p>免费在线 DSP 教材，卷积/FFT/滤波器章节讲解直观</p><p style="margin:0;color:var(--ink-faint)">推荐理由：卷积、FFT 与滤波器的免费在线教材</p></div>
+<div class="repo-card"><h3><a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a></h3><span class="tag">工具</span><p>全部音频滤镜的权威说明页，每个滤镜有独立锚点</p><p style="margin:0;color:var(--ink-faint)">推荐理由：全部音频滤镜的权威说明页</p></div>
+<div class="repo-card"><h3><a href="https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/" target="_blank" rel="noopener noreferrer">WebRTC 源码（audio_processing） ↗</a></h3><span class="tag">工程</span><p>AEC3 / NS / AGC2 的工业级参考实现目录</p><p style="margin:0;color:var(--ink-faint)">推荐理由：AEC3 / NS / AGC2 的工业级参考实现目录</p></div>
+<div class="repo-card"><h3><a href="https://docs.python.org/3/library/index.html" target="_blank" rel="noopener noreferrer">Python 标准库文档 ↗</a></h3><span class="tag">教材</span><p>wave / array / struct / math / random 等标准模块说明</p><p style="margin:0;color:var(--ink-faint)">推荐理由：wave / array / math / random 等标准模块说明</p></div>
+</div></section>
+<section id="pitfalls"><h2><span class="sec-num">§</span>常见误区</h2><div class="card warn"><ul><li>把教学近似 lufs_approx 当成合规的 EBU R128 测量。</li>
+<li>照抄书里的滤镜名却不做本机 ffmpeg -filters 自查。</li>
+<li>手改生成的 HTML 代码块，导致与 code/*.py 不同步。</li>
+<li>换随机种子或采样率后仍直接比较旧数值。</li></ul></div></section>
+<section id="exercises"><h2><span class="sec-num">§</span>习题与思考</h2><ol><li>用本机 ffmpeg -filters 列出所有含 dn 的降噪滤镜，并记录实际输出。</li>
+<li>把 A.1 的 SI-SDR 公式与 tools/dsp.py 的 si_sdr_db 逐行对照。</li>
+<li>按 A.4 的约定批量运行两个结课实验，核对声明的 SVG 与 WAV 是否全部生成。</li></ol></section>
+<section id="extra-links"><h2><span class="sec-num">§</span>扩展学习</h2>
+<div class="repo-grid">
+<div class="repo-card"><h3><a href="https://www.dspguide.com/" target="_blank" rel="noopener noreferrer">The Scientist and Engineer&#x27;s Guide to DSP ↗</a></h3><span class="tag">教材</span><p>免费在线 DSP 教材，卷积/FFT/滤波器章节讲解直观</p></div>
+<div class="repo-card"><h3><a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a></h3><span class="tag">工具</span><p>全部音频滤镜的权威说明页，每个滤镜有独立锚点</p></div>
+<div class="repo-card"><h3><a href="https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/" target="_blank" rel="noopener noreferrer">WebRTC 源码（audio_processing） ↗</a></h3><span class="tag">工程</span><p>AEC3 / NS / AGC2 的工业级参考实现目录</p></div>
+<div class="repo-card"><h3><a href="https://docs.python.org/3/library/index.html" target="_blank" rel="noopener noreferrer">Python 标准库文档 ↗</a></h3><span class="tag">教材</span><p>wave / array / struct / math / random 等标准模块说明</p></div>
+</div>
+<h3>继续检索</h3><ul>
+<li>Google Scholar：<a href='https://scholar.google.com/scholar?q=audio%20DSP%20formula%20cheat%20sheet%20commands%20glossary' target='_blank' rel='noopener noreferrer'>audio DSP formula cheat sheet commands glossary ↗</a></li>
+<li>arXiv：<a href='https://arxiv.org/search/?query=audio%20DSP%20formula%20cheat%20sheet%20commands%20glossary&searchtype=all' target='_blank' rel='noopener noreferrer'>audio DSP formula cheat sheet commands glossary ↗</a></li>
+<li>GitHub：<a href='https://github.com/search?q=audio%20DSP%20formula%20cheat%20sheet%20commands%20glossary&type=repositories' target='_blank' rel='noopener noreferrer'>audio DSP formula cheat sheet commands glossary ↗</a></li>
+</ul>
+<p class="code-hint">全书链接总表见 <a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a> 与 <a href="../appendix/index.html#sA-7">附录 A.7</a>；滤镜是否可用请以本机 <code>ffmpeg -filters</code> 为准。</p>
+</section>
+<section id="further"><h2><span class="sec-num">§</span>延伸阅读与内链</h2><ul><li><a href='../part0/03-metrics/index.html'>第 03 章 · 怎么算「变好了」：客观指标、尺度与主观听测</a> 指标定义；<a href='../part0/02-time-frequency/index.html'>第 02 章 · 采样、量化与时频表示：从 PCM 到 STFT</a> STFT 与 WOLA；<a href='../part3/17-toolchain/index.html'>第 17 章 · ffmpeg / WebRTC / SpeexDSP 工具链实操</a> 工具链命令实操。</li>
+<li><a href='../part6/30-generalization/index.html'>第 30 章 · 泛化、鲁棒性与评测陷阱</a> 评测陷阱；<a href='../part6/31-capstone/index.html'>第 31 章 · 结课项目：小型掩码估计器与全链路验证</a> 结课项目验收清单。</li></ul></section>
+<footer class="pager" data-autofill></footer>
+<footer class="site-foot">
+<p class="credits"><strong>作者</strong>：汪亮（bertonwang）　<strong>联系邮箱</strong>：<a href="mailto:47608843@qq.com">47608843@qq.com</a></p>
+<p class="ai-note"><strong>AI 使用说明</strong>：本教材的知识框架、正文、Python 实验脚本与参考资料清单在 AI 辅助下整理生成，并经人工校订、实际运行与静态自检。公式、数值与运行结果请以Python 3 实际输出及权威教材、官方文档为准；发现错漏欢迎通过上方邮箱勘误。</p>
+<p class="imprint">音频 3A 处理：从自适应滤波到神经增强 · 每章一个 <code>code/*.py</code> 实验脚本、<code>fig/*.svg</code> 矢量图与 <code>audio/*.wav</code> 试听样本（由 <code>tools/extract_code.py</code> 与脚本运行同步） · 只用 Python 3 标准库 · 教学材料，信号全部由代码合成。</p>
+</footer>
+</main>
+</body>
+</html>

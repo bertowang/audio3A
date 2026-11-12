@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 01 章 · 声学链路与信号模型：房间、麦克风与回声路径 | 音频 3A 处理：从自适应滤波到神经增强</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<script src="../../assets/toc.js" defer></script>
+<script src="../../assets/app.js" defer></script>
+</head>
+<body data-root="../../" data-chapter="01">
+<aside id="sidebar"></aside>
+<main class="book-page">
+<nav class="breadcrumb" data-autofill>总目录</nav>
+<header class="chapter-head">
+<span class="kicker">卷首 · 3A 问题全景 · 卷首 · 共同语言与问题定义</span>
+<h1><span class="ch-num">第 01 章</span>声学链路与信号模型：房间、麦克风与回声路径</h1>
+<p class="lede">把「扬声器放出来的声音又被自己收回去」写成可辨识的线性系统。</p>
+<div class="meta">
+<span class="badge done">已完稿</span>
+<span class="badge s1">问题定义</span>
+<span>建议 3 学时</span>
+<span>1 个 Python 实验 · 2 张图 · 2 段试听</span>
+<span>音频 3A 处理：从自适应滤波到神经增强</span>
+</div></header>
+<p class="bridge"><strong>本章位置：</strong><a href='../00-three-a/index.html'>第 00 章 · 3A 是什么：一条实时语音链路上的三个约束</a> 给出链路与三个约束，本章把 <code>h</code> 具体化；<a href='../02-time-frequency/index.html'>第 02 章 · 采样、量化与时频表示：从 PCM 到 STFT</a> 提供观察 <code>h</code> 与信号的时频工具，<a href='../03-metrics/index.html'>第 03 章 · 怎么算「变好了」：客观指标、尺度与主观听测</a> 约定评价指标。</p>
+<div class="analogy"><span class="card-label">给程序员的翻译</span><p style="margin-bottom:0">RIR 是一个长度为 L 的 FIR 系数数组，AEC 是<strong>在线系统辨识</strong>：输入 x、观测 y、目标 d，求一组 ĥ 使预测误差最小。时延对齐相当于先给这段数组找到正确的起始下标。</p></div>
+<div class="card objectives"><span class="card-label">学习目标</span><ul>
+<li>能画出声学回声链路并写出卷积模型。</li>
+<li>能解释房间冲激响应的直达声、早期反射与混响尾。</li>
+<li>能用互相关估计回声路径的时延并核对真值。</li>
+<li>能说明非线性失真、时钟漂移与双讲为何让模型失效。</li>
+</ul></div>
+<section id="map"><h2><span class="sec-num">§</span>知识点地图</h2>
+<p class="code-hint">每个知识点都配了 1～2 个扩展学习链接；本章完整资源清单见 <a href="#extra-links">扩展学习</a>。</p>
+<table><thead><tr><th style="width:44px">#</th><th style="width:26%">知识点</th><th>扩展学习</th><th style="width:100px">状态</th></tr></thead><tbody>
+<tr><td>1</td><td>声学回声链路</td><td><a href="https://en.wikipedia.org/wiki/Echo_cancellation" target="_blank" rel="noopener noreferrer">Echo cancellation ↗</a> · <a href="https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/aec3/" target="_blank" rel="noopener noreferrer">WebRTC AEC3 模块 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>2</td><td>房间冲激响应 RIR</td><td><a href="https://github.com/LCAV/pyroomacoustics" target="_blank" rel="noopener noreferrer">pyroomacoustics ↗</a> · <a href="https://www.dspguide.com/" target="_blank" rel="noopener noreferrer">The Scientist and Engineer&#x27;s Guide to DSP ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>3</td><td>直达声与早期反射</td><td><a href="https://github.com/LCAV/pyroomacoustics" target="_blank" rel="noopener noreferrer">pyroomacoustics ↗</a> · <a href="https://en.wikipedia.org/wiki/Echo_cancellation" target="_blank" rel="noopener noreferrer">Echo cancellation ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>4</td><td>混响时间与 T60</td><td><a href="https://github.com/LCAV/pyroomacoustics" target="_blank" rel="noopener noreferrer">pyroomacoustics ↗</a> · <a href="https://en.wikipedia.org/wiki/Echo_cancellation" target="_blank" rel="noopener noreferrer">Echo cancellation ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>5</td><td>线性卷积模型</td><td><a href="https://www.dspguide.com/" target="_blank" rel="noopener noreferrer">The Scientist and Engineer&#x27;s Guide to DSP ↗</a> · <a href="https://docs.scipy.org/doc/scipy/reference/signal.html" target="_blank" rel="noopener noreferrer">SciPy signal ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>6</td><td>时延估计与互相关</td><td><a href="https://github.com/LCAV/pyroomacoustics" target="_blank" rel="noopener noreferrer">pyroomacoustics ↗</a> · <a href="https://en.wikipedia.org/wiki/Echo_cancellation" target="_blank" rel="noopener noreferrer">Echo cancellation ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>7</td><td>双讲场景</td><td><a href="https://www.itu.int/rec/T-REC-G.168/en" target="_blank" rel="noopener noreferrer">ITU-T G.168 ↗</a> · <a href="https://github.com/microsoft/AEC-Challenge" target="_blank" rel="noopener noreferrer">Microsoft AEC Challenge ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>8</td><td>非线性与时钟漂移</td><td><a href="https://github.com/LCAV/pyroomacoustics" target="_blank" rel="noopener noreferrer">pyroomacoustics ↗</a> · <a href="https://en.wikipedia.org/wiki/Echo_cancellation" target="_blank" rel="noopener noreferrer">Echo cancellation ↗</a></td><td>正文已覆盖</td></tr>
+</tbody></table></section>
+<section id="s1-1"><h2><span class="sec-num">§1.1</span>从扬声器到麦克风是一条 LTI 通道</h2>
+<p class="eq">e[n] = (h * x)[n] = Σ_{k=0}^{L−1} h[k] · x[n−k]　，y[n] = d[n] + e[n] + v[n]</p>
+<p><code>h</code> 是房间冲激响应：先是一段静默（声波传播 + 缓冲），然后是直达声脉冲，接着是几次离散的墙面反射，最后是指数衰减的密集混响尾。AEC 的全部工作，本质上是<strong>在双讲与噪声干扰下在线估计 h 并用它预测 e</strong>。</p>
+<table><thead><tr><th style="width:18%">RIR 区段</th><th style="width:38%">物理来源</th><th style="width:44%">对 AEC 的影响</th></tr></thead><tbody>
+<tr><td>直达延迟</td><td>扬声器到麦克风距离 + 系统缓冲</td><td>决定滤波器起始位置，估计错则整段抵消失效</td></tr>
+<tr><td>早期反射</td><td>桌面、墙壁的一次/二次反射</td><td>稀疏强系数，自适应滤波器需覆盖</td></tr>
+<tr><td>混响尾</td><td>多次散射，能量指数衰减</td><td>尾长决定滤波器阶数（16 kHz 下常取 128–512 ms）</td></tr>
+<tr><td>非线性</td><td>扬声器削波、外壳振动</td><td>线性模型无法解释，需要残余回声抑制或神经后处理</td></tr>
+</tbody></table>
+</section>
+<section id="s1-2"><h2><span class="sec-num">§1.2</span>三个让模型失效的现实</h2>
+<ul>
+<li><strong>双讲</strong>：近端与远端同时说话，<code>d[n]</code> 不再是「安静的噪声」，自适应滤波器会把近端语音当成误差、把 h 往错误方向更新。</li>
+<li><strong>时钟漂移</strong>：播放与采集用不同晶振，采样率有 ppm 级偏差，等效于 h 缓慢平移；不做缓冲对齐会让 ERLE 周期性塌陷。</li>
+<li><strong>路径突变</strong>：有人移动笔记本、手掌挡住麦克风，h 在几十毫秒内整体改变，滤波器需要快速重收敛。</li>
+</ul>
+<p>工程上因此把问题拆成三层：<strong>时延对齐</strong>（粗对齐，见本实验）、<strong>线性自适应滤波</strong>（见上卷第二篇）、<strong>残余抑制</strong>（处理非线性与双讲残差，见第 11 章与下卷）。</p>
+</section>
+<section id="lab"><h2><span class="sec-num">§</span>Python 实验</h2>
+<h3>实验 1-1 · 合成房间冲激响应并用互相关找回真实时延</h3>
+<pre class="code" data-file="code/01-rir.py" data-lang="Python 3 · 标准库"><code>#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""生成含直达声与混响尾的 RIR，卷积出回声，再用归一化互相关估计延迟。
+
+全部语音 / 噪声 / 房间冲激响应均为代码合成信号，仅用于教学演示机制与量级。
+"""
+from __future__ import annotations
+
+import math
+import pathlib
+import random
+import statistics
+import sys
+import time
+
+_here = pathlib.Path(__file__).resolve()
+for _p in _here.parents:
+    if (_p / "tools" / "dsp.py").exists():
+        sys.path.insert(0, str(_p / "tools"))
+        break
+from dsp import (SAMPLE_RATE, fft, hann, stft, istft, magnitude_db, spectrum,
+                 white_noise, tone, chirp, synthetic_speech, rir, convolve,
+                 fft_convolve, delay, clip, normalize_peak, rms, rolling_rms,
+                 smooth, db, energy_db, snr_db, erle_db, seg_snr_db,
+                 scale_align, si_sdr_db, lufs_approx,
+                 write_wav, read_wav, wav_info)
+from chart import Chart, heatmap, BLUE, RED, GREEN, AMBER
+
+FIG = _here.parents[1] / "fig"
+AUDIO = _here.parents[1] / "audio"
+FIG.mkdir(exist_ok=True)
+AUDIO.mkdir(exist_ok=True)
+
+random.seed(7)
+
+# ---- 参数区 ----
+N = 12000
+TRUE_DELAY = 24             # 真实直达声延迟（样本）
+RIR_LEN = 256               # 冲激响应长度
+DECAY = 0.008               # 混响能量衰减时间常数（秒）
+CORR_LEN = 2048             # 互相关累加点数
+MAX_LAG = 120               # 搜索的最大延迟
+
+# ---- 计算与作图 ----
+rng = random.Random(7)
+far = synthetic_speech(rng, N)
+probe = white_noise(rng, N, 0.35)     # 宽带探测信号：自相关接近冲激，便于对齐
+h = rir(rng, RIR_LEN, decay=DECAY, direct_delay=TRUE_DELAY)
+echo = fft_convolve(far, h)[:N]
+near = [0.30 * v for v in synthetic_speech(rng, N)]
+mic = [near[i] + echo[i] for i in range(N)]
+probe_echo = fft_convolve(probe, h)[:N]
+mic_probe = [probe_echo[i] + 0.3 * near[i] for i in range(N)]
+
+# 归一化互相关：用参考信号 x 与麦克风 y 找最强线性相关的滞后
+def norm_corr(a, b, lag, k):
+    num = sum(a[i] * b[i + lag] for i in range(k))
+    da = math.sqrt(sum(a[i] ** 2 for i in range(k)))
+    db_ = math.sqrt(sum(b[i + lag] ** 2 for i in range(k)))
+    return num / (da * db_ + 1e-12)
+
+lags = list(range(MAX_LAG))
+corr = [norm_corr(probe, mic_probe, lag, CORR_LEN) for lag in lags]
+best_lag = lags[max(range(len(lags)), key=lambda i: corr[i])]
+peak = max(corr)
+
+c = Chart(FIG / "01-rir.svg", "合成房间冲激响应 h[k]", xlabel="抽头 k（16 kHz）", ylabel="幅度")
+c.line(range(RIR_LEN), h, BLUE, label="h[k]")
+c.vline(TRUE_DELAY, RED, label="真实直达延迟")
+print("冲激图:", c.save())
+d = Chart(FIG / "01-corr.svg", "参考信号与麦克风信号的归一化互相关",
+          xlabel="滞后 lag", ylabel="相关系数")
+d.line(lags, corr, GREEN, label="归一化互相关")
+d.vline(best_lag, RED, label="峰值")
+print("互相关图:", d.save())
+write_wav(AUDIO / "01-far.wav", normalize_peak(far))
+write_wav(AUDIO / "01-mic.wav", normalize_peak(mic))
+print("真实延迟=%d 估计延迟=%d 峰值相关=%.3f | 直达增益=%.3f RIR能量=%.4f" %
+      (TRUE_DELAY, best_lag, peak, h[TRUE_DELAY], sum(v * v for v in h)))
+print("混响时间常数=%.4f s 理论 T60≈%.3f s（指数衰减到 -60 dB）" %
+      (DECAY, 6.9 * DECAY))</code></pre>
+<p class="code-hint"><strong>操作：</strong>对照估计延迟与 <code>TRUE_DELAY</code>；把 <code>TRUE_DELAY</code> 改成 60 再跑一次。　<strong>预期与判读：</strong>互相关峰值精确落在真实直达延迟，因为 <code>y</code> 中含 <code>h*x</code>；这里刻意用<strong>白噪声探测信号</strong>而非语音做对齐——语音有准周期自相关，会产生旁峰把峰值拉偏。近端语音只贡献不相关背景，使峰值幅度下降但位置稳定。这正是工程上「先粗对齐、再自适应」的第一步。</p>
+<p class="code-hint"><strong>改参数看趋势：</strong>把 <code>near</code> 幅度调大到与回声相当（模拟强双讲），峰值会变钝甚至偏移。　文件位置：<code>part0/01-acoustic-path/code/01-rir.py</code></p>
+<div class="chart-grid">
+<figure class="chart-figure"><img src="fig/01-rir.svg" alt="脉冲、早期反射与指数衰减尾" loading="lazy"><figcaption>图 1　脉冲、早期反射与指数衰减尾（代码合成信号 / 教学示意）</figcaption></figure>
+<figure class="chart-figure"><img src="fig/01-corr.svg" alt="互相关峰值定位回声延迟" loading="lazy"><figcaption>图 2　互相关峰值定位回声延迟（代码合成信号 / 教学示意）</figcaption></figure>
+</div>
+<div class="audio-grid">
+<div class="audio-card"><h4>01-far.wav</h4><audio controls preload="none" src="audio/01-far.wav">浏览器不支持 audio 元素，请直接打开 audio/01-far.wav。</audio><p>远端参考信号（扬声器播放的内容）（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+<div class="audio-card"><h4>01-mic.wav</h4><audio controls preload="none" src="audio/01-mic.wav">浏览器不支持 audio 元素，请直接打开 audio/01-mic.wav。</audio><p>麦克风：近端语音 + 回声（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+</div>
+<div class="card note"><p style="margin-bottom:0">代码块右上角可一键复制；仓库里的 <code>code/*.py</code> 由 <code>tools/extract_code.py</code> 从这些代码块自动抽取。脚本只用标准库、固定 <code>random.seed(7)</code>，运行后写出 <code>fig/*.svg</code> 与 <code>audio/*.wav</code>；批量运行用 <code>./tools/run_python.sh</code>。</p></div>
+</section>
+<section id="commands"><h2><span class="sec-num">§</span>可选真机命令片段</h2>
+<div class="card note"><p style="margin-bottom:0">以下命令<strong>不参与批量运行</strong>，需要本机自行安装对应工具。滤镜是否可用取决于本机 ffmpeg 版本与编译选项，请先用 <code>ffmpeg -filters</code> / <code>ffmpeg -version</code> 自查，并以 https://ffmpeg.org/ffmpeg-filters.html 与各自官方文档为准；本书不假定任何特定版本具备某项能力。</p></div>
+<h3>用 ffmpeg 合成一条可听的回声样本（无需写代码）</h3>
+<pre class="cmd" data-lang="shell"><code>ffmpeg -hide_banner -i input.wav -af \
+  "aecho=0.8:0.9:1000|1800:0.25|0.15" echo.wav
+ffmpeg -hide_banner -i echo.wav -af volumedetect -f null - 2&gt;&amp;1 | grep -E 'mean_volume|max_volume'</code></pre>
+<p class="code-hint"><strong>说明：</strong>aecho 用「输入增益:输出增益:延迟ms|延迟ms:衰减|衰减」叠加延迟副本；该滤镜是否在本机可用请先用 `ffmpeg -filters | grep aecho` 自查。</p>
+</section>
+<section id="highlights"><h2><span class="sec-num">§</span>本章参考资料</h2><p>按本章知识点挑选的精读资料；更多检索入口见 <a href="#extra-links">扩展学习</a>。</p><div class="repo-grid">
+<div class="repo-card"><h3><a href="https://github.com/LCAV/pyroomacoustics" target="_blank" rel="noopener noreferrer">pyroomacoustics ↗</a></h3><span class="tag">工程</span><p>房间声学模拟、RIR 生成与波束形成实验工具</p><p style="margin:0;color:var(--ink-faint)">推荐理由：用镜像源模型生成更真实的 RIR，替换本书合成例</p></div>
+<div class="repo-card"><h3><a href="https://en.wikipedia.org/wiki/Echo_cancellation" target="_blank" rel="noopener noreferrer">Echo cancellation ↗</a></h3><span class="tag">百科</span><p>回声消除的问题定义、自适应滤波与双讲概述</p><p style="margin:0;color:var(--ink-faint)">推荐理由：回声路径与抵消的经典定义</p></div>
+<div class="repo-card"><h3><a href="https://www.itu.int/rec/T-REC-G.168/en" target="_blank" rel="noopener noreferrer">ITU-T G.168 ↗</a></h3><span class="tag">标准</span><p>网络回声消除器的测试标准，规定 ERLE 与双讲测试信号</p><p style="margin:0;color:var(--ink-faint)">推荐理由：回声消除器测试信号与 ERLE 规范</p></div>
+<div class="repo-card"><h3><a href="https://ffmpeg.org/ffmpeg-filters.html#aecho" target="_blank" rel="noopener noreferrer">ffmpeg aecho ↗</a></h3><span class="tag">工具</span><p>给音频叠加延时衰减副本，可用来合成回声测试样本</p><p style="margin:0;color:var(--ink-faint)">推荐理由：不用写代码就能造回声测试样本</p></div>
+</div></section>
+<section id="pitfalls"><h2><span class="sec-num">§</span>常见误区</h2><div class="card warn"><ul><li>忽略播放与采集缓冲造成的几十毫秒延迟，直接让自适应滤波器硬追。</li>
+<li>把混响尾当噪声，滤波器阶数不够导致 ERLE 上不去。</li>
+<li>用纯线性模型解释扬声器削波造成的非线性回声。</li>
+<li>在双讲时照常更新 h，把滤波器「带跑」。</li></ul></div></section>
+<section id="exercises"><h2><span class="sec-num">§</span>习题与思考</h2><ol><li>推导 16 kHz 下 128 ms 混响需要多少抽头，并说明算力代价。</li>
+<li>解释为什么互相关峰值会被强双讲拉偏。</li>
+<li>列举三种会改变 h 的日常动作，并给出检测思路。</li></ol></section>
+<section id="extra-links"><h2><span class="sec-num">§</span>扩展学习</h2>
+<div class="repo-grid">
+<div class="repo-card"><h3><a href="https://github.com/LCAV/pyroomacoustics" target="_blank" rel="noopener noreferrer">pyroomacoustics ↗</a></h3><span class="tag">工程</span><p>房间声学模拟、RIR 生成与波束形成实验工具</p></div>
+<div class="repo-card"><h3><a href="https://en.wikipedia.org/wiki/Echo_cancellation" target="_blank" rel="noopener noreferrer">Echo cancellation ↗</a></h3><span class="tag">百科</span><p>回声消除的问题定义、自适应滤波与双讲概述</p></div>
+<div class="repo-card"><h3><a href="https://www.itu.int/rec/T-REC-G.168/en" target="_blank" rel="noopener noreferrer">ITU-T G.168 ↗</a></h3><span class="tag">标准</span><p>网络回声消除器的测试标准，规定 ERLE 与双讲测试信号</p></div>
+<div class="repo-card"><h3><a href="https://en.wikipedia.org/wiki/Least_mean_squares_filter" target="_blank" rel="noopener noreferrer">Least mean squares filter ↗</a></h3><span class="tag">百科</span><p>LMS / NLMS 的更新式与收敛条件</p></div>
+</div>
+<h3>继续检索</h3><ul>
+<li>Google Scholar：<a href='https://scholar.google.com/scholar?q=room%20impulse%20response%20acoustic%20echo%20path%20model' target='_blank' rel='noopener noreferrer'>room impulse response acoustic echo path model ↗</a></li>
+<li>arXiv：<a href='https://arxiv.org/search/?query=room%20impulse%20response%20acoustic%20echo%20path%20model&searchtype=all' target='_blank' rel='noopener noreferrer'>room impulse response acoustic echo path model ↗</a></li>
+<li>GitHub：<a href='https://github.com/search?q=room%20impulse%20response%20acoustic%20echo%20path%20model&type=repositories' target='_blank' rel='noopener noreferrer'>room impulse response acoustic echo path model ↗</a></li>
+</ul>
+<p class="code-hint">全书链接总表见 <a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a> 与 <a href="../../appendix/index.html#sA-7">附录 A.7</a>；滤镜是否可用请以本机 <code>ffmpeg -filters</code> 为准。</p>
+</section>
+<section id="further"><h2><span class="sec-num">§</span>延伸阅读与内链</h2><ul><li><a href='../../part2/09-aec-architecture/index.html'>第 09 章 · AEC 总体结构：参考信号、线性滤波与残余抑制</a> AEC 总体结构；<a href='../../part2/11-residual-echo/index.html'>第 11 章 · 残余回声抑制与 WebRTC AEC3 结构</a> AEC3 的对齐与双讲处理。</li></ul></section>
+<footer class="pager" data-autofill></footer>
+<footer class="site-foot">
+<p class="credits"><strong>作者</strong>：汪亮（bertonwang）　<strong>联系邮箱</strong>：<a href="mailto:47608843@qq.com">47608843@qq.com</a></p>
+<p class="ai-note"><strong>AI 使用说明</strong>：本教材的知识框架、正文、Python 实验脚本与参考资料清单在 AI 辅助下整理生成，并经人工校订、实际运行与静态自检。公式、数值与运行结果请以Python 3 实际输出及权威教材、官方文档为准；发现错漏欢迎通过上方邮箱勘误。</p>
+<p class="imprint">音频 3A 处理：从自适应滤波到神经增强 · 每章一个 <code>code/*.py</code> 实验脚本、<code>fig/*.svg</code> 矢量图与 <code>audio/*.wav</code> 试听样本（由 <code>tools/extract_code.py</code> 与脚本运行同步） · 只用 Python 3 标准库 · 教学材料，信号全部由代码合成。</p>
+</footer>
+</main>
+</body>
+</html>

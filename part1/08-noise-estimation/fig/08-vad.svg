@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 430" width="780" height="430" role="img">
+<title>逐帧后验 SNR 与 VAD 判决</title>
+<desc>由 tools/chart.py 生成的教材示意插图，数据为合成数据。</desc>
+<rect x="0" y="0" width="780" height="430" fill="#ffffff"/>
+<text x="76.0" y="24" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="15" font-weight="600" fill="#23262b">逐帧后验 SNR 与 VAD 判决</text>
+<line x1="76.0" y1="372.0" x2="756.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="376.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">-10.95</text>
+<line x1="76.0" y1="306.8" x2="756.0" y2="306.8" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="310.8" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">-2.06</text>
+<line x1="76.0" y1="241.6" x2="756.0" y2="241.6" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="245.6" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">6.83</text>
+<line x1="76.0" y1="176.4" x2="756.0" y2="176.4" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="180.4" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">15.72</text>
+<line x1="76.0" y1="111.2" x2="756.0" y2="111.2" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="115.2" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">24.61</text>
+<line x1="76.0" y1="46.0" x2="756.0" y2="46.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="50.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">33.50</text>
+<line x1="76.0" y1="46.0" x2="76.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="76.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">-2.48</text>
+<line x1="212.0" y1="46.0" x2="212.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="212.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">10.91</text>
+<line x1="348.0" y1="46.0" x2="348.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="348.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">24.30</text>
+<line x1="484.0" y1="46.0" x2="484.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="484.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">37.70</text>
+<line x1="620.0" y1="46.0" x2="620.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="620.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">51.09</text>
+<line x1="756.0" y1="46.0" x2="756.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="756.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">64.48</text>
+<line x1="76.0" y1="372.0" x2="756.0" y2="372.0" stroke="#8a909b" stroke-width="1.4"/>
+<line x1="76.0" y1="46.0" x2="76.0" y2="372.0" stroke="#8a909b" stroke-width="1.4"/>
+<text x="416.0" y="418.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="12" fill="#8a909b" text-anchor="middle">帧 t</text>
+<text x="14" y="209.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="12" fill="#8a909b" transform="rotate(-90 14 209.0)" text-anchor="middle">dB / 判决</text>
+<polyline points="101.19,291.70 111.34,262.82 121.50,264.09 131.65,268.07 141.81,266.62 151.96,259.69 162.12,263.37 172.27,265.35 182.43,260.88 192.58,256.48 202.74,261.64 212.89,134.98 223.05,75.28 233.20,73.82 243.36,73.17 253.51,75.18 263.67,79.02 273.83,83.02 283.98,88.31 294.14,96.07 304.29,104.19 314.45,116.63 324.60,143.49 334.76,222.58 344.91,252.99 355.07,281.79 365.22,316.60 375.38,340.23 385.53,337.11 395.69,343.68 405.84,344.83 416.00,301.77 426.16,247.64 436.31,250.52 446.47,243.80 456.62,249.39 466.78,242.27 476.93,230.58 487.09,147.24 497.24,143.21 507.40,144.65 517.55,140.90 527.71,143.90 537.86,147.26 548.02,153.33 558.17,158.30 568.33,163.49 578.49,171.03 588.64,187.42 598.80,228.82 608.95,249.14 619.11,264.55 629.26,281.88 639.42,293.91 649.57,300.85 659.73,301.42 669.88,306.77 680.04,296.48 690.19,295.83 700.35,289.23 710.50,294.60 720.66,292.73 730.81,294.49" fill="none" stroke="#245a7a" stroke-width="2" stroke-linejoin="round" opacity="1.0"/>
+<line x1="76.0" y1="269.69" x2="756.0" y2="269.69" stroke="#8a3b26" stroke-width="1.2" stroke-dasharray="4 4"/>
+<rect x="97.30" y="291.70" width="7.77" height="0.60" fill="#8a6316" opacity="0.35"/>
+<rect x="107.45" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="117.61" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="127.77" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="137.92" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="148.08" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="158.23" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="168.39" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="178.54" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="188.70" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="198.85" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="209.01" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="219.16" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="229.32" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="239.47" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="249.63" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="259.78" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="269.94" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="280.10" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="290.25" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="300.41" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="310.56" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="320.72" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="330.87" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="341.03" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="351.18" y="291.70" width="7.77" height="0.60" fill="#8a6316" opacity="0.35"/>
+<rect x="361.34" y="291.70" width="7.77" height="0.60" fill="#8a6316" opacity="0.35"/>
+<rect x="371.49" y="291.70" width="7.77" height="0.60" fill="#8a6316" opacity="0.35"/>
+<rect x="381.65" y="291.70" width="7.77" height="0.60" fill="#8a6316" opacity="0.35"/>
+<rect x="391.80" y="291.70" width="7.77" height="0.60" fill="#8a6316" opacity="0.35"/>
+<rect x="401.96" y="291.70" width="7.77" height="0.60" fill="#8a6316" opacity="0.35"/>
+<rect x="412.11" y="291.70" width="7.77" height="0.60" fill="#8a6316" opacity="0.35"/>
+<rect x="422.27" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="432.42" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="442.58" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="452.74" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="462.89" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="473.05" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="483.20" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="493.36" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="503.51" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="513.67" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="523.82" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="533.98" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="544.13" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="554.29" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="564.44" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="574.60" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="584.75" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="594.91" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="605.07" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="615.22" y="284.36" width="7.77" height="7.34" fill="#8a6316" opacity="0.35"/>
+<rect x="625.38" y="291.70" width="7.77" height="0.60" fill="#8a6316" opacity="0.35"/>
+<rect x="635.53" y="291.70" width="7.77" height="0.60" fill="#8a6316" opacity="0.35"/>
+<rect x="645.69" y="291.70" width="7.77" height="0.60" fill="#8a6316" opacity="0.35"/>
+<rect x="655.84" y="291.70" width="7.77" height="0.60" fill="#8a6316" opacity="0.35"/>
+<rect x="666.00" y="291.70" width="7.77" height="0.60" fill="#8a6316" opacity="0.35"/>
+<rect x="676.15" y="291.70" width="7.77" height="0.60" fill="#8a6316" opacity="0.35"/>
+<rect x="686.31" y="291.70" width="7.77" height="0.60" fill="#8a6316" opacity="0.35"/>
+<rect x="696.46" y="291.70" width="7.77" height="0.60" fill="#8a6316" opacity="0.35"/>
+<rect x="706.62" y="291.70" width="7.77" height="0.60" fill="#8a6316" opacity="0.35"/>
+<rect x="716.77" y="291.70" width="7.77" height="0.60" fill="#8a6316" opacity="0.35"/>
+<rect x="726.93" y="291.70" width="7.77" height="0.60" fill="#8a6316" opacity="0.35"/>
+<rect x="80.0" y="50.0" width="178" height="68" fill="#ffffff" fill-opacity="0.86" stroke="#e8e6e0" rx="3"/>
+<line x1="86.0" y1="66.0" x2="104.0" y2="66.0" stroke="#245a7a" stroke-width="3"/>
+<text x="110.0" y="70.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="11" fill="#23262b">帧级 SNR (dB)</text>
+<line x1="86.0" y1="86.0" x2="104.0" y2="86.0" stroke="#8a3b26" stroke-width="3"/>
+<text x="110.0" y="90.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="11" fill="#23262b">VAD 阈值</text>
+<line x1="86.0" y1="106.0" x2="104.0" y2="106.0" stroke="#8a6316" stroke-width="3"/>
+<text x="110.0" y="110.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="11" fill="#23262b">VAD=1 判语音</text>
+</svg>

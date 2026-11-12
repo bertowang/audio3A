@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 27 章 · 因果性与流式推理：状态缓存、感受野 | 音频 3A 处理：从自适应滤波到神经增强</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<script src="../../assets/toc.js" defer></script>
+<script src="../../assets/app.js" defer></script>
+</head>
+<body data-root="../../" data-chapter="27">
+<aside id="sidebar"></aside>
+<main class="book-page">
+<nav class="breadcrumb" data-autofill>总目录</nav>
+<header class="chapter-head">
+<span class="kicker">第六篇 · 实时部署、评测与前沿 · 下卷 · AI 算法（Data-driven）</span>
+<h1><span class="ch-num">第 27 章</span>因果性与流式推理：状态缓存、感受野</h1>
+<p class="lede">实时不是「跑得快」，而是「输出第 n 个样本时绝不看第 n+1 个」。</p>
+<div class="meta">
+<span class="badge done">已完稿</span>
+<span class="badge s4">部署 · 前沿</span>
+<span class="badge neural">下卷 · AI 算法</span>
+<span>建议 3 学时</span>
+<span>1 个 Python 实验 · 2 张图 · 2 段试听</span>
+<span>音频 3A 处理：从自适应滤波到神经增强</span>
+</div></header>
+<p class="bridge"><strong>本章位置：</strong><a href='../../part5/26-joint-3a/index.html'>第 26 章 · 联合 3A：多任务、级联与端到端建模</a> 完成模型结构，本章给出流式的正确性判据；<a href='../28-latency-budget/index.html'>第 28 章 · 延迟预算与 RTF：实时链路账本</a> 把这些状态与等待时间折成延迟预算，<a href='../29-quantization/index.html'>第 29 章 · 量化、剪枝与端侧推理</a> 再压缩算力。</p>
+<div class="analogy"><span class="card-label">给程序员的翻译</span><p style="margin-bottom:0">流式推理就是「把无状态函数改成带 state 的迭代器」：同一份权重、同一份计算图，只是把历史窗口显式存在结构体里。</p></div>
+<div class="card objectives"><span class="card-label">学习目标</span><ul>
+<li>能给出因果系统的形式定义并识别常见违规写法。</li>
+<li>能实现分块流式处理并验证它与离线因果处理逐样本一致。</li>
+<li>能量化非因果前瞻带来的「虚假提前量」。</li>
+<li>能列出 TCN / RNN / 注意力各自的状态缓存内容。</li>
+</ul></div>
+<section id="map"><h2><span class="sec-num">§</span>知识点地图</h2>
+<p class="code-hint">每个知识点都配了 1～2 个扩展学习链接；本章完整资源清单见 <a href="#extra-links">扩展学习</a>。</p>
+<table><thead><tr><th style="width:44px">#</th><th style="width:26%">知识点</th><th>扩展学习</th><th style="width:100px">状态</th></tr></thead><tbody>
+<tr><td>1</td><td>因果性定义</td><td><a href="https://www.rfc-editor.org/rfc/rfc3550" target="_blank" rel="noopener noreferrer">RFC 3550 RTP ↗</a> · <a href="https://onnxruntime.ai/" target="_blank" rel="noopener noreferrer">ONNX Runtime ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>2</td><td>算法前瞻与延迟</td><td><a href="https://www.rfc-editor.org/rfc/rfc3550" target="_blank" rel="noopener noreferrer">RFC 3550 RTP ↗</a> · <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API" target="_blank" rel="noopener noreferrer">MDN Web Audio API ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>3</td><td>分块流式处理</td><td><a href="https://docs.pytorch.org/audio/stable/index.html" target="_blank" rel="noopener noreferrer">torchaudio ↗</a> · <a href="https://onnxruntime.ai/" target="_blank" rel="noopener noreferrer">ONNX Runtime ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>4</td><td>状态缓存</td><td><a href="https://docs.pytorch.org/audio/stable/index.html" target="_blank" rel="noopener noreferrer">torchaudio ↗</a> · <a href="https://onnxruntime.ai/" target="_blank" rel="noopener noreferrer">ONNX Runtime ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>5</td><td>膨胀卷积感受野</td><td><a href="https://www.dspguide.com/" target="_blank" rel="noopener noreferrer">The Scientist and Engineer&#x27;s Guide to DSP ↗</a> · <a href="https://docs.scipy.org/doc/scipy/reference/signal.html" target="_blank" rel="noopener noreferrer">SciPy signal ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>6</td><td>RNN 隐状态</td><td><a href="https://docs.pytorch.org/audio/stable/index.html" target="_blank" rel="noopener noreferrer">torchaudio ↗</a> · <a href="https://onnxruntime.ai/" target="_blank" rel="noopener noreferrer">ONNX Runtime ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>7</td><td>注意力 KV 缓存</td><td><a href="https://docs.pytorch.org/audio/stable/index.html" target="_blank" rel="noopener noreferrer">torchaudio ↗</a> · <a href="https://onnxruntime.ai/" target="_blank" rel="noopener noreferrer">ONNX Runtime ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>8</td><td>流式与离线等价</td><td><a href="https://docs.pytorch.org/audio/stable/index.html" target="_blank" rel="noopener noreferrer">torchaudio ↗</a> · <a href="https://onnxruntime.ai/" target="_blank" rel="noopener noreferrer">ONNX Runtime ↗</a></td><td>正文已覆盖</td></tr>
+</tbody></table></section>
+<section id="s27-1"><h2><span class="sec-num">§27.1</span>因果是一条单元测试</h2>
+<p class="eq">因果: y[n] = f(x[0..n], state[n−1])　；非因果: y[n] = f(x[0..n+L])</p>
+<p>判断是否因果有个笨但可靠的办法：<strong>把输入在 n+1 处截断，输出 y[0..n] 必须一模一样</strong>。双向 RNN、非因果卷积、整段归一化、全局注意力都会破坏这条性质。离线论文里漂亮的数字若用了未来帧，在实时链路上要么删掉，要么把前瞻时间加进延迟预算。</p>
+<table><thead><tr><th style="width:20%">结构</th><th style="width:30%">需要的状态</th><th style="width:24%">感受野</th><th style="width:26%">流式可行性</th></tr></thead><tbody>
+<tr><td>因果 TCN</td><td>每层最后 (K−1)·d 个样本</td><td>由膨胀系数决定</td><td>好，状态大小可预算</td></tr>
+<tr><td>GRU / LSTM</td><td>隐状态向量</td><td>理论无限</td><td>好，但逐帧串行</td></tr>
+<tr><td>因果注意力</td><td>KV 缓存</td><td>窗口长度</td><td>可以，内存随窗口增长</td></tr>
+<tr><td>双向 / 整段归一化</td><td>整段输入</td><td>全序列</td><td>不可流式，只能离线</td></tr>
+</tbody></table>
+</section>
+<section id="s27-2"><h2><span class="sec-num">§27.2</span>分块推理的正确性契约</h2>
+<ul>
+<li><strong>状态即接口</strong>：每个模块暴露 <code>reset()</code> 与 <code>process(block) -> (block, state)</code>，状态必须显式传递，不能藏在全局里。</li>
+<li><strong>等价性测试</strong>：把长信号按 10 ms 切块逐块跑，与把整段一次性跑因果版本的结果应当在浮点误差内一致。</li>
+<li><strong>边界</strong>：STFT 的帧覆盖、卷积的左填充、AGC 的包络初值都会导致首块差异，需要预热或固定初值。</li>
+<li><strong>延迟</strong>：状态缓存本身不增加延迟，但为凑齐一个块而产生的等待会（<a href='../28-latency-budget/index.html'>第 28 章 · 延迟预算与 RTF：实时链路账本</a>）。</li>
+</ul>
+<div class="card note"><span class="card-label">实验口径</span><p style="margin-bottom:0">用一个 k 点滑动平均代表「有状态的平滑器」，比较离线因果版、分块流式版与中心化（非因果）版，把「用未来帧换来的提前量」变成一个可测的样本数。</p></div>
+</section>
+<section id="lab"><h2><span class="sec-num">§</span>Python 实验</h2>
+<h3>实验 27-1 · 因果、非因果与分块流式的一致性及前瞻量</h3>
+<pre class="code" data-file="code/27-causal-streaming.py" data-lang="Python 3 · 标准库"><code>#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""实现三种滑动平均，验证流式与离线因果逐样本一致，并测量非因果前瞻。
+
+全部语音 / 噪声 / 房间冲激响应均为代码合成信号，仅用于教学演示机制与量级。
+"""
+from __future__ import annotations
+
+import math
+import pathlib
+import random
+import statistics
+import sys
+import time
+
+_here = pathlib.Path(__file__).resolve()
+for _p in _here.parents:
+    if (_p / "tools" / "dsp.py").exists():
+        sys.path.insert(0, str(_p / "tools"))
+        break
+from dsp import (SAMPLE_RATE, fft, hann, stft, istft, magnitude_db, spectrum,
+                 white_noise, tone, chirp, synthetic_speech, rir, convolve,
+                 fft_convolve, delay, clip, normalize_peak, rms, rolling_rms,
+                 smooth, db, energy_db, snr_db, erle_db, seg_snr_db,
+                 scale_align, si_sdr_db, lufs_approx,
+                 write_wav, read_wav, wav_info)
+from chart import Chart, heatmap, BLUE, RED, GREEN, AMBER
+
+FIG = _here.parents[1] / "fig"
+AUDIO = _here.parents[1] / "audio"
+FIG.mkdir(exist_ok=True)
+AUDIO.mkdir(exist_ok=True)
+
+random.seed(7)
+
+# ---- 参数区 ----
+N = 6000
+K = 64                   # 平滑窗口（样本）
+BLOCK = 256              # 流式分块大小（16 ms @ 16 kHz）
+
+# ---- 计算与作图 ----
+def causal_ma(x, k):
+    out, acc = [], 0.0
+    for i, v in enumerate(x):
+        acc += v
+        if i &gt;= k:
+            acc -= x[i - k]
+        out.append(acc / min(i + 1, k))
+    return out
+def centered_ma(x, k):
+    half, out = k // 2, []
+    for i in range(len(x)):
+        seg = x[max(0, i - half):min(len(x), i + half + 1)]
+        out.append(sum(seg) / len(seg))
+    return out
+def stream_ma(x, k, block):
+    out, hist = [], []
+    for s in range(0, len(x), block):
+        for v in x[s:s + block]:
+            hist.append(v)
+            if len(hist) &gt; k:
+                hist.pop(0)
+            out.append(sum(hist) / len(hist))
+    return out
+
+step = [0.0 if i &lt; N // 3 else 1.0 for i in range(N)]
+env_c, env_n, env_s = causal_ma(step, K), centered_ma(step, K), stream_ma(step, K, BLOCK)
+maxdiff = max(abs(a - b) for a, b in zip(env_c, env_s))
+def cross(env):
+    for i, v in enumerate(env):
+        if v &gt;= 0.5:
+            return i
+    return len(env)
+lag = cross(env_c) - cross(env_n)
+rng = random.Random(7)
+speech = synthetic_speech(rng, N)
+raw_env = rolling_rms(speech, 128)
+smooth_c = causal_ma(raw_env, K)
+smooth_n = centered_ma(raw_env, K)
+c = Chart(FIG / "27-streaming.svg", "阶跃响应：因果 / 非因果 / 分块流式", xlabel="样本", ylabel="平滑值")
+c.line(range(0, N, 20), [step[i] for i in range(0, N, 20)], "#9aa6b2", label="输入阶跃")
+c.line(range(0, N, 20), [env_c[i] for i in range(0, N, 20)], BLUE, label="因果 / 流式")
+c.line(range(0, N, 20), [env_n[i] for i in range(0, N, 20)], RED, label="中心化（非因果）")
+print("阶跃图:", c.save())
+e = Chart(FIG / "27-envelope.svg", "语音包络：因果平滑 vs 非因果平滑", xlabel="样本 / 40", ylabel="RMS")
+e.line(range(0, N, 40), [raw_env[i] for i in range(0, N, 40)], "#9aa6b2", label="原始包络")
+e.line(range(0, N, 40), [smooth_c[i] for i in range(0, N, 40)], BLUE, label="因果")
+e.line(range(0, N, 40), [smooth_n[i] for i in range(0, N, 40)], RED, label="非因果")
+print("包络图:", e.save())
+carrier = tone(440, N, amp=0.30)
+write_wav(AUDIO / "27-causal.wav", [carrier[i] * env_c[i] for i in range(N)])
+write_wav(AUDIO / "27-noncausal.wav", [carrier[i] * env_n[i] for i in range(N)])
+print("流式 vs 离线因果 最大误差=%.2e | 状态缓存=%d 样本 | 分块=%d 样本" %
+      (maxdiff, K - 1, BLOCK))
+print("非因果提前量=%d 样本 = %.2f ms | 阶跃位置=%d | SAMPLE_RATE=%d" %
+      (lag, 1000.0 * lag / SAMPLE_RATE, N // 3, SAMPLE_RATE))</code></pre>
+<p class="code-hint"><strong>操作：</strong>核对流式与离线因果的最大误差；试听两个 WAV 的起音先后。　<strong>预期与判读：</strong>分块流式与离线因果逐样本一致（浮点误差量级）；中心化平滑在阶跃之前就开始上升，这段「提前量」正是它不可实时的证据，若强行上线必须把同等时间计入算法延迟。</p>
+<p class="code-hint"><strong>改参数看趋势：</strong>把 K 改成 128，提前量与状态缓存都约翻倍。　文件位置：<code>part6/27-causal-streaming/code/27-causal-streaming.py</code></p>
+<div class="chart-grid">
+<figure class="chart-figure"><img src="fig/27-streaming.svg" alt="三种平滑器的阶跃响应" loading="lazy"><figcaption>图 1　三种平滑器的阶跃响应（代码合成信号 / 教学示意）</figcaption></figure>
+<figure class="chart-figure"><img src="fig/27-envelope.svg" alt="语音包络的因果与非因果平滑" loading="lazy"><figcaption>图 2　语音包络的因果与非因果平滑（代码合成信号 / 教学示意）</figcaption></figure>
+</div>
+<div class="audio-grid">
+<div class="audio-card"><h4>27-causal.wav</h4><audio controls preload="none" src="audio/27-causal.wav">浏览器不支持 audio 元素，请直接打开 audio/27-causal.wav。</audio><p>因果包络调制的音调：起音在阶跃之后（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+<div class="audio-card"><h4>27-noncausal.wav</h4><audio controls preload="none" src="audio/27-noncausal.wav">浏览器不支持 audio 元素，请直接打开 audio/27-noncausal.wav。</audio><p>非因果包络调制的音调：起音提前出现（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+</div>
+<div class="card note"><p style="margin-bottom:0">代码块右上角可一键复制；仓库里的 <code>code/*.py</code> 由 <code>tools/extract_code.py</code> 从这些代码块自动抽取。脚本只用标准库、固定 <code>random.seed(7)</code>，运行后写出 <code>fig/*.svg</code> 与 <code>audio/*.wav</code>；批量运行用 <code>./tools/run_python.sh</code>。</p></div>
+</section>
+<section id="commands"><h2><span class="sec-num">§</span>可选真机命令片段</h2>
+<div class="card note"><p style="margin-bottom:0">以下命令<strong>不参与批量运行</strong>，需要本机自行安装对应工具。滤镜是否可用取决于本机 ffmpeg 版本与编译选项，请先用 <code>ffmpeg -filters</code> / <code>ffmpeg -version</code> 自查，并以 https://ffmpeg.org/ffmpeg-filters.html 与各自官方文档为准；本书不假定任何特定版本具备某项能力。</p></div>
+<h3>查看流式推理与 STFT 缓存的工业接口</h3>
+<pre class="cmd" data-lang="shell"><code>python3 -c "import torchaudio; print(torchaudio.__version__)"</code></pre>
+<p class="code-hint"><strong>说明：</strong>torchaudio 的流式 STFT / 缓存接口见 https://docs.pytorch.org/audio/stable/index.html ；本机未必安装，本书实验不依赖它。</p>
+</section>
+<section id="highlights"><h2><span class="sec-num">§</span>本章参考资料</h2><p>按本章知识点挑选的精读资料；更多检索入口见 <a href="#extra-links">扩展学习</a>。</p><div class="repo-grid">
+<div class="repo-card"><h3><a href="https://docs.pytorch.org/audio/stable/index.html" target="_blank" rel="noopener noreferrer">torchaudio ↗</a></h3><span class="tag">工程</span><p>音频 I/O、STFT/ISTFT、波形与谱特征的标准实现</p><p style="margin:0;color:var(--ink-faint)">推荐理由：流式 STFT 与缓存的工业接口</p></div>
+<div class="repo-card"><h3><a href="https://onnxruntime.ai/" target="_blank" rel="noopener noreferrer">ONNX Runtime ↗</a></h3><span class="tag">工程</span><p>端侧推理运行时，神经 3A 部署常用目标</p><p style="margin:0;color:var(--ink-faint)">推荐理由：有状态推理的运行时参考</p></div>
+<div class="repo-card"><h3><a href="https://github.com/xiph/rnnoise" target="_blank" rel="noopener noreferrer">RNNoise ↗</a></h3><span class="tag">工程</span><p>Valin 的混合 DSP/深度学习实时降噪，ffmpeg arnndn 的模型来源</p><p style="margin:0;color:var(--ink-faint)">推荐理由：逐帧 GRU 状态复用的工程范例</p></div>
+<div class="repo-card"><h3><a href="https://www.rfc-editor.org/rfc/rfc3550" target="_blank" rel="noopener noreferrer">RFC 3550 RTP ↗</a></h3><span class="tag">标准</span><p>实时音视频传输的时间戳、抖动与序列号基础</p><p style="margin:0;color:var(--ink-faint)">推荐理由：实时链路里时间戳与抖动的来源</p></div>
+</div></section>
+<section id="repos"><h2><span class="sec-num">§</span>相关开源工程</h2><p>下列工程仅作技术参照，版权与许可证归各自维护者所有。本书实验不依赖它们，也与之无从属关系。</p><div class="repo-grid">
+<div class="repo-card"><h3><a href="https://onnxruntime.ai/" target="_blank" rel="noopener noreferrer">ONNX Runtime ↗</a></h3><span class="tag">部署</span><p>端侧有状态推理与量化部署的常用运行时</p></div>
+<div class="repo-card"><h3><a href="https://github.com/xiph/rnnoise" target="_blank" rel="noopener noreferrer">RNNoise ↗</a></h3><span class="tag">AI · C</span><p>逐帧 GRU 状态复用的实时降噪实现</p></div>
+</div></section>
+<section id="pitfalls"><h2><span class="sec-num">§</span>常见误区</h2><div class="card warn"><ul><li>用双向层或整段归一化，却在报告里写「实时」。</li>
+<li>把状态藏在全局变量里，多路并发时串线。</li>
+<li>忽略首块预热，导致上线后第一句异常。</li>
+<li>只测吞吐不测最坏单帧耗时。</li></ul></div></section>
+<section id="exercises"><h2><span class="sec-num">§</span>习题与思考</h2><ol><li>写出 process(block, state) 的接口契约与等价性测试。</li>
+<li>估算 5 层膨胀 TCN 需要缓存多少历史样本。</li>
+<li>解释为什么「提前量」不能通过提高算力消除。</li></ol></section>
+<section id="extra-links"><h2><span class="sec-num">§</span>扩展学习</h2>
+<div class="repo-grid">
+<div class="repo-card"><h3><a href="https://docs.pytorch.org/audio/stable/index.html" target="_blank" rel="noopener noreferrer">torchaudio ↗</a></h3><span class="tag">工程</span><p>音频 I/O、STFT/ISTFT、波形与谱特征的标准实现</p></div>
+<div class="repo-card"><h3><a href="https://onnxruntime.ai/" target="_blank" rel="noopener noreferrer">ONNX Runtime ↗</a></h3><span class="tag">工程</span><p>端侧推理运行时，神经 3A 部署常用目标</p></div>
+<div class="repo-card"><h3><a href="https://github.com/xiph/rnnoise" target="_blank" rel="noopener noreferrer">RNNoise ↗</a></h3><span class="tag">工程</span><p>Valin 的混合 DSP/深度学习实时降噪，ffmpeg arnndn 的模型来源</p></div>
+<div class="repo-card"><h3><a href="https://www.rfc-editor.org/rfc/rfc3550" target="_blank" rel="noopener noreferrer">RFC 3550 RTP ↗</a></h3><span class="tag">标准</span><p>实时音视频传输的时间戳、抖动与序列号基础</p></div>
+</div>
+<h3>继续检索</h3><ul>
+<li>Google Scholar：<a href='https://scholar.google.com/scholar?q=causal%20TCN%20Conformer%20low%20latency%20streaming%20state%20cache' target='_blank' rel='noopener noreferrer'>causal TCN Conformer low latency streaming state cache ↗</a></li>
+<li>arXiv：<a href='https://arxiv.org/search/?query=causal%20TCN%20Conformer%20low%20latency%20streaming%20state%20cache&searchtype=all' target='_blank' rel='noopener noreferrer'>causal TCN Conformer low latency streaming state cache ↗</a></li>
+<li>GitHub：<a href='https://github.com/search?q=causal%20TCN%20Conformer%20low%20latency%20streaming%20state%20cache&type=repositories' target='_blank' rel='noopener noreferrer'>causal TCN Conformer low latency streaming state cache ↗</a></li>
+</ul>
+<p class="code-hint">全书链接总表见 <a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a> 与 <a href="../../appendix/index.html#sA-7">附录 A.7</a>；滤镜是否可用请以本机 <code>ffmpeg -filters</code> 为准。</p>
+</section>
+<section id="further"><h2><span class="sec-num">§</span>延伸阅读与内链</h2><ul><li><a href='../28-latency-budget/index.html'>第 28 章 · 延迟预算与 RTF：实时链路账本</a> 延迟预算；<a href='../29-quantization/index.html'>第 29 章 · 量化、剪枝与端侧推理</a> 量化；<a href='../31-capstone/index.html'>第 31 章 · 结课项目：小型掩码估计器与全链路验证</a> 结课项目。</li></ul></section>
+<footer class="pager" data-autofill></footer>
+<footer class="site-foot">
+<p class="credits"><strong>作者</strong>：汪亮（bertonwang）　<strong>联系邮箱</strong>：<a href="mailto:47608843@qq.com">47608843@qq.com</a></p>
+<p class="ai-note"><strong>AI 使用说明</strong>：本教材的知识框架、正文、Python 实验脚本与参考资料清单在 AI 辅助下整理生成，并经人工校订、实际运行与静态自检。公式、数值与运行结果请以Python 3 实际输出及权威教材、官方文档为准；发现错漏欢迎通过上方邮箱勘误。</p>
+<p class="imprint">音频 3A 处理：从自适应滤波到神经增强 · 每章一个 <code>code/*.py</code> 实验脚本、<code>fig/*.svg</code> 矢量图与 <code>audio/*.wav</code> 试听样本（由 <code>tools/extract_code.py</code> 与脚本运行同步） · 只用 Python 3 标准库 · 教学材料，信号全部由代码合成。</p>
+</footer>
+</main>
+</body>
+</html>

@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 16 章 · 3A 级联顺序与模块间相互干扰 | 音频 3A 处理：从自适应滤波到神经增强</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<script src="../../assets/toc.js" defer></script>
+<script src="../../assets/app.js" defer></script>
+</head>
+<body data-root="../../" data-chapter="16">
+<aside id="sidebar"></aside>
+<main class="book-page">
+<nav class="breadcrumb" data-autofill>总目录</nav>
+<header class="chapter-head">
+<span class="kicker">第三篇 · 级联、评测与工程链路 · 上卷 · 传统算法（Model-based）</span>
+<h1><span class="ch-num">第 16 章</span>3A 级联顺序与模块间相互干扰</h1>
+<p class="lede">三个模块各自都对，串错顺序却会全盘失效；本章把「顺序」变成可测量的量。</p>
+<div class="meta">
+<span class="badge done">已完稿</span>
+<span class="badge s2">级联 · 评测</span>
+<span class="badge traditional">上卷 · 传统算法</span>
+<span>建议 3 学时</span>
+<span>1 个 Python 实验 · 2 张图 · 2 段试听</span>
+<span>音频 3A 处理：从自适应滤波到神经增强</span>
+</div></header>
+<p class="bridge"><strong>本章位置：</strong><a href='../../part2/09-aec-architecture/index.html'>第 09 章 · AEC 总体结构：参考信号、线性滤波与残余抑制</a>～<a href='../../part2/14-agc/index.html'>第 14 章 · AGC：包络跟踪、攻击释放、限幅与响度</a> 分别实现三个引擎，本章把它们按不变量串起来；<a href='../17-toolchain/index.html'>第 17 章 · ffmpeg / WebRTC / SpeexDSP 工具链实操</a> 给出命令行工具链，<a href='../18-classic-eval/index.html'>第 18 章 · 上卷综合实验：完整传统 3A 链路与评测</a> 对整条上卷链路做综合验收。</p>
+<div class="analogy"><span class="card-label">给程序员的翻译</span><p style="margin-bottom:0">级联顺序是流水线里「谁先读到未经修改的原始数据」的问题：AEC 是唯一需要原始参考的消费者，因此必须排在任何会改写数据的算子之前。</p></div>
+<div class="card objectives"><span class="card-label">学习目标</span><ul>
+<li>能写出 AEC / ANS / AGC 三者的输入输出契约与不变量。</li>
+<li>能定量说明 AGC 前置为什么会破坏自适应滤波的线性假设。</li>
+<li>能定性说明 ANS 前置为什么会把回声谱也一起改掉。</li>
+<li>能给出推荐链路及例外条件下的调整方案。</li>
+</ul></div>
+<section id="map"><h2><span class="sec-num">§</span>知识点地图</h2>
+<p class="code-hint">每个知识点都配了 1～2 个扩展学习链接；本章完整资源清单见 <a href="#extra-links">扩展学习</a>。</p>
+<table><thead><tr><th style="width:44px">#</th><th style="width:26%">知识点</th><th>扩展学习</th><th style="width:100px">状态</th></tr></thead><tbody>
+<tr><td>1</td><td>模块接口契约</td><td><a href="https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/" target="_blank" rel="noopener noreferrer">WebRTC 源码（audio_processing） ↗</a> · <a href="https://ffmpeg.org/ffmpeg.html" target="_blank" rel="noopener noreferrer">FFmpeg 滤波命令示例 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>2</td><td>参考信号不变量</td><td><a href="https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/" target="_blank" rel="noopener noreferrer">WebRTC 源码（audio_processing） ↗</a> · <a href="https://ffmpeg.org/ffmpeg.html" target="_blank" rel="noopener noreferrer">FFmpeg 滤波命令示例 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>3</td><td>AEC → ANS → AGC</td><td><a href="https://en.wikipedia.org/wiki/Echo_cancellation" target="_blank" rel="noopener noreferrer">Echo cancellation ↗</a> · <a href="https://www.itu.int/rec/T-REC-G.168/en" target="_blank" rel="noopener noreferrer">ITU-T G.168 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>4</td><td>AGC 前置的危害</td><td><a href="https://en.wikipedia.org/wiki/Automatic_gain_control" target="_blank" rel="noopener noreferrer">Automatic gain control ↗</a> · <a href="https://ffmpeg.org/ffmpeg-filters.html#speechnorm" target="_blank" rel="noopener noreferrer">ffmpeg speechnorm ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>5</td><td>ANS 前置的危害</td><td><a href="https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/" target="_blank" rel="noopener noreferrer">WebRTC 源码（audio_processing） ↗</a> · <a href="https://ffmpeg.org/ffmpeg.html" target="_blank" rel="noopener noreferrer">FFmpeg 滤波命令示例 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>6</td><td>增益与尺度对齐</td><td><a href="https://en.wikipedia.org/wiki/Automatic_gain_control" target="_blank" rel="noopener noreferrer">Automatic gain control ↗</a> · <a href="https://ffmpeg.org/ffmpeg-filters.html#dynaudnorm" target="_blank" rel="noopener noreferrer">ffmpeg dynaudnorm ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>7</td><td>混合系统顺序</td><td><a href="https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/" target="_blank" rel="noopener noreferrer">WebRTC 源码（audio_processing） ↗</a> · <a href="https://ffmpeg.org/ffmpeg.html" target="_blank" rel="noopener noreferrer">FFmpeg 滤波命令示例 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>8</td><td>端到端可观测性</td><td><a href="https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/" target="_blank" rel="noopener noreferrer">WebRTC 源码（audio_processing） ↗</a> · <a href="https://ffmpeg.org/ffmpeg.html" target="_blank" rel="noopener noreferrer">FFmpeg 滤波命令示例 ↗</a></td><td>正文已覆盖</td></tr>
+</tbody></table></section>
+<section id="s16-1"><h2><span class="sec-num">§16.1</span>顺序不是风格，是不变量</h2>
+<p class="eq">y[n] = d[n] + h*x[n] + v[n]　；AEC 要求 y 与 x 之间保持同一个 h</p>
+<p>AEC 是唯一<strong>有参考信号</strong>的模块，也是唯一依赖「y 与 x 由同一条线性路径联系」的模块。任何在 AEC 之前对 <code>y</code> 做的非线性或时变处理，都会让这个不变量失效：AGC 改变整体增益，ANS 逐频率箱改变谱形状，二者都等价于把 <code>h</code> 换成了随时间变化的路径。</p>
+<table><thead><tr><th style="width:26%">排列</th><th style="width:30%">破坏的不变量</th><th style="width:44%">可观测后果</th></tr></thead><tbody>
+<tr><td>AEC → ANS → AGC</td><td>无</td><td>ERLE 高、噪声被压、输出等响</td></tr>
+<tr><td>AGC → AEC → ANS</td><td>y 与 x 的增益比</td><td>线性抵消不彻底，ERLE 塌陷</td></tr>
+<tr><td>ANS → AEC → AGC</td><td>y 的谱形状</td><td>预测回声与实际谱不匹配，残余回声上升</td></tr>
+<tr><td>ANS → AGC → AEC</td><td>增益 + 谱形状</td><td>两项误差叠加，最差</td></tr>
+</tbody></table>
+</section>
+<section id="s16-2"><h2><span class="sec-num">§16.2</span>推荐链路与两个例外</h2>
+<p>教科书顺序是 <code>时延对齐 → AEC 线性级 → 残余回声抑制 → ANS → AGC → 限幅</code>。WebRTC 的 <code>audio_processing</code> 大体遵循这一顺序，但把回声/噪声的统计估计与后滤波交织在一起，形成更紧凑的流水线。</p>
+<ul>
+<li><strong>例外一</strong>：麦克风阵列波束形成若放在 AEC 之前，必须让参考信号经过同样的波束或重新辨识路径（见 <a href='../15-beamforming/index.html'>第 15 章 · 麦克风阵列与波束形成：从 delay-and-sum 到 MVDR</a>）。</li>
+<li><strong>例外二</strong>：神经联合模型（<a href='../../part5/26-joint-3a/index.html'>第 26 章 · 联合 3A：多任务、级联与端到端建模</a>）把多个模块合成一个网络，此时「顺序」变成网络内部的层顺序，但因果性与参考信号不变量仍然成立。</li>
+<li><strong>评测提醒</strong>：AGC 在最后，所以任何质量指标都要先做尺度对齐（<a href='../../part0/03-metrics/index.html'>第 03 章 · 怎么算「变好了」：客观指标、尺度与主观听测</a>）。</li>
+</ul>
+<div class="card note"><span class="card-label">失效可隔离</span><p style="margin-bottom:0">把链路拆成可单独旁路的模块，是定位线上问题的前提：漏回声查 AEC、音乐噪声查 ANS、忽大忽小查 AGC。端到端黑箱模型在工程上更难做这种归因。</p></div>
+</section>
+<section id="lab"><h2><span class="sec-num">§</span>Python 实验</h2>
+<h3>实验 16-1 · 三种级联排列的 ERLE 与分段 SNR 对照</h3>
+<pre class="code" data-file="code/16-cascade-order.py" data-lang="Python 3 · 标准库"><code>#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""在同一条合成链路上交换 3A 顺序；线性 AEC 用已知 h 加 3% 受控泄漏，量化顺序错误造成的指标塌陷。
+
+全部语音 / 噪声 / 房间冲激响应均为代码合成信号，仅用于教学演示机制与量级。
+"""
+from __future__ import annotations
+
+import math
+import pathlib
+import random
+import statistics
+import sys
+import time
+
+_here = pathlib.Path(__file__).resolve()
+for _p in _here.parents:
+    if (_p / "tools" / "dsp.py").exists():
+        sys.path.insert(0, str(_p / "tools"))
+        break
+from dsp import (SAMPLE_RATE, fft, hann, stft, istft, magnitude_db, spectrum,
+                 white_noise, tone, chirp, synthetic_speech, rir, convolve,
+                 fft_convolve, delay, clip, normalize_peak, rms, rolling_rms,
+                 smooth, db, energy_db, snr_db, erle_db, seg_snr_db,
+                 scale_align, si_sdr_db, lufs_approx,
+                 write_wav, read_wav, wav_info)
+from chart import Chart, heatmap, BLUE, RED, GREEN, AMBER
+
+FIG = _here.parents[1] / "fig"
+AUDIO = _here.parents[1] / "audio"
+FIG.mkdir(exist_ok=True)
+AUDIO.mkdir(exist_ok=True)
+
+random.seed(7)
+
+# ---- 参数区 ----
+N = 8000
+N_FFT, HOP = 256, 128
+ECHO_GAIN = 1.5
+NOISE_AMP = 0.020
+LEAK = 0.03              # 故意留 3% 线性泄漏，避免「理想相减」得到不真实的无限 ERLE
+TARGET = 0.16
+
+# ---- 计算与作图 ----
+rng = random.Random(7)
+far = synthetic_speech(rng, N)
+near = synthetic_speech(rng, N)
+h = rir(rng, 128, decay=0.006)
+echo = [ECHO_GAIN * v for v in fft_convolve(far, h)[:N]]
+noise = white_noise(rng, N, NOISE_AMP)
+clean = [0.5 * v for v in near]
+y = [clean[i] + echo[i] + noise[i] for i in range(N)]
+nf = stft(noise, N_FFT, HOP)[:8]
+nmag = [sum(math.hypot(re[k], im[k]) for re, im in nf) / len(nf) for k in range(N_FFT)]
+
+def aec(sig):
+    return [sig[i] - (1.0 - LEAK) * echo[i] for i in range(N)]
+def ans(sig):
+    frames = stft(sig, N_FFT, HOP)
+    for re, im in frames:
+        for k in range(N_FFT):
+            g = max(0.15, 1.0 - 1.2 * nmag[k] / (math.hypot(re[k], im[k]) + 1e-9))
+            re[k] *= g
+            im[k] *= g
+    return istft(frames, N_FFT, HOP, N)
+def agc(sig):
+    g = min(6.0, TARGET / (rms(sig) + 1e-6))
+    return clip([v * g for v in sig])
+
+a1, a2, a3 = aec(y), None, None
+a2, a3 = ans(a1), None
+a3 = agc(a2)
+b0 = agc(y)
+b1, b2 = aec(b0), None
+b2 = ans(b1)
+c1 = ans(y)
+c2 = aec(c1)
+c3 = agc(c2)
+chains = [("AEC-ANS-AGC", a1, a3), ("AGC-AEC-ANS", b1, b2), ("ANS-AEC-AGC", c2, c3)]
+erles, snrs = [], []
+for _name, stage1, final in chains:
+    residual = [stage1[i] - clean[i] - noise[i] for i in range(N)]
+    erles.append(erle_db(echo, residual))
+    snrs.append(seg_snr_db(clean, scale_align(final, clean)))
+c = Chart(FIG / "16-order.svg", "三种级联排列的 ERLE 与分段 SNR",
+          xlabel="排列", ylabel="dB", xticks=[(i, n) for i, (n, _a, _b) in enumerate(chains)])
+c.bars(range(3), erles, BLUE, label="ERLE (dB)")
+c.bars(range(3), snrs, GREEN, label="分段 SNR (dB)")
+print("顺序图:", c.save())
+w = Chart(FIG / "16-waveform.svg", "正确顺序与 AGC 前置的输出波形（前 1200 样本）",
+          xlabel="样本", ylabel="幅度")
+w.line(range(1200), a3[:1200], GREEN, label="AEC-ANS-AGC")
+w.line(range(1200), b2[:1200], RED, label="AGC-AEC-ANS")
+print("波形图:", w.save())
+write_wav(AUDIO / "16-correct.wav", normalize_peak(a3))
+write_wav(AUDIO / "16-wrong.wav", normalize_peak(b2))
+for (name, _a, _b), e, s in zip(chains, erles, snrs):
+    print("%s: ERLE=%.2f dB segSNR=%.2f dB" % (name, e, s))
+print("RMS 输入=%.4f 正确输出=%.4f | SAMPLE_RATE=%d N_FFT=%d" %
+      (rms(y), rms(a3), SAMPLE_RATE, N_FFT))</code></pre>
+<p class="code-hint"><strong>操作：</strong>比较三条柱形；试听两个 WAV，注意错误顺序里残留的远端语音。　<strong>预期与判读：</strong>AGC 或 ANS 前置时，y 与参考回声之间的线性/谱关系被改变，AEC 减去的是「未被同样处理过的回声」，ERLE 明显低于推荐顺序。<strong>这就是顺序必须作为架构约束写进接口文档的原因。</strong></p>
+<p class="code-hint"><strong>改参数看趋势：</strong>把 ECHO_GAIN 调到 0.2，指标差距会缩小——说明越强的回声越依赖正确顺序。　文件位置：<code>part3/16-cascade-order/code/16-cascade-order.py</code></p>
+<div class="chart-grid">
+<figure class="chart-figure"><img src="fig/16-order.svg" alt="三种排列的 ERLE 与分段 SNR" loading="lazy"><figcaption>图 1　三种排列的 ERLE 与分段 SNR（代码合成信号 / 教学示意）</figcaption></figure>
+<figure class="chart-figure"><img src="fig/16-waveform.svg" alt="正确与错误顺序的输出波形" loading="lazy"><figcaption>图 2　正确与错误顺序的输出波形（代码合成信号 / 教学示意）</figcaption></figure>
+</div>
+<div class="audio-grid">
+<div class="audio-card"><h4>16-correct.wav</h4><audio controls preload="none" src="audio/16-correct.wav">浏览器不支持 audio 元素，请直接打开 audio/16-correct.wav。</audio><p>推荐顺序的输出（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+<div class="audio-card"><h4>16-wrong.wav</h4><audio controls preload="none" src="audio/16-wrong.wav">浏览器不支持 audio 元素，请直接打开 audio/16-wrong.wav。</audio><p>AGC 前置：仍能听到明显残余回声（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+</div>
+<div class="card note"><p style="margin-bottom:0">代码块右上角可一键复制；仓库里的 <code>code/*.py</code> 由 <code>tools/extract_code.py</code> 从这些代码块自动抽取。脚本只用标准库、固定 <code>random.seed(7)</code>，运行后写出 <code>fig/*.svg</code> 与 <code>audio/*.wav</code>；批量运行用 <code>./tools/run_python.sh</code>。</p></div>
+</section>
+<section id="commands"><h2><span class="sec-num">§</span>可选真机命令片段</h2>
+<div class="card note"><p style="margin-bottom:0">以下命令<strong>不参与批量运行</strong>，需要本机自行安装对应工具。滤镜是否可用取决于本机 ffmpeg 版本与编译选项，请先用 <code>ffmpeg -filters</code> / <code>ffmpeg -version</code> 自查，并以 https://ffmpeg.org/ffmpeg-filters.html 与各自官方文档为准；本书不假定任何特定版本具备某项能力。</p></div>
+<h3>用 ffmpeg 滤镜链复现一次「顺序」实验</h3>
+<pre class="cmd" data-lang="shell"><code>ffmpeg -hide_banner -i mic.wav -af afftdn,loudnorm out.wav</code></pre>
+<p class="code-hint"><strong>说明：</strong>-af 中滤镜按书写顺序串接，交换顺序即可对比；注意 ffmpeg 没有内置完整 AEC，这里只演示 ANS 与增益的先后。滤镜可用性以本机 `ffmpeg -filters` 与 https://ffmpeg.org/ffmpeg-filters.html 为准。</p>
+</section>
+<section id="highlights"><h2><span class="sec-num">§</span>本章参考资料</h2><p>按本章知识点挑选的精读资料；更多检索入口见 <a href="#extra-links">扩展学习</a>。</p><div class="repo-grid">
+<div class="repo-card"><h3><a href="https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/" target="_blank" rel="noopener noreferrer">WebRTC 源码（audio_processing） ↗</a></h3><span class="tag">工程</span><p>AEC3 / NS / AGC2 的工业级参考实现目录</p><p style="margin:0;color:var(--ink-faint)">推荐理由：工业 3A 流水线的模块排列参考</p></div>
+<div class="repo-card"><h3><a href="https://ffmpeg.org/ffmpeg.html" target="_blank" rel="noopener noreferrer">FFmpeg 滤波命令示例 ↗</a></h3><span class="tag">工具</span><p>命令行总文档，包含 -af 滤镜链、滤镜图与参数写法</p><p style="margin:0;color:var(--ink-faint)">推荐理由：-af 滤镜链的顺序语义</p></div>
+<div class="repo-card"><h3><a href="https://en.wikipedia.org/wiki/Echo_cancellation" target="_blank" rel="noopener noreferrer">Echo cancellation ↗</a></h3><span class="tag">百科</span><p>回声消除的问题定义、自适应滤波与双讲概述</p><p style="margin:0;color:var(--ink-faint)">推荐理由：参考信号与线性路径不变量</p></div>
+<div class="repo-card"><h3><a href="https://www.rfc-editor.org/rfc/rfc3550" target="_blank" rel="noopener noreferrer">RFC 3550 RTP ↗</a></h3><span class="tag">标准</span><p>实时音视频传输的时间戳、抖动与序列号基础</p><p style="margin:0;color:var(--ink-faint)">推荐理由：端到端延迟预算里各模块的排队位置</p></div>
+</div></section>
+<section id="pitfalls"><h2><span class="sec-num">§</span>常见误区</h2><div class="card warn"><ul><li>把 AGC 放在 AEC 之前，破坏参考信号与回声的线性关系。</li>
+<li>在 AEC 之前做谱减，把回声谱一起改掉。</li>
+<li>波束形成放在 AEC 之前却不同步处理参考信号。</li>
+<li>顺序调对后就不再做尺度对齐评测。</li></ul></div></section>
+<section id="exercises"><h2><span class="sec-num">§</span>习题与思考</h2><ol><li>画出三条链路并标出每条链路破坏的不变量。</li>
+<li>解释为什么实验里 AGC 前置会同时拉低 ERLE 与分段 SNR。</li>
+<li>为联合神经 3A 模型重新表述「顺序」这一约束。</li></ol></section>
+<section id="extra-links"><h2><span class="sec-num">§</span>扩展学习</h2>
+<div class="repo-grid">
+<div class="repo-card"><h3><a href="https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/" target="_blank" rel="noopener noreferrer">WebRTC 源码（audio_processing） ↗</a></h3><span class="tag">工程</span><p>AEC3 / NS / AGC2 的工业级参考实现目录</p></div>
+<div class="repo-card"><h3><a href="https://ffmpeg.org/ffmpeg.html" target="_blank" rel="noopener noreferrer">FFmpeg 滤波命令示例 ↗</a></h3><span class="tag">工具</span><p>命令行总文档，包含 -af 滤镜链、滤镜图与参数写法</p></div>
+<div class="repo-card"><h3><a href="https://en.wikipedia.org/wiki/Echo_cancellation" target="_blank" rel="noopener noreferrer">Echo cancellation ↗</a></h3><span class="tag">百科</span><p>回声消除的问题定义、自适应滤波与双讲概述</p></div>
+<div class="repo-card"><h3><a href="https://www.rfc-editor.org/rfc/rfc3550" target="_blank" rel="noopener noreferrer">RFC 3550 RTP ↗</a></h3><span class="tag">标准</span><p>实时音视频传输的时间戳、抖动与序列号基础</p></div>
+</div>
+<h3>继续检索</h3><ul>
+<li>Google Scholar：<a href='https://scholar.google.com/scholar?q=3A%20cascade%20order%20AEC%20before%20AGC%20artifacts' target='_blank' rel='noopener noreferrer'>3A cascade order AEC before AGC artifacts ↗</a></li>
+<li>arXiv：<a href='https://arxiv.org/search/?query=3A%20cascade%20order%20AEC%20before%20AGC%20artifacts&searchtype=all' target='_blank' rel='noopener noreferrer'>3A cascade order AEC before AGC artifacts ↗</a></li>
+<li>GitHub：<a href='https://github.com/search?q=3A%20cascade%20order%20AEC%20before%20AGC%20artifacts&type=repositories' target='_blank' rel='noopener noreferrer'>3A cascade order AEC before AGC artifacts ↗</a></li>
+</ul>
+<p class="code-hint">全书链接总表见 <a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a> 与 <a href="../../appendix/index.html#sA-7">附录 A.7</a>；滤镜是否可用请以本机 <code>ffmpeg -filters</code> 为准。</p>
+</section>
+<section id="further"><h2><span class="sec-num">§</span>延伸阅读与内链</h2><ul><li><a href='../17-toolchain/index.html'>第 17 章 · ffmpeg / WebRTC / SpeexDSP 工具链实操</a> 工具链；<a href='../18-classic-eval/index.html'>第 18 章 · 上卷综合实验：完整传统 3A 链路与评测</a> 综合评测；<a href='../../part5/26-joint-3a/index.html'>第 26 章 · 联合 3A：多任务、级联与端到端建模</a> 联合建模。</li></ul></section>
+<footer class="pager" data-autofill></footer>
+<footer class="site-foot">
+<p class="credits"><strong>作者</strong>：汪亮（bertonwang）　<strong>联系邮箱</strong>：<a href="mailto:47608843@qq.com">47608843@qq.com</a></p>
+<p class="ai-note"><strong>AI 使用说明</strong>：本教材的知识框架、正文、Python 实验脚本与参考资料清单在 AI 辅助下整理生成，并经人工校订、实际运行与静态自检。公式、数值与运行结果请以Python 3 实际输出及权威教材、官方文档为准；发现错漏欢迎通过上方邮箱勘误。</p>
+<p class="imprint">音频 3A 处理：从自适应滤波到神经增强 · 每章一个 <code>code/*.py</code> 实验脚本、<code>fig/*.svg</code> 矢量图与 <code>audio/*.wav</code> 试听样本（由 <code>tools/extract_code.py</code> 与脚本运行同步） · 只用 Python 3 标准库 · 教学材料，信号全部由代码合成。</p>
+</footer>
+</main>
+</body>
+</html>

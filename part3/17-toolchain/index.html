@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 17 章 · ffmpeg / WebRTC / SpeexDSP 工具链实操 | 音频 3A 处理：从自适应滤波到神经增强</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<script src="../../assets/toc.js" defer></script>
+<script src="../../assets/app.js" defer></script>
+</head>
+<body data-root="../../" data-chapter="17">
+<aside id="sidebar"></aside>
+<main class="book-page">
+<nav class="breadcrumb" data-autofill>总目录</nav>
+<header class="chapter-head">
+<span class="kicker">第三篇 · 级联、评测与工程链路 · 上卷 · 传统算法（Model-based）</span>
+<h1><span class="ch-num">第 17 章</span>ffmpeg / WebRTC / SpeexDSP 工具链实操</h1>
+<p class="lede">把书里的公式映射到能在本机敲的命令与能读的源码目录。</p>
+<div class="meta">
+<span class="badge done">已完稿</span>
+<span class="badge s2">级联 · 评测</span>
+<span class="badge traditional">上卷 · 传统算法</span>
+<span>建议 3 学时</span>
+<span>1 个 Python 实验 · 2 张图 · 2 段试听</span>
+<span>音频 3A 处理：从自适应滤波到神经增强</span>
+</div></header>
+<p class="bridge"><strong>本章位置：</strong><a href='../16-cascade-order/index.html'>第 16 章 · 3A 级联顺序与模块间相互干扰</a> 定下链路顺序，本章把每个模块落到可敲的命令与可读的源码；<a href='../18-classic-eval/index.html'>第 18 章 · 上卷综合实验：完整传统 3A 链路与评测</a> 用统一指标对整条上卷链路做综合验收。</p>
+<div class="analogy"><span class="card-label">给程序员的翻译</span><p style="margin-bottom:0">ffmpeg 的 <code>-af</code> 是一条 shell 管道，WebRTC 是一个有状态的流处理器：前者处理文件，后者处理 10 ms 一帧的无限流，二者的数据结构与延迟约束完全不同。</p></div>
+<div class="card objectives"><span class="card-label">学习目标</span><ul>
+<li>能用 `ffmpeg -filters` 自查本机支持的音频滤镜及版本。</li>
+<li>能把 3A 的三类任务映射到具体 ffmpeg 滤镜与参数。</li>
+<li>能定位 WebRTC audio_processing 与 SpeexDSP 的源码目录。</li>
+<li>能说明离线滤镜链与实时 3A 链路的本质差别。</li>
+</ul></div>
+<section id="map"><h2><span class="sec-num">§</span>知识点地图</h2>
+<p class="code-hint">每个知识点都配了 1～2 个扩展学习链接；本章完整资源清单见 <a href="#extra-links">扩展学习</a>。</p>
+<table><thead><tr><th style="width:44px">#</th><th style="width:26%">知识点</th><th>扩展学习</th><th style="width:100px">状态</th></tr></thead><tbody>
+<tr><td>1</td><td>滤镜自查与版本</td><td><a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a> · <a href="https://ffmpeg.org/ffmpeg-filters.html#arnndn" target="_blank" rel="noopener noreferrer">ffmpeg arnndn ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>2</td><td>afftdn / anlmdn / arnndn</td><td><a href="https://en.wikipedia.org/wiki/Cooley%E2%80%93Tukey_FFT_algorithm" target="_blank" rel="noopener noreferrer">Cooley–Tukey FFT ↗</a> · <a href="https://docs.python.org/3/library/index.html" target="_blank" rel="noopener noreferrer">Python 标准库文档 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>3</td><td>loudnorm / dynaudnorm / speechnorm</td><td><a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a> · <a href="https://ffmpeg.org/ffmpeg-filters.html#arnndn" target="_blank" rel="noopener noreferrer">ffmpeg arnndn ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>4</td><td>ebur128 / astats / volumedetect</td><td><a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a> · <a href="https://ffmpeg.org/ffmpeg-filters.html#arnndn" target="_blank" rel="noopener noreferrer">ffmpeg arnndn ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>5</td><td>WebRTC audio_processing</td><td><a href="https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/" target="_blank" rel="noopener noreferrer">WebRTC 源码（audio_processing） ↗</a> · <a href="https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/aec3/" target="_blank" rel="noopener noreferrer">WebRTC AEC3 模块 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>6</td><td>AEC3 源码目录</td><td><a href="https://en.wikipedia.org/wiki/Echo_cancellation" target="_blank" rel="noopener noreferrer">Echo cancellation ↗</a> · <a href="https://www.itu.int/rec/T-REC-G.168/en" target="_blank" rel="noopener noreferrer">ITU-T G.168 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>7</td><td>SpeexDSP 接口</td><td><a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a> · <a href="https://ffmpeg.org/ffmpeg-filters.html#arnndn" target="_blank" rel="noopener noreferrer">ffmpeg arnndn ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>8</td><td>离线与实时链路差异</td><td><a href="https://www.rfc-editor.org/rfc/rfc3550" target="_blank" rel="noopener noreferrer">RFC 3550 RTP ↗</a> · <a href="https://webrtc.org/" target="_blank" rel="noopener noreferrer">WebRTC 官网 ↗</a></td><td>正文已覆盖</td></tr>
+</tbody></table></section>
+<section id="s17-1"><h2><span class="sec-num">§17.1</span>先自查，再谈版本</h2>
+<p>用户常问「ffmpeg 某版本里有没有某个能力」。可靠的回答方式不是背版本号，而是给一条<strong>自查命令</strong>：编译选项不同，同一版本号支持的滤镜也可能不同。本书所有命令都遵循「先用本机输出确认、再查官方文档」的口径。</p>
+<table><thead><tr><th style="width:16%">任务</th><th style="width:44%">常用滤镜 / 入口</th><th style="width:40%">备注</th></tr></thead><tbody>
+<tr><td>噪声抑制</td><td>afftdn、anlmdn、arnndn</td><td>arnndn 需自备 RNNoise 训练出的模型文件</td></tr>
+<tr><td>增益 / 响度</td><td>dynaudnorm、speechnorm、loudnorm、acompressor、alimiter</td><td>loudnorm 对应 EBU R128；alimiter 做真峰值保护</td></tr>
+<tr><td>测量</td><td>volumedetect、astats、ebur128、silencedetect</td><td>ebur128 输出 I / LRA / True Peak</td></tr>
+<tr><td>造测试数据</td><td>aecho、aresample、anoisesrc</td><td>aecho 可叠加延迟衰减副本</td></tr>
+<tr><td>工业 3A</td><td>WebRTC modules/audio_processing</td><td>AEC3 / NS / AGC2 的参考实现</td></tr>
+</tbody></table>
+</section>
+<section id="s17-2"><h2><span class="sec-num">§17.2</span>离线滤镜链 ≠ 实时 3A</h2>
+<p class="eq">ffmpeg: 文件 → -af 滤镜链 → 文件　；WebRTC: 10 ms 帧 → 有状态处理 → 10 ms 帧</p>
+<ul>
+<li><strong>参考信号</strong>：ffmpeg 的滤镜链没有 AEC 所需的第二路输入；真正做回声消除要用带参考的实现（WebRTC AEC3、SpeexDSP）。</li>
+<li><strong>状态</strong>：实时模块必须逐帧携带状态（滤波器权重、噪声功率、增益包络），离线滤镜可以读全文件做 two-pass。</li>
+<li><strong>延迟</strong>：实时链路按 10 ms 帧预算，任何「看未来」的归一化都要删掉或改成因果版本。</li>
+</ul>
+<div class="card note"><span class="card-label">版本口径</span><p style="margin-bottom:0">ffmpeg 各滤镜的引入版本、参数名与默认值可能随版本变化。请以 <code>ffmpeg -version</code>、<code>ffmpeg -filters</code>、<code>ffmpeg -h filter=NAME</code> 与 https://ffmpeg.org/ffmpeg-filters.html 为准；本书与这些项目无从属关系，也不构成产品推荐。</p></div>
+</section>
+<section id="lab"><h2><span class="sec-num">§</span>Python 实验</h2>
+<h3>实验 17-1 · 用 Python 复刻一条离线滤镜链的电平报告</h3>
+<pre class="code" data-file="code/17-toolchain.py" data-lang="Python 3 · 标准库"><code>#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""模拟 volumedetect/astats → dynaudnorm → loudnorm 三阶段，打印可核对的电平报告。
+
+全部语音 / 噪声 / 房间冲激响应均为代码合成信号，仅用于教学演示机制与量级。
+"""
+from __future__ import annotations
+
+import math
+import pathlib
+import random
+import statistics
+import sys
+import time
+
+_here = pathlib.Path(__file__).resolve()
+for _p in _here.parents:
+    if (_p / "tools" / "dsp.py").exists():
+        sys.path.insert(0, str(_p / "tools"))
+        break
+from dsp import (SAMPLE_RATE, fft, hann, stft, istft, magnitude_db, spectrum,
+                 white_noise, tone, chirp, synthetic_speech, rir, convolve,
+                 fft_convolve, delay, clip, normalize_peak, rms, rolling_rms,
+                 smooth, db, energy_db, snr_db, erle_db, seg_snr_db,
+                 scale_align, si_sdr_db, lufs_approx,
+                 write_wav, read_wav, wav_info)
+from chart import Chart, heatmap, BLUE, RED, GREEN, AMBER
+
+FIG = _here.parents[1] / "fig"
+AUDIO = _here.parents[1] / "audio"
+FIG.mkdir(exist_ok=True)
+AUDIO.mkdir(exist_ok=True)
+
+random.seed(7)
+
+# ---- 参数区 ----
+N = 8000
+WIN = 800
+TARGET_LUFS = -23.0
+MAX_GAIN = 4.0
+MAX_DYN_GAIN = 80.0     # 动态归一化增益上限：太小则弱段抬不动
+ATK, REL = 0.20, 0.20    # 增益平滑的攻击/释放系数
+
+# ---- 计算与作图 ----
+rng = random.Random(7)
+base = synthetic_speech(rng, N)
+level = [0.25 if i &lt; N // 2 else 1.0 for i in range(N)]
+x = [0.35 * base[i] * level[i] for i in range(N)]
+peak = max(abs(v) for v in x)
+mean_db = 20 * math.log10(rms(x) + 1e-12)
+peak_db = 20 * math.log10(peak + 1e-12)
+blocks = [rms(x[s:s + WIN]) for s in range(0, N, WIN)]
+g_block = [min(MAX_DYN_GAIN, 0.16 / (b + 1e-6)) for b in blocks]
+raw_g = [g_block[min(i // WIN, len(g_block) - 1)] for i in range(N)]
+g = smooth(raw_g, ATK, REL)
+dyn = clip([x[i] * g[i] for i in range(N)])
+l0 = lufs_approx(dyn)
+gain = min(MAX_GAIN, 10 ** ((TARGET_LUFS - l0) / 20.0))
+norm = clip([v * gain for v in dyn])
+l1 = lufs_approx(norm)
+blocks_after = [rms(norm[s:s + WIN]) for s in range(0, N, WIN)]
+c = Chart(FIG / "17-levels.svg", "逐块 RMS：输入 / dynaudnorm 阶段 / loudnorm 阶段",
+          xlabel="块序号 / 800 样本", ylabel="RMS")
+c.line(range(len(blocks)), blocks, "#9aa6b2", label="输入")
+c.line(range(len(blocks)), [rms(dyn[s:s + WIN]) for s in range(0, N, WIN)], BLUE, label="动态归一化")
+c.line(range(len(blocks_after)), blocks_after, GREEN, label="响度归一化")
+print("电平图:", c.save())
+b = Chart(FIG / "17-gain.svg", "动态归一化阶段的增益轨迹", xlabel="样本 / 200", ylabel="增益")
+b.line(range(0, N, 200), [g[i] for i in range(0, N, 200)], RED, label="g[n]")
+print("增益图:", b.save())
+write_wav(AUDIO / "17-input.wav", normalize_peak(x))
+write_wav(AUDIO / "17-normalized.wav", norm)
+print("volumedetect 口径: mean_volume=%.2f dB max_volume=%.2f dB" % (mean_db, peak_db))
+print("astats 口径: 分块 RMS 前 %.4f~%.4f (%.1f×) 后 %.4f~%.4f (%.1f×)" %
+      (min(blocks), max(blocks), max(blocks) / max(min(blocks), 1e-9),
+       min(blocks_after), max(blocks_after), max(blocks_after) / max(min(blocks_after), 1e-9)))
+print("ebur128 口径(教学近似): LUFS %.2f -&gt; %.2f | 二遍增益=%.3f | SAMPLE_RATE=%d" %
+      (l0, l1, gain, SAMPLE_RATE))</code></pre>
+<p class="code-hint"><strong>操作：</strong>对照打印的 mean_volume / max_volume / LUFS 与图上曲线；把结果作为 ffmpeg 命令的预期值。　<strong>预期与判读：</strong>动态归一化先压平块间电平，响度归一化再整体平移到目标响度附近。<strong>本书 lufs_approx() 只是教学近似，不能代替合规的 ebur128 测量。</strong></p>
+<p class="code-hint"><strong>改参数看趋势：</strong>把 TARGET_LUFS 改成 -16，观察二遍增益与最终电平如何变化。　文件位置：<code>part3/17-toolchain/code/17-toolchain.py</code></p>
+<div class="chart-grid">
+<figure class="chart-figure"><img src="fig/17-levels.svg" alt="三阶段逐块 RMS 对照" loading="lazy"><figcaption>图 1　三阶段逐块 RMS 对照（代码合成信号 / 教学示意）</figcaption></figure>
+<figure class="chart-figure"><img src="fig/17-gain.svg" alt="动态归一化阶段的增益轨迹" loading="lazy"><figcaption>图 2　动态归一化阶段的增益轨迹（代码合成信号 / 教学示意）</figcaption></figure>
+</div>
+<div class="audio-grid">
+<div class="audio-card"><h4>17-input.wav</h4><audio controls preload="none" src="audio/17-input.wav">浏览器不支持 audio 元素，请直接打开 audio/17-input.wav。</audio><p>前半轻后半响的输入（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+<div class="audio-card"><h4>17-normalized.wav</h4><audio controls preload="none" src="audio/17-normalized.wav">浏览器不支持 audio 元素，请直接打开 audio/17-normalized.wav。</audio><p>两级归一化后的输出（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+</div>
+<div class="card note"><p style="margin-bottom:0">代码块右上角可一键复制；仓库里的 <code>code/*.py</code> 由 <code>tools/extract_code.py</code> 从这些代码块自动抽取。脚本只用标准库、固定 <code>random.seed(7)</code>，运行后写出 <code>fig/*.svg</code> 与 <code>audio/*.wav</code>；批量运行用 <code>./tools/run_python.sh</code>。</p></div>
+</section>
+<section id="commands"><h2><span class="sec-num">§</span>可选真机命令片段</h2>
+<div class="card note"><p style="margin-bottom:0">以下命令<strong>不参与批量运行</strong>，需要本机自行安装对应工具。滤镜是否可用取决于本机 ffmpeg 版本与编译选项，请先用 <code>ffmpeg -filters</code> / <code>ffmpeg -version</code> 自查，并以 https://ffmpeg.org/ffmpeg-filters.html 与各自官方文档为准；本书不假定任何特定版本具备某项能力。</p></div>
+<h3>自查本机 ffmpeg 版本与 3A 相关滤镜</h3>
+<pre class="cmd" data-lang="shell"><code>ffmpeg -hide_banner -version | head -3 &amp;&amp; ffmpeg -hide_banner -filters | grep -E 'afftdn|anlmdn|arnndn|loudnorm|dynaudnorm|speechnorm|ebur128|astats|volumedetect|aecho|aresample|acompressor|alimiter'</code></pre>
+<p class="code-hint"><strong>说明：</strong>是否列出某滤镜取决于本机版本与编译选项；本书不假定任何特定版本。参数细节用 `ffmpeg -h filter=NAME`，权威说明见 https://ffmpeg.org/ffmpeg-filters.html 。</p>
+<h3>离线三阶段滤镜链（对照实验 17-1 的 Python 版本）</h3>
+<pre class="cmd" data-lang="shell"><code>ffmpeg -hide_banner -i input.wav -af volumedetect -f null - 2&gt;&amp;1 | grep -E 'mean_volume|max_volume' &amp;&amp; ffmpeg -hide_banner -i input.wav -af dynaudnorm,ebur128=peak=true -f null - 2&gt;&amp;1 | tail -12</code></pre>
+<p class="code-hint"><strong>说明：</strong>第一条给电平报告，第二条做动态归一化并输出响度测量；滤镜可用性以本机 `ffmpeg -filters` 与官方 Filters 文档为准。</p>
+<h3>定位 WebRTC 的 3A 源码入口</h3>
+<pre class="cmd" data-lang="shell"><code>git clone --depth 1 https://webrtc.googlesource.com/src webrtc-src &amp;&amp; ls webrtc-src/modules/audio_processing/</code></pre>
+<p class="code-hint"><strong>说明：</strong>audio_processing 下含 aec3、ns、agc2 等子目录；也可直接在 https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/ 在线浏览。</p>
+</section>
+<section id="highlights"><h2><span class="sec-num">§</span>本章参考资料</h2><p>按本章知识点挑选的精读资料；更多检索入口见 <a href="#extra-links">扩展学习</a>。</p><div class="repo-grid">
+<div class="repo-card"><h3><a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a></h3><span class="tag">工具</span><p>全部音频滤镜的权威说明页，每个滤镜有独立锚点</p><p style="margin:0;color:var(--ink-faint)">推荐理由：全部音频滤镜的权威说明页</p></div>
+<div class="repo-card"><h3><a href="https://ffmpeg.org/ffmpeg-filters.html#arnndn" target="_blank" rel="noopener noreferrer">ffmpeg arnndn ↗</a></h3><span class="tag">工具</span><p>RNN 降噪滤镜，加载 RNNoise 训练出的模型文件（需自备 .rnnn）</p><p style="margin:0;color:var(--ink-faint)">推荐理由：加载 RNNoise 模型的神经降噪滤镜</p></div>
+<div class="repo-card"><h3><a href="https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/" target="_blank" rel="noopener noreferrer">WebRTC 源码（audio_processing） ↗</a></h3><span class="tag">工程</span><p>AEC3 / NS / AGC2 的工业级参考实现目录</p><p style="margin:0;color:var(--ink-faint)">推荐理由：AEC3 / NS / AGC2 的工业参考实现</p></div>
+<div class="repo-card"><h3><a href="https://gitlab.xiph.org/xiph/speexdsp" target="_blank" rel="noopener noreferrer">speexdsp 源码 ↗</a></h3><span class="tag">工程</span><p>speex_echo_cancellation / speex_preprocess_ctl 的参考实现</p><p style="margin:0;color:var(--ink-faint)">推荐理由：最易读的经典 AEC / 预处理源码</p></div>
+</div></section>
+<section id="pitfalls"><h2><span class="sec-num">§</span>常见误区</h2><div class="card warn"><ul><li>照抄网上命令，不先查本机是否编译了对应滤镜。</li>
+<li>把 ffmpeg 的离线归一化结果当成实时 AGC 可用。</li>
+<li>以为 ffmpeg 内置完整 AEC（它需要远端参考，不是单路滤镜）。</li>
+<li>用 lufs_approx 之类的近似值做播出合规判定。</li></ul></div></section>
+<section id="exercises"><h2><span class="sec-num">§</span>习题与思考</h2><ol><li>写出三条自查命令，判断本机能否运行 arnndn 与 loudnorm。</li>
+<li>解释为什么 AEC 不能写成单输入 -af 滤镜。</li>
+<li>把实验 17-1 的三阶段映射到具体 ffmpeg 滤镜名。</li></ol></section>
+<section id="extra-links"><h2><span class="sec-num">§</span>扩展学习</h2>
+<div class="repo-grid">
+<div class="repo-card"><h3><a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a></h3><span class="tag">工具</span><p>全部音频滤镜的权威说明页，每个滤镜有独立锚点</p></div>
+<div class="repo-card"><h3><a href="https://ffmpeg.org/ffmpeg-filters.html#arnndn" target="_blank" rel="noopener noreferrer">ffmpeg arnndn ↗</a></h3><span class="tag">工具</span><p>RNN 降噪滤镜，加载 RNNoise 训练出的模型文件（需自备 .rnnn）</p></div>
+<div class="repo-card"><h3><a href="https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/" target="_blank" rel="noopener noreferrer">WebRTC 源码（audio_processing） ↗</a></h3><span class="tag">工程</span><p>AEC3 / NS / AGC2 的工业级参考实现目录</p></div>
+<div class="repo-card"><h3><a href="https://gitlab.xiph.org/xiph/speexdsp" target="_blank" rel="noopener noreferrer">speexdsp 源码 ↗</a></h3><span class="tag">工程</span><p>speex_echo_cancellation / speex_preprocess_ctl 的参考实现</p></div>
+</div>
+<h3>继续检索</h3><ul>
+<li>Google Scholar：<a href='https://scholar.google.com/scholar?q=ffmpeg%20audio%20filters%20WebRTC%20audio%20processing%20CLI' target='_blank' rel='noopener noreferrer'>ffmpeg audio filters WebRTC audio processing CLI ↗</a></li>
+<li>arXiv：<a href='https://arxiv.org/search/?query=ffmpeg%20audio%20filters%20WebRTC%20audio%20processing%20CLI&searchtype=all' target='_blank' rel='noopener noreferrer'>ffmpeg audio filters WebRTC audio processing CLI ↗</a></li>
+<li>GitHub：<a href='https://github.com/search?q=ffmpeg%20audio%20filters%20WebRTC%20audio%20processing%20CLI&type=repositories' target='_blank' rel='noopener noreferrer'>ffmpeg audio filters WebRTC audio processing CLI ↗</a></li>
+</ul>
+<p class="code-hint">全书链接总表见 <a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a> 与 <a href="../../appendix/index.html#sA-7">附录 A.7</a>；滤镜是否可用请以本机 <code>ffmpeg -filters</code> 为准。</p>
+</section>
+<section id="further"><h2><span class="sec-num">§</span>延伸阅读与内链</h2><ul><li><a href='../18-classic-eval/index.html'>第 18 章 · 上卷综合实验：完整传统 3A 链路与评测</a> 上卷综合评测；<a href='../../part5/23-neural-ns/index.html'>第 23 章 · 神经噪声抑制：从 RNNoise 到 DNS Challenge</a> RNNoise 与 arnndn；<a href='../../part6/28-latency-budget/index.html'>第 28 章 · 延迟预算与 RTF：实时链路账本</a> 实时延迟预算。</li></ul></section>
+<footer class="pager" data-autofill></footer>
+<footer class="site-foot">
+<p class="credits"><strong>作者</strong>：汪亮（bertonwang）　<strong>联系邮箱</strong>：<a href="mailto:47608843@qq.com">47608843@qq.com</a></p>
+<p class="ai-note"><strong>AI 使用说明</strong>：本教材的知识框架、正文、Python 实验脚本与参考资料清单在 AI 辅助下整理生成，并经人工校订、实际运行与静态自检。公式、数值与运行结果请以Python 3 实际输出及权威教材、官方文档为准；发现错漏欢迎通过上方邮箱勘误。</p>
+<p class="imprint">音频 3A 处理：从自适应滤波到神经增强 · 每章一个 <code>code/*.py</code> 实验脚本、<code>fig/*.svg</code> 矢量图与 <code>audio/*.wav</code> 试听样本（由 <code>tools/extract_code.py</code> 与脚本运行同步） · 只用 Python 3 标准库 · 教学材料，信号全部由代码合成。</p>
+</footer>
+</main>
+</body>
+</html>

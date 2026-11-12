@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 21 章 · 网络骨架：DNN / CRN / U-Net / TCN / Conformer | 音频 3A 处理：从自适应滤波到神经增强</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<script src="../../assets/toc.js" defer></script>
+<script src="../../assets/app.js" defer></script>
+</head>
+<body data-root="../../" data-chapter="21">
+<aside id="sidebar"></aside>
+<main class="book-page">
+<nav class="breadcrumb" data-autofill>总目录</nav>
+<header class="chapter-head">
+<span class="kicker">第四篇 · 数据、表示与学习基础 · 下卷 · AI 算法（Data-driven）</span>
+<h1><span class="ch-num">第 21 章</span>网络骨架：DNN / CRN / U-Net / TCN / Conformer</h1>
+<p class="lede">骨架的选择，本质上是选择「上下文怎么取」与「归纳偏置放在哪」。</p>
+<div class="meta">
+<span class="badge done">已完稿</span>
+<span class="badge s4">数据 · 表示</span>
+<span class="badge neural">下卷 · AI 算法</span>
+<span>建议 4 学时</span>
+<span>1 个 Python 实验 · 2 张图 · 2 段试听</span>
+<span>音频 3A 处理：从自适应滤波到神经增强</span>
+</div></header>
+<p class="bridge"><strong>本章位置：</strong><a href='../19-tf-mask/index.html'>第 19 章 · 时频掩码：IBM / IRM / CRM 与监督学习形式化</a> 定义了标签，<a href='../20-data-synthesis/index.html'>第 20 章 · 训练数据合成：RIR、噪声、SNR 配比与数据泄漏</a> 定义了分布，本章定义 f_θ 的结构；<a href='../22-complex-phase/index.html'>第 22 章 · 复数域与相位：DCCRN、深度滤波与时域模型</a> 讨论它能否连相位一起学，<a href='../../part5/23-neural-ns/index.html'>第 23 章 · 神经噪声抑制：从 RNNoise 到 DNS Challenge</a> 回到具体任务。</p>
+<div class="analogy"><span class="card-label">给程序员的翻译</span><p style="margin-bottom:0">骨架是「读多少上下文」的策略模式：DNN 拼帧、TCN 膨胀卷积、Conformer 用注意力。输出接口都是 <code>G[t,k]</code>，可以互换而不动下游。</p></div>
+<div class="card objectives"><span class="card-label">学习目标</span><ul>
+<li>能把主流语音增强骨架按上下文建模方式分类。</li>
+<li>能估算参数量、感受野与每帧算力，并比较实时可行性。</li>
+<li>能用纯标准库训练一个可解释的小型掩码估计器。</li>
+<li>能说明骨架选择与因果性、延迟之间的硬约束。</li>
+</ul></div>
+<section id="map"><h2><span class="sec-num">§</span>知识点地图</h2>
+<p class="code-hint">每个知识点都配了 1～2 个扩展学习链接；本章完整资源清单见 <a href="#extra-links">扩展学习</a>。</p>
+<table><thead><tr><th style="width:44px">#</th><th style="width:26%">知识点</th><th>扩展学习</th><th style="width:100px">状态</th></tr></thead><tbody>
+<tr><td>1</td><td>帧级 DNN</td><td><a href="https://github.com/speechbrain/speechbrain" target="_blank" rel="noopener noreferrer">SpeechBrain ↗</a> · <a href="https://github.com/asteroid-team/asteroid" target="_blank" rel="noopener noreferrer">Asteroid ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>2</td><td>卷积循环网络 CRN</td><td><a href="https://www.dspguide.com/" target="_blank" rel="noopener noreferrer">The Scientist and Engineer&#x27;s Guide to DSP ↗</a> · <a href="https://docs.scipy.org/doc/scipy/reference/signal.html" target="_blank" rel="noopener noreferrer">SciPy signal ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>3</td><td>U-Net 编解码</td><td><a href="https://github.com/speechbrain/speechbrain" target="_blank" rel="noopener noreferrer">SpeechBrain ↗</a> · <a href="https://github.com/asteroid-team/asteroid" target="_blank" rel="noopener noreferrer">Asteroid ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>4</td><td>时间卷积网络 TCN</td><td><a href="https://www.dspguide.com/" target="_blank" rel="noopener noreferrer">The Scientist and Engineer&#x27;s Guide to DSP ↗</a> · <a href="https://docs.scipy.org/doc/scipy/reference/signal.html" target="_blank" rel="noopener noreferrer">SciPy signal ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>5</td><td>Conformer 与注意力</td><td><a href="https://github.com/speechbrain/speechbrain" target="_blank" rel="noopener noreferrer">SpeechBrain ↗</a> · <a href="https://github.com/asteroid-team/asteroid" target="_blank" rel="noopener noreferrer">Asteroid ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>6</td><td>感受野与状态缓存</td><td><a href="https://github.com/speechbrain/speechbrain" target="_blank" rel="noopener noreferrer">SpeechBrain ↗</a> · <a href="https://github.com/asteroid-team/asteroid" target="_blank" rel="noopener noreferrer">Asteroid ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>7</td><td>参数量与 MACs</td><td><a href="https://github.com/speechbrain/speechbrain" target="_blank" rel="noopener noreferrer">SpeechBrain ↗</a> · <a href="https://github.com/asteroid-team/asteroid" target="_blank" rel="noopener noreferrer">Asteroid ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>8</td><td>骨架与延迟</td><td><a href="https://github.com/speechbrain/speechbrain" target="_blank" rel="noopener noreferrer">SpeechBrain ↗</a> · <a href="https://github.com/asteroid-team/asteroid" target="_blank" rel="noopener noreferrer">Asteroid ↗</a></td><td>正文已覆盖</td></tr>
+</tbody></table></section>
+<section id="s21-1"><h2><span class="sec-num">§21.1</span>五种骨架，五种取上下文的方式</h2>
+<table><thead><tr><th style="width:14%">骨架</th><th style="width:30%">上下文来源</th><th style="width:28%">优势</th><th style="width:28%">实时代价</th></tr></thead><tbody>
+<tr><td>DNN / MLP</td><td>拼接相邻若干帧</td><td>最简单、易量化</td><td>参数量大、无长时依赖</td></tr>
+<tr><td>CRN</td><td>CNN 提特征 + RNN 沿时间</td><td>参数省、序列建模强</td><td>RNN 状态逐帧依赖，难并行</td></tr>
+<tr><td>U-Net</td><td>编码器下采样 + 跳连</td><td>多尺度时频特征</td><td>非因果卷积易引入未来帧</td></tr>
+<tr><td>TCN</td><td>膨胀因果卷积</td><td>并行、感受野可控</td><td>需缓存历史，深栈有延迟</td></tr>
+<tr><td>Conformer</td><td>卷积 + 自注意力</td><td>长时依赖与局部特征兼得</td><td>注意力开销与缓存最大</td></tr>
+</tbody></table>
+<p>它们的输出形状完全一样：<code>G[t,k]</code> 或 <code>Ŝ[t,k]</code>。差别只在于<strong>为了算出第 t 帧，允许看多少过去、多少未来、多少频率邻域</strong>。实时 3A 只允许看过去，因此 TCN 与因果 CRN 最常见。</p>
+</section>
+<section id="s21-2"><h2><span class="sec-num">§21.2</span>把骨架换算成三笔账</h2>
+<p class="eq">感受野 ≈ (K−1)·Σ_t d_t + 1　；参数量 ≈ Σ_l C_in·C_out·K_l　；RTF = T_计算 / T_帧长</p>
+<ul>
+<li><strong>感受野</strong>：膨胀因果卷积用 <code>d = 1,2,4,8,...</code> 指数扩张，几十层就能覆盖一秒上下文，但状态缓存必须保存每层历史。</li>
+<li><strong>参数量</strong>：逐帧全连接把上下文帧数直接乘进输入维度，最容易膨胀；深度可分离卷积能把 MACs 降一个量级。</li>
+<li><strong>延迟</strong>：算法延迟 = 帧长 + 前瞻 + 分块缓存；非因果 U-Net 的前瞻在实时链路里必须显式扣除（<a href='../../part6/28-latency-budget/index.html'>第 28 章 · 延迟预算与 RTF：实时链路账本</a>）。</li>
+</ul>
+<div class="card note"><span class="card-label">本章的小模型</span><p style="margin-bottom:0">实验用纯标准库训练一个 3 参数的 sigmoid 线性掩码估计器。它不是深度网络，但完整包含「特征 → 参数 → 损失 → 梯度 → 掩码 → ISTFT」这条闭环，用来把骨架的作用看清楚：更复杂的骨架只是把特征与 f_θ 换得更强。</p></div>
+</section>
+<section id="lab"><h2><span class="sec-num">§</span>Python 实验</h2>
+<h3>实验 21-1 · 训练一个 3 参数的掩码估计器并估算骨架开销</h3>
+<pre class="code" data-file="code/21-network-backbones.py" data-lang="Python 3 · 标准库"><code>#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""用 SGD 训练小型 sigmoid 掩码估计器，打印损失曲线、测试集指标与主流骨架参数量估算。
+
+全部语音 / 噪声 / 房间冲激响应均为代码合成信号，仅用于教学演示机制与量级。
+"""
+from __future__ import annotations
+
+import math
+import pathlib
+import random
+import statistics
+import sys
+import time
+
+_here = pathlib.Path(__file__).resolve()
+for _p in _here.parents:
+    if (_p / "tools" / "dsp.py").exists():
+        sys.path.insert(0, str(_p / "tools"))
+        break
+from dsp import (SAMPLE_RATE, fft, hann, stft, istft, magnitude_db, spectrum,
+                 white_noise, tone, chirp, synthetic_speech, rir, convolve,
+                 fft_convolve, delay, clip, normalize_peak, rms, rolling_rms,
+                 smooth, db, energy_db, snr_db, erle_db, seg_snr_db,
+                 scale_align, si_sdr_db, lufs_approx,
+                 write_wav, read_wav, wav_info)
+from chart import Chart, heatmap, BLUE, RED, GREEN, AMBER
+
+FIG = _here.parents[1] / "fig"
+AUDIO = _here.parents[1] / "audio"
+FIG.mkdir(exist_ok=True)
+AUDIO.mkdir(exist_ok=True)
+
+random.seed(7)
+
+# ---- 参数区 ----
+N = 4000
+N_FFT, HOP = 128, 64
+NOISE_AMP = 0.035
+EPOCHS, LR = 14, 0.20
+CONTEXT_FRAMES, HIDDEN, LAYERS = 5, 128, 3
+
+# ---- 计算与作图 ----
+tr_s = synthetic_speech(random.Random(11), N)
+tr_n = white_noise(random.Random(12), N, NOISE_AMP)
+te_s = synthetic_speech(random.Random(21), N)
+te_n = white_noise(random.Random(22), N, NOISE_AMP)
+tr_y = [tr_s[i] + tr_n[i] for i in range(N)]
+te_y = [te_s[i] + te_n[i] for i in range(N)]
+fy, fs, fn = stft(tr_y, N_FFT, HOP), stft(tr_s, N_FFT, HOP), stft(tr_n, N_FFT, HOP)
+
+def feats(mag, avg):
+    l, la = math.log10(mag + 1e-6), math.log10(avg + 1e-6)
+    return [1.0, max(-2.0, min(1.0, l + 2.0)), max(-2.0, min(2.0, la - l))]
+def predict(fv, w):
+    z = max(-20.0, min(20.0, sum(w[j] * fv[j] for j in range(3))))
+    return 1.0 / (1.0 + math.exp(-z))
+
+train_set = []
+for idx, (ry, iy) in enumerate(fy):
+    rs, is_ = fs[idx]
+    rn, in_ = fn[idx]
+    mags = [math.hypot(ry[k], iy[k]) for k in range(N_FFT)]
+    avg = sum(mags) / N_FFT
+    for k in range(N_FFT):
+        ms, mn = math.hypot(rs[k], is_[k]), math.hypot(rn[k], in_[k])
+        train_set.append((feats(mags[k], avg), ms / (ms + mn + 1e-9)))
+w, losses = [0.0, 0.0, 0.0], []
+for ep in range(EPOCHS):
+    total = 0.0
+    for fv, t in train_set:
+        p = predict(fv, w)
+        err = p - t
+        total += err * err
+        d = err * p * (1.0 - p)
+        for j in range(3):
+            w[j] -= LR * d * fv[j]
+    losses.append(total / len(train_set))
+
+def apply_model(signal, gain_fn):
+    frames = stft(signal, N_FFT, HOP)
+    for ry, iy in frames:
+        mags = [math.hypot(ry[k], iy[k]) for k in range(N_FFT)]
+        avg = sum(mags) / N_FFT
+        for k in range(N_FFT):
+            g = gain_fn(feats(mags[k], avg))
+            ry[k] *= g
+            iy[k] *= g
+    return istft(frames, N_FFT, HOP, N)
+learned = apply_model(te_y, lambda fv: predict(fv, w))
+ts, tn = stft(te_s, N_FFT, HOP), stft(te_n, N_FFT, HOP)
+def oracle(idx, k):
+    rs, is_ = ts[idx]
+    rn, in_ = tn[idx]
+    ms, mn = math.hypot(rs[k], is_[k]), math.hypot(rn[k], in_[k])
+    return ms / (ms + mn + 1e-9)
+frames = stft(te_y, N_FFT, HOP)
+for idx, (ry, iy) in enumerate(frames):
+    for k in range(N_FFT):
+        g = oracle(idx, k)
+        ry[k] *= g
+        iy[k] *= g
+irm = istft(frames, N_FFT, HOP, N)
+scores = [seg_snr_db(te_s, scale_align(s, te_s)) for s in (te_y, learned, irm)]
+c = Chart(FIG / "21-training.svg", "掩码估计器的训练损失（MSE）", xlabel="epoch", ylabel="MSE")
+c.line(range(EPOCHS), losses, BLUE, label="训练 MSE")
+print("训练图:", c.save())
+b = Chart(FIG / "21-models.svg", "测试集：未处理 / 学习掩码 / IRM oracle", xlabel="方法", ylabel="dB",
+          xticks=[(0, "未处理"), (1, "学习掩码"), (2, "IRM oracle")])
+b.bars(range(3), scores, GREEN, label="分段 SNR (dB)")
+print("模型图:", b.save())
+dnn_params = (N_FFT // 2) * CONTEXT_FRAMES * HIDDEN + (LAYERS - 1) * HIDDEN * HIDDEN + HIDDEN * (N_FFT // 2)
+write_wav(AUDIO / "21-test-noisy.wav", normalize_peak(te_y))
+write_wav(AUDIO / "21-test-learned.wav", normalize_peak(learned))
+print("训练 MSE 首=%.5f 末=%.5f | 学得权重 w=%s" %
+      (losses[0], losses[-1], "[" + ", ".join("%.3f" % v for v in w) + "]"))
+print("测试 segSNR 未处理=%.2f 学习掩码=%.2f IRM oracle=%.2f dB" % tuple(scores))
+print("参数量估算: 本实验=3 | 帧级DNN(C=%d,L=%d,ctx=%d)≈%d | SAMPLE_RATE=%d" %
+      (HIDDEN, LAYERS, CONTEXT_FRAMES, dnn_params, SAMPLE_RATE))</code></pre>
+<p class="code-hint"><strong>操作：</strong>观察训练 MSE 是否单调下降；比较学习掩码与 oracle 的差距。　<strong>预期与判读：</strong>训练 MSE 明显下降，学习掩码的分段 SNR 高于未处理但低于 IRM oracle。<strong>差距来自特征与模型容量</strong>：更强的骨架正是为了缩小这段距离，而不是改变链路或指标。</p>
+<p class="code-hint"><strong>改参数看趋势：</strong>把 EPOCHS 改成 2，观察欠拟合；把 NOISE_AMP 提到 0.10，观察差距拉大。　文件位置：<code>part4/21-network-backbones/code/21-network-backbones.py</code></p>
+<div class="chart-grid">
+<figure class="chart-figure"><img src="fig/21-training.svg" alt="小型掩码估计器的训练损失" loading="lazy"><figcaption>图 1　小型掩码估计器的训练损失（代码合成信号 / 教学示意）</figcaption></figure>
+<figure class="chart-figure"><img src="fig/21-models.svg" alt="未处理、学习掩码与 oracle 的指标对照" loading="lazy"><figcaption>图 2　未处理、学习掩码与 oracle 的指标对照（代码合成信号 / 教学示意）</figcaption></figure>
+</div>
+<div class="audio-grid">
+<div class="audio-card"><h4>21-test-noisy.wav</h4><audio controls preload="none" src="audio/21-test-noisy.wav">浏览器不支持 audio 元素，请直接打开 audio/21-test-noisy.wav。</audio><p>测试集带噪输入（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+<div class="audio-card"><h4>21-test-learned.wav</h4><audio controls preload="none" src="audio/21-test-learned.wav">浏览器不支持 audio 元素，请直接打开 audio/21-test-learned.wav。</audio><p>3 参数学习掩码的输出（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+</div>
+<div class="card note"><p style="margin-bottom:0">代码块右上角可一键复制；仓库里的 <code>code/*.py</code> 由 <code>tools/extract_code.py</code> 从这些代码块自动抽取。脚本只用标准库、固定 <code>random.seed(7)</code>，运行后写出 <code>fig/*.svg</code> 与 <code>audio/*.wav</code>；批量运行用 <code>./tools/run_python.sh</code>。</p></div>
+</section>
+<section id="commands"><h2><span class="sec-num">§</span>可选真机命令片段</h2>
+<div class="card note"><p style="margin-bottom:0">以下命令<strong>不参与批量运行</strong>，需要本机自行安装对应工具。滤镜是否可用取决于本机 ffmpeg 版本与编译选项，请先用 <code>ffmpeg -filters</code> / <code>ffmpeg -version</code> 自查，并以 https://ffmpeg.org/ffmpeg-filters.html 与各自官方文档为准；本书不假定任何特定版本具备某项能力。</p></div>
+<h3>查看 SpeechBrain 的语音增强配方目录</h3>
+<pre class="cmd" data-lang="shell"><code>git clone --depth 1 https://github.com/speechbrain/speechbrain &amp;&amp; ls speechbrain/recipes/</code></pre>
+<p class="code-hint"><strong>说明：</strong>recipes 下按数据集组织的增强/分离训练脚本是当前骨架的工业参照；请以其 README 与许可为准，本书实验不依赖 PyTorch。</p>
+</section>
+<section id="highlights"><h2><span class="sec-num">§</span>本章参考资料</h2><p>按本章知识点挑选的精读资料；更多检索入口见 <a href="#extra-links">扩展学习</a>。</p><div class="repo-grid">
+<div class="repo-card"><h3><a href="https://github.com/speechbrain/speechbrain" target="_blank" rel="noopener noreferrer">SpeechBrain ↗</a></h3><span class="tag">工程</span><p>基于 PyTorch 的语音工具箱，含 SE / 分离 / 识别配方</p><p style="margin:0;color:var(--ink-faint)">推荐理由：主流增强骨架的开源训练配方</p></div>
+<div class="repo-card"><h3><a href="https://github.com/asteroid-team/asteroid" target="_blank" rel="noopener noreferrer">Asteroid ↗</a></h3><span class="tag">工程</span><p>语音分离与增强的研究框架，含 SI-SNR 等损失实现</p><p style="margin:0;color:var(--ink-faint)">推荐理由：TCN / Conv-TasNet 与 SI-SNR 损失实现</p></div>
+<div class="repo-card"><h3><a href="https://docs.pytorch.org/audio/stable/index.html" target="_blank" rel="noopener noreferrer">torchaudio ↗</a></h3><span class="tag">工程</span><p>音频 I/O、STFT/ISTFT、波形与谱特征的标准实现</p><p style="margin:0;color:var(--ink-faint)">推荐理由：STFT 与流式推理的工业接口</p></div>
+<div class="repo-card"><h3><a href="https://github.com/modelscope/ClearerVoice-Studio" target="_blank" rel="noopener noreferrer">ClearerVoice-Studio ↗</a></h3><span class="tag">工程</span><p>语音增强/分离/超分的开源训练与推理框架</p><p style="margin:0;color:var(--ink-faint)">推荐理由：FRCRN / MossFormer 等复数域骨架</p></div>
+</div></section>
+<section id="repos"><h2><span class="sec-num">§</span>相关开源工程</h2><p>下列工程仅作技术参照，版权与许可证归各自维护者所有。本书实验不依赖它们，也与之无从属关系。</p><div class="repo-grid">
+<div class="repo-card"><h3><a href="https://github.com/speechbrain/speechbrain" target="_blank" rel="noopener noreferrer">SpeechBrain ↗</a></h3><span class="tag">AI · 框架</span><p>语音任务配方齐全，适合复现掩码估计与损失函数</p></div>
+<div class="repo-card"><h3><a href="https://github.com/asteroid-team/asteroid" target="_blank" rel="noopener noreferrer">Asteroid ↗</a></h3><span class="tag">AI · 框架</span><p>TCN / Conv-TasNet 与 SI-SNR 损失的研究型框架</p></div>
+</div></section>
+<section id="pitfalls"><h2><span class="sec-num">§</span>常见误区</h2><div class="card warn"><ul><li>用非因果卷积的前瞻做实时指标，忘了扣算法延迟。</li>
+<li>只比较参数量，忽略逐帧 MACs 与内存带宽。</li>
+<li>把骨架的论文分数直接迁移到自己的数据分布上。</li>
+<li>忽略 RNN/TCN 的状态缓存开销（<a href='../../part6/27-causal-streaming/index.html'>第 27 章 · 因果性与流式推理：状态缓存、感受野</a>）。</li></ul></div></section>
+<section id="exercises"><h2><span class="sec-num">§</span>习题与思考</h2><ol><li>估算 3 层膨胀 TCN 的感受野与状态缓存大小。</li>
+<li>解释为什么实时 3A 偏爱因果 TCN 而非双向 U-Net。</li>
+<li>为本实验的小模型增加两个特征，说明它们为什么有用。</li></ol></section>
+<section id="extra-links"><h2><span class="sec-num">§</span>扩展学习</h2>
+<div class="repo-grid">
+<div class="repo-card"><h3><a href="https://github.com/speechbrain/speechbrain" target="_blank" rel="noopener noreferrer">SpeechBrain ↗</a></h3><span class="tag">工程</span><p>基于 PyTorch 的语音工具箱，含 SE / 分离 / 识别配方</p></div>
+<div class="repo-card"><h3><a href="https://github.com/asteroid-team/asteroid" target="_blank" rel="noopener noreferrer">Asteroid ↗</a></h3><span class="tag">工程</span><p>语音分离与增强的研究框架，含 SI-SNR 等损失实现</p></div>
+<div class="repo-card"><h3><a href="https://docs.pytorch.org/audio/stable/index.html" target="_blank" rel="noopener noreferrer">torchaudio ↗</a></h3><span class="tag">工程</span><p>音频 I/O、STFT/ISTFT、波形与谱特征的标准实现</p></div>
+<div class="repo-card"><h3><a href="https://github.com/modelscope/ClearerVoice-Studio" target="_blank" rel="noopener noreferrer">ClearerVoice-Studio ↗</a></h3><span class="tag">工程</span><p>语音增强/分离/超分的开源训练与推理框架</p></div>
+</div>
+<h3>继续检索</h3><ul>
+<li>Google Scholar：<a href='https://scholar.google.com/scholar?q=DNN%20CRN%20U-Net%20TCN%20speech%20enhancement%20architecture' target='_blank' rel='noopener noreferrer'>DNN CRN U-Net TCN speech enhancement architecture ↗</a></li>
+<li>arXiv：<a href='https://arxiv.org/search/?query=DNN%20CRN%20U-Net%20TCN%20speech%20enhancement%20architecture&searchtype=all' target='_blank' rel='noopener noreferrer'>DNN CRN U-Net TCN speech enhancement architecture ↗</a></li>
+<li>GitHub：<a href='https://github.com/search?q=DNN%20CRN%20U-Net%20TCN%20speech%20enhancement%20architecture&type=repositories' target='_blank' rel='noopener noreferrer'>DNN CRN U-Net TCN speech enhancement architecture ↗</a></li>
+</ul>
+<p class="code-hint">全书链接总表见 <a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a> 与 <a href="../../appendix/index.html#sA-7">附录 A.7</a>；滤镜是否可用请以本机 <code>ffmpeg -filters</code> 为准。</p>
+</section>
+<section id="further"><h2><span class="sec-num">§</span>延伸阅读与内链</h2><ul><li><a href='../22-complex-phase/index.html'>第 22 章 · 复数域与相位：DCCRN、深度滤波与时域模型</a> 复数域；<a href='../../part6/27-causal-streaming/index.html'>第 27 章 · 因果性与流式推理：状态缓存、感受野</a> 流式状态；<a href='../../part6/28-latency-budget/index.html'>第 28 章 · 延迟预算与 RTF：实时链路账本</a> 延迟预算。</li></ul></section>
+<footer class="pager" data-autofill></footer>
+<footer class="site-foot">
+<p class="credits"><strong>作者</strong>：汪亮（bertonwang）　<strong>联系邮箱</strong>：<a href="mailto:47608843@qq.com">47608843@qq.com</a></p>
+<p class="ai-note"><strong>AI 使用说明</strong>：本教材的知识框架、正文、Python 实验脚本与参考资料清单在 AI 辅助下整理生成，并经人工校订、实际运行与静态自检。公式、数值与运行结果请以Python 3 实际输出及权威教材、官方文档为准；发现错漏欢迎通过上方邮箱勘误。</p>
+<p class="imprint">音频 3A 处理：从自适应滤波到神经增强 · 每章一个 <code>code/*.py</code> 实验脚本、<code>fig/*.svg</code> 矢量图与 <code>audio/*.wav</code> 试听样本（由 <code>tools/extract_code.py</code> 与脚本运行同步） · 只用 Python 3 标准库 · 教学材料，信号全部由代码合成。</p>
+</footer>
+</main>
+</body>
+</html>

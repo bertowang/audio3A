@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 23 章 · 神经噪声抑制：从 RNNoise 到 DNS Challenge | 音频 3A 处理：从自适应滤波到神经增强</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<script src="../../assets/toc.js" defer></script>
+<script src="../../assets/app.js" defer></script>
+</head>
+<body data-root="../../" data-chapter="23">
+<aside id="sidebar"></aside>
+<main class="book-page">
+<nav class="breadcrumb" data-autofill>总目录</nav>
+<header class="chapter-head">
+<span class="kicker">第五篇 · 神经 3A 与联合建模 · 下卷 · AI 算法（Data-driven）</span>
+<h1><span class="ch-num">第 23 章</span>神经噪声抑制：从 RNNoise 到 DNS Challenge</h1>
+<p class="lede">把降噪器压缩到几个频带增益，是「神经方法能跑在端侧」的关键一步。</p>
+<div class="meta">
+<span class="badge done">已完稿</span>
+<span class="badge s4">神经 3A</span>
+<span class="badge neural">下卷 · AI 算法</span>
+<span>建议 3 学时</span>
+<span>1 个 Python 实验 · 2 张图 · 2 段试听</span>
+<span>音频 3A 处理：从自适应滤波到神经增强</span>
+</div></header>
+<p class="bridge"><strong>本章位置：</strong><a href='../../part4/19-tf-mask/index.html'>第 19 章 · 时频掩码：IBM / IRM / CRM 与监督学习形式化</a>～<a href='../../part4/22-complex-phase/index.html'>第 22 章 · 复数域与相位：DCCRN、深度滤波与时域模型</a> 给出掩码、数据与骨架，本章把它们落回 ANS 任务；<a href='../24-neural-aec/index.html'>第 24 章 · 神经 AEC 与回声/噪声联合抑制</a> 把远端参考接进网络做神经 AEC，<a href='../26-joint-3a/index.html'>第 26 章 · 联合 3A：多任务、级联与端到端建模</a> 再合并三个任务。</p>
+<div class="analogy"><span class="card-label">给程序员的翻译</span><p style="margin-bottom:0">把几百个频率箱聚成 22 个频带，等于把回归输出从 256 维降到 22 维：模型更小、更快，但丢掉了带内细节——一条典型的容量—精度折中曲线。</p></div>
+<div class="card objectives"><span class="card-label">学习目标</span><ul>
+<li>能说明混合 DSP / 神经网络降噪的分工方式。</li>
+<li>能解释频带增益相比全分辨率掩码的算力与精度折中。</li>
+<li>能实现频带增益估计并扫描频带数量的影响。</li>
+<li>能说清 DNS Challenge 的评测协议与常见指标。</li>
+</ul></div>
+<section id="map"><h2><span class="sec-num">§</span>知识点地图</h2>
+<p class="code-hint">每个知识点都配了 1～2 个扩展学习链接；本章完整资源清单见 <a href="#extra-links">扩展学习</a>。</p>
+<table><thead><tr><th style="width:44px">#</th><th style="width:26%">知识点</th><th>扩展学习</th><th style="width:100px">状态</th></tr></thead><tbody>
+<tr><td>1</td><td>混合 DSP / DNN 架构</td><td><a href="https://github.com/microsoft/DNS-Challenge" target="_blank" rel="noopener noreferrer">Microsoft DNS Challenge ↗</a> · <a href="https://github.com/microsoft/DNS-Challenge/tree/master/DNSMOS" target="_blank" rel="noopener noreferrer">DNSMOS ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>2</td><td>RNNoise 频带增益</td><td><a href="https://en.wikipedia.org/wiki/Automatic_gain_control" target="_blank" rel="noopener noreferrer">Automatic gain control ↗</a> · <a href="https://ffmpeg.org/ffmpeg-filters.html#dynaudnorm" target="_blank" rel="noopener noreferrer">ffmpeg dynaudnorm ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>3</td><td>Bark / 梅尔频带</td><td><a href="https://github.com/microsoft/DNS-Challenge" target="_blank" rel="noopener noreferrer">Microsoft DNS Challenge ↗</a> · <a href="https://github.com/microsoft/DNS-Challenge/tree/master/DNSMOS" target="_blank" rel="noopener noreferrer">DNSMOS ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>4</td><td>逐帧 GRU 与状态</td><td><a href="https://github.com/microsoft/DNS-Challenge" target="_blank" rel="noopener noreferrer">Microsoft DNS Challenge ↗</a> · <a href="https://github.com/microsoft/DNS-Challenge/tree/master/DNSMOS" target="_blank" rel="noopener noreferrer">DNSMOS ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>5</td><td>DNS Challenge</td><td><a href="https://github.com/microsoft/DNS-Challenge" target="_blank" rel="noopener noreferrer">Microsoft DNS Challenge ↗</a> · <a href="https://github.com/microsoft/DNS-Challenge/tree/master/DNSMOS" target="_blank" rel="noopener noreferrer">DNSMOS ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>6</td><td>DNSMOS 无参考评分</td><td><a href="https://github.com/microsoft/DNS-Challenge" target="_blank" rel="noopener noreferrer">Microsoft DNS Challenge ↗</a> · <a href="https://github.com/microsoft/DNS-Challenge/tree/master/DNSMOS" target="_blank" rel="noopener noreferrer">DNSMOS ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>7</td><td>频带数与失真</td><td><a href="https://github.com/microsoft/DNS-Challenge" target="_blank" rel="noopener noreferrer">Microsoft DNS Challenge ↗</a> · <a href="https://github.com/microsoft/DNS-Challenge/tree/master/DNSMOS" target="_blank" rel="noopener noreferrer">DNSMOS ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>8</td><td>实时算力预算</td><td><a href="https://www.rfc-editor.org/rfc/rfc3550" target="_blank" rel="noopener noreferrer">RFC 3550 RTP ↗</a> · <a href="https://webrtc.org/" target="_blank" rel="noopener noreferrer">WebRTC 官网 ↗</a></td><td>正文已覆盖</td></tr>
+</tbody></table></section>
+<section id="s23-1"><h2><span class="sec-num">§23.1</span>RNNoise 的「小」是设计出来的</h2>
+<p>RNNoise 不预测几百个频率箱的掩码，只预测约 22 个 Bark 频带的增益，再用传统 FFT 滤波器组执行。网络只负责「每个频带此刻该压多少」这一低维决策，特征提取、频带划分与合成仍由 DSP 完成。因此它能在很小的算力下实时运行，并成为 ffmpeg <code>arnndn</code> 的模型来源。</p>
+<table><thead><tr><th style="width:12%">层</th><th style="width:26%">由谁做</th><th style="width:30%">维度</th><th style="width:32%">原因</th></tr></thead><tbody>
+<tr><td>特征</td><td>DSP</td><td>频带能量 + 差分 + 音高特征</td><td>手工特征稳、便宜</td></tr>
+<tr><td>决策</td><td>GRU / 小型网络</td><td>约 22 个增益</td><td>让网络只学最难的部分</td></tr>
+<tr><td>执行</td><td>DSP 滤波器组</td><td>全分辨率谱</td><td>避免网络逐 bin 输出</td></tr>
+<tr><td>平滑</td><td>一阶 IIR</td><td>跨帧增益</td><td>抑制音乐噪声</td></tr>
+</tbody></table>
+</section>
+<section id="s23-2"><h2><span class="sec-num">§23.2</span>DNS Challenge 把问题规模化</h2>
+<p class="eq">Score = w₁·语音质量 + w₂·噪声抑制 + w₃·可懂度　（P.835 三维主观 / DNSMOS 代理）</p>
+<ul>
+<li><strong>数据</strong>：大规模干净语音 + 噪声 + RIR 合成，覆盖多种 SNR 与混响（<a href='../../part4/20-data-synthesis/index.html'>第 20 章 · 训练数据合成：RIR、噪声、SNR 配比与数据泄漏</a>）。</li>
+<li><strong>约束</strong>：赛道通常限定因果、最大延迟与实时因子，离线模型不能参赛。</li>
+<li><strong>评测</strong>：ITU-T P.835 的语音/噪声/总体三维主观分，配合 DNSMOS 等无参考模型做快速迭代。</li>
+<li><strong>陷阱</strong>：只优化 DNSMOS 容易奖励过度降噪；必须同时看语音失真与可懂度。</li>
+</ul>
+<div class="card note"><span class="card-label">与本书实验的关系</span><p style="margin-bottom:0">实验用 oracle 频带增益（由干净/带噪谱能量算出）扫描频带数，目的是量化「降维带来的信息损失」这一条，而不是复现任何具体模型的分数。</p></div>
+</section>
+<section id="lab"><h2><span class="sec-num">§</span>Python 实验</h2>
+<h3>实验 23-1 · 频带数量对降噪精度的影响与频带增益热力图</h3>
+<pre class="code" data-file="code/23-neural-ns.py" data-lang="Python 3 · 标准库"><code>#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""用 oracle 频带增益扫描 4～64 个频带，比较分段 SNR 与全分辨率 IRM 上界。
+
+全部语音 / 噪声 / 房间冲激响应均为代码合成信号，仅用于教学演示机制与量级。
+"""
+from __future__ import annotations
+
+import math
+import pathlib
+import random
+import statistics
+import sys
+import time
+
+_here = pathlib.Path(__file__).resolve()
+for _p in _here.parents:
+    if (_p / "tools" / "dsp.py").exists():
+        sys.path.insert(0, str(_p / "tools"))
+        break
+from dsp import (SAMPLE_RATE, fft, hann, stft, istft, magnitude_db, spectrum,
+                 white_noise, tone, chirp, synthetic_speech, rir, convolve,
+                 fft_convolve, delay, clip, normalize_peak, rms, rolling_rms,
+                 smooth, db, energy_db, snr_db, erle_db, seg_snr_db,
+                 scale_align, si_sdr_db, lufs_approx,
+                 write_wav, read_wav, wav_info)
+from chart import Chart, heatmap, BLUE, RED, GREEN, AMBER
+
+FIG = _here.parents[1] / "fig"
+AUDIO = _here.parents[1] / "audio"
+FIG.mkdir(exist_ok=True)
+AUDIO.mkdir(exist_ok=True)
+
+random.seed(7)
+
+# ---- 参数区 ----
+N = 8000
+N_FFT, HOP = 256, 128
+NOISE_AMP = 0.035
+BANDS = (4, 8, 16, 22, 32, 64)
+FLOOR = 0.10
+
+# ---- 计算与作图 ----
+rng = random.Random(7)
+clean = synthetic_speech(rng, N)
+noise = white_noise(rng, N, NOISE_AMP)
+noisy = [clean[i] + noise[i] for i in range(N)]
+fs, fn = stft(clean, N_FFT, HOP), stft(noise, N_FFT, HOP)
+HALF = N_FFT // 2
+def band_index(k, B):
+    kk = k if k &lt;= HALF else N_FFT - k
+    return min(B - 1, kk * B // HALF)
+def enhance(B, record=False):
+    frames = stft(noisy, N_FFT, HOP)
+    rows = []
+    for idx, (ry, iy) in enumerate(frames):
+        rs, is_ = fs[idx]
+        rn, in_ = fn[idx]
+        ps, py = [0.0] * B, [0.0] * B
+        for k in range(N_FFT):
+            b = band_index(k, B)
+            ps[b] += rs[k] ** 2 + is_[k] ** 2
+            py[b] += ry[k] ** 2 + iy[k] ** 2
+        gains = [max(FLOOR, min(1.0, math.sqrt(ps[b] / (py[b] + 1e-12)))) for b in range(B)]
+        for k in range(N_FFT):
+            g = gains[band_index(k, B)]
+            ry[k] *= g
+            iy[k] *= g
+        if record:
+            rows.append(gains)
+    return istft(frames, N_FFT, HOP, N), rows
+scores, outputs = [], []
+for B in BANDS:
+    out, _ = enhance(B)
+    outputs.append(out)
+    scores.append(seg_snr_db(clean, scale_align(out, clean)))
+full_frames = stft(noisy, N_FFT, HOP)
+for idx, (ry, iy) in enumerate(full_frames):
+    rs, is_ = fs[idx]
+    rn, in_ = fn[idx]
+    for k in range(N_FFT):
+        g = math.hypot(rs[k], is_[k]) / (math.hypot(rs[k], is_[k]) + math.hypot(rn[k], in_[k]) + 1e-9)
+        ry[k] *= g
+        iy[k] *= g
+irm = istft(full_frames, N_FFT, HOP, N)
+irm_score = seg_snr_db(clean, scale_align(irm, clean))
+_, rows22 = enhance(22, record=True)
+c = Chart(FIG / "23-bands.svg", "频带数量与分段 SNR（oracle 增益）", xlabel="频带数", ylabel="dB",
+          xticks=[(i, "%d" % B) for i, B in enumerate(BANDS)])
+c.line(range(len(BANDS)), scores, BLUE, label="频带增益 segSNR")
+c.line(range(len(BANDS)), [irm_score] * len(BANDS), RED, label="全分辨率 IRM 上界")
+print("频带图:", c.save())
+mat = rows22[::4]
+heatmap(FIG / "23-gains.svg", mat,
+        ["frame%d" % (i * 4) for i in range(len(mat))],
+        ["b%d" % j for j in range(22)],
+        title="22 频带 oracle 增益（降采样显示）", vmin=0.0, vmax=1.0, annotate=False)
+print("增益热力图:", str(FIG / "23-gains.svg"))
+write_wav(AUDIO / "23-noisy.wav", normalize_peak(noisy))
+write_wav(AUDIO / "23-22band.wav", normalize_peak(outputs[3]))
+print("频带数→segSNR: " + " ".join("%d=%.2f" % (B, s) for B, s in zip(BANDS, scores)))
+print("全分辨率 IRM=%.2f dB | 22 频带相对上界差=%.2f dB | SAMPLE_RATE=%d" %
+      (irm_score, irm_score - scores[3], SAMPLE_RATE))</code></pre>
+<p class="code-hint"><strong>操作：</strong>对照频带数曲线与全分辨率上界；观察增益热力图里哪些频带长期被压低。　<strong>预期与判读：</strong>频带数越多越接近全分辨率 IRM，但增益维度、网络输出与算力同步上升。<strong>RNNoise 选择约 22 个频带，正是在这条曲线上取的一个工程折中</strong>。</p>
+<p class="code-hint"><strong>改参数看趋势：</strong>把 FLOOR 从 0.10 改成 0.30，低 SNR 频带不再被深压，指标与听感同时变化。　文件位置：<code>part5/23-neural-ns/code/23-neural-ns.py</code></p>
+<div class="chart-grid">
+<figure class="chart-figure"><img src="fig/23-bands.svg" alt="频带数量与分段 SNR 的关系" loading="lazy"><figcaption>图 1　频带数量与分段 SNR 的关系（代码合成信号 / 教学示意）</figcaption></figure>
+<figure class="chart-figure"><img src="fig/23-gains.svg" alt="22 频带增益的时频热力图" loading="lazy"><figcaption>图 2　22 频带增益的时频热力图（代码合成信号 / 教学示意）</figcaption></figure>
+</div>
+<div class="audio-grid">
+<div class="audio-card"><h4>23-noisy.wav</h4><audio controls preload="none" src="audio/23-noisy.wav">浏览器不支持 audio 元素，请直接打开 audio/23-noisy.wav。</audio><p>带噪输入（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+<div class="audio-card"><h4>23-22band.wav</h4><audio controls preload="none" src="audio/23-22band.wav">浏览器不支持 audio 元素，请直接打开 audio/23-22band.wav。</audio><p>22 频带 oracle 增益的输出（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+</div>
+<div class="card note"><p style="margin-bottom:0">代码块右上角可一键复制；仓库里的 <code>code/*.py</code> 由 <code>tools/extract_code.py</code> 从这些代码块自动抽取。脚本只用标准库、固定 <code>random.seed(7)</code>，运行后写出 <code>fig/*.svg</code> 与 <code>audio/*.wav</code>；批量运行用 <code>./tools/run_python.sh</code>。</p></div>
+</section>
+<section id="commands"><h2><span class="sec-num">§</span>可选真机命令片段</h2>
+<div class="card note"><p style="margin-bottom:0">以下命令<strong>不参与批量运行</strong>，需要本机自行安装对应工具。滤镜是否可用取决于本机 ffmpeg 版本与编译选项，请先用 <code>ffmpeg -filters</code> / <code>ffmpeg -version</code> 自查，并以 https://ffmpeg.org/ffmpeg-filters.html 与各自官方文档为准；本书不假定任何特定版本具备某项能力。</p></div>
+<h3>自查本机 arnndn 是否可用（RNNoise 模型需自备）</h3>
+<pre class="cmd" data-lang="shell"><code>ffmpeg -hide_banner -filters | grep arnndn &amp;&amp; ffmpeg -hide_banner -h filter=arnndn | head -20</code></pre>
+<p class="code-hint"><strong>说明：</strong>arnndn 加载 RNNoise 训练出的 .rnnn 模型；是否编译进本机、参数名与模型格式请以本机输出与 https://ffmpeg.org/ffmpeg-filters.html#arnndn 为准。</p>
+<h3>定位 DNSMOS 评测脚本</h3>
+<pre class="cmd" data-lang="shell"><code>git clone --depth 1 https://github.com/microsoft/DNS-Challenge &amp;&amp; ls DNS-Challenge/DNSMOS/</code></pre>
+<p class="code-hint"><strong>说明：</strong>DNSMOS 是无参考神经 MOS 评分；请以其 README 与许可为准，本书实验不下载模型权重。</p>
+</section>
+<section id="highlights"><h2><span class="sec-num">§</span>本章参考资料</h2><p>按本章知识点挑选的精读资料；更多检索入口见 <a href="#extra-links">扩展学习</a>。</p><div class="repo-grid">
+<div class="repo-card"><h3><a href="https://github.com/microsoft/DNS-Challenge" target="_blank" rel="noopener noreferrer">Microsoft DNS Challenge ↗</a></h3><span class="tag">数据集</span><p>深度噪声抑制挑战赛，含大规模合成数据脚本与基线</p><p style="margin:0;color:var(--ink-faint)">推荐理由：大规模数据、赛道约束与评测协议</p></div>
+<div class="repo-card"><h3><a href="https://github.com/microsoft/DNS-Challenge/tree/master/DNSMOS" target="_blank" rel="noopener noreferrer">DNSMOS ↗</a></h3><span class="tag">数据集</span><p>无需参考信号的神经语音质量评分模型（P.835 三维）</p><p style="margin:0;color:var(--ink-faint)">推荐理由：无参考神经 MOS 评分</p></div>
+<div class="repo-card"><h3><a href="https://github.com/xiph/rnnoise" target="_blank" rel="noopener noreferrer">RNNoise ↗</a></h3><span class="tag">工程</span><p>Valin 的混合 DSP/深度学习实时降噪，ffmpeg arnndn 的模型来源</p><p style="margin:0;color:var(--ink-faint)">推荐理由：混合 DSP/GRU 的代表工程</p></div>
+<div class="repo-card"><h3><a href="https://en.wikipedia.org/wiki/Spectral_subtraction" target="_blank" rel="noopener noreferrer">Spectral subtraction ↗</a></h3><span class="tag">百科</span><p>谱减法与音乐噪声的成因</p><p style="margin:0;color:var(--ink-faint)">推荐理由：频带增益与谱减的历史联系</p></div>
+</div></section>
+<section id="repos"><h2><span class="sec-num">§</span>相关开源工程</h2><p>下列工程仅作技术参照，版权与许可证归各自维护者所有。本书实验不依赖它们，也与之无从属关系。</p><div class="repo-grid">
+<div class="repo-card"><h3><a href="https://github.com/xiph/rnnoise" target="_blank" rel="noopener noreferrer">RNNoise ↗</a></h3><span class="tag">AI · C</span><p>混合 DSP/深度学习的实时降噪，ffmpeg arnndn 的模型来源</p></div>
+<div class="repo-card"><h3><a href="https://github.com/microsoft/DNS-Challenge" target="_blank" rel="noopener noreferrer">Microsoft DNS-Challenge ↗</a></h3><span class="tag">数据集 · 基线</span><p>大规模合成数据、基线模型与评测协议</p></div>
+</div></section>
+<section id="pitfalls"><h2><span class="sec-num">§</span>常见误区</h2><div class="card warn"><ul><li>把 oracle 频带增益的分数当成 RNNoise 的实测成绩。</li>
+<li>只优化 DNSMOS，忽略语音失真与可懂度。</li>
+<li>忽略跨帧状态，逐帧独立决策会产生增益抖动。</li>
+<li>把离线两遍处理的结果当作实时赛道成绩。</li></ul></div></section>
+<section id="exercises"><h2><span class="sec-num">§</span>习题与思考</h2><ol><li>估算 B 个频带增益相对全分辨率掩码节省了多少输出维度。</li>
+<li>解释为什么频带划分常按 Bark / 梅尔尺度而非等宽。</li>
+<li>设计一个同时报质量、可懂度与噪声抑制的评测表。</li></ol></section>
+<section id="extra-links"><h2><span class="sec-num">§</span>扩展学习</h2>
+<div class="repo-grid">
+<div class="repo-card"><h3><a href="https://github.com/microsoft/DNS-Challenge" target="_blank" rel="noopener noreferrer">Microsoft DNS Challenge ↗</a></h3><span class="tag">数据集</span><p>深度噪声抑制挑战赛，含大规模合成数据脚本与基线</p></div>
+<div class="repo-card"><h3><a href="https://github.com/microsoft/DNS-Challenge/tree/master/DNSMOS" target="_blank" rel="noopener noreferrer">DNSMOS ↗</a></h3><span class="tag">数据集</span><p>无需参考信号的神经语音质量评分模型（P.835 三维）</p></div>
+<div class="repo-card"><h3><a href="https://github.com/xiph/rnnoise" target="_blank" rel="noopener noreferrer">RNNoise ↗</a></h3><span class="tag">工程</span><p>Valin 的混合 DSP/深度学习实时降噪，ffmpeg arnndn 的模型来源</p></div>
+<div class="repo-card"><h3><a href="https://en.wikipedia.org/wiki/Spectral_subtraction" target="_blank" rel="noopener noreferrer">Spectral subtraction ↗</a></h3><span class="tag">百科</span><p>谱减法与音乐噪声的成因</p></div>
+</div>
+<h3>继续检索</h3><ul>
+<li>Google Scholar：<a href='https://scholar.google.com/scholar?q=neural%20noise%20suppression%20DNS%20Challenge%20DNSMOS' target='_blank' rel='noopener noreferrer'>neural noise suppression DNS Challenge DNSMOS ↗</a></li>
+<li>arXiv：<a href='https://arxiv.org/search/?query=neural%20noise%20suppression%20DNS%20Challenge%20DNSMOS&searchtype=all' target='_blank' rel='noopener noreferrer'>neural noise suppression DNS Challenge DNSMOS ↗</a></li>
+<li>GitHub：<a href='https://github.com/search?q=neural%20noise%20suppression%20DNS%20Challenge%20DNSMOS&type=repositories' target='_blank' rel='noopener noreferrer'>neural noise suppression DNS Challenge DNSMOS ↗</a></li>
+</ul>
+<p class="code-hint">全书链接总表见 <a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a> 与 <a href="../../appendix/index.html#sA-7">附录 A.7</a>；滤镜是否可用请以本机 <code>ffmpeg -filters</code> 为准。</p>
+</section>
+<section id="further"><h2><span class="sec-num">§</span>延伸阅读与内链</h2><ul><li><a href='../24-neural-aec/index.html'>第 24 章 · 神经 AEC 与回声/噪声联合抑制</a> 神经 AEC；<a href='../26-joint-3a/index.html'>第 26 章 · 联合 3A：多任务、级联与端到端建模</a> 联合 3A；<a href='../../part6/30-generalization/index.html'>第 30 章 · 泛化、鲁棒性与评测陷阱</a> 泛化与评测陷阱。</li></ul></section>
+<footer class="pager" data-autofill></footer>
+<footer class="site-foot">
+<p class="credits"><strong>作者</strong>：汪亮（bertonwang）　<strong>联系邮箱</strong>：<a href="mailto:47608843@qq.com">47608843@qq.com</a></p>
+<p class="ai-note"><strong>AI 使用说明</strong>：本教材的知识框架、正文、Python 实验脚本与参考资料清单在 AI 辅助下整理生成，并经人工校订、实际运行与静态自检。公式、数值与运行结果请以Python 3 实际输出及权威教材、官方文档为准；发现错漏欢迎通过上方邮箱勘误。</p>
+<p class="imprint">音频 3A 处理：从自适应滤波到神经增强 · 每章一个 <code>code/*.py</code> 实验脚本、<code>fig/*.svg</code> 矢量图与 <code>audio/*.wav</code> 试听样本（由 <code>tools/extract_code.py</code> 与脚本运行同步） · 只用 Python 3 标准库 · 教学材料，信号全部由代码合成。</p>
+</footer>
+</main>
+</body>
+</html>

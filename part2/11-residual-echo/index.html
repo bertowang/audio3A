@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 11 章 · 残余回声抑制与 WebRTC AEC3 结构 | 音频 3A 处理：从自适应滤波到神经增强</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<script src="../../assets/toc.js" defer></script>
+<script src="../../assets/app.js" defer></script>
+</head>
+<body data-root="../../" data-chapter="11">
+<aside id="sidebar"></aside>
+<main class="book-page">
+<nav class="breadcrumb" data-autofill>总目录</nav>
+<header class="chapter-head">
+<span class="kicker">第二篇 · AEC / ANS / AGC 三类经典引擎 · 上卷 · 传统算法（Model-based）</span>
+<h1><span class="ch-num">第 11 章</span>残余回声抑制与 WebRTC AEC3 结构</h1>
+<p class="lede">线性滤波器解释不了扬声器削波，最后一段回声要靠功率谱估计来收。</p>
+<div class="meta">
+<span class="badge done">已完稿</span>
+<span class="badge s2">三大引擎</span>
+<span class="badge traditional">上卷 · 传统算法</span>
+<span>建议 3 学时</span>
+<span>1 个 Python 实验 · 2 张图 · 3 段试听</span>
+<span>音频 3A 处理：从自适应滤波到神经增强</span>
+</div></header>
+<p class="bridge"><strong>本章位置：</strong><a href='../09-aec-architecture/index.html'>第 09 章 · AEC 总体结构：参考信号、线性滤波与残余抑制</a> 给出三级 AEC、<a href='../10-nlms-aec/index.html'>第 10 章 · 用 NLMS 实现一个可验证的 AEC</a> 给出可验证的线性实现，本章补上非线性残余与 AEC3 结构；<a href='../12-spectral-subtraction/index.html'>第 12 章 · 谱减、过减因子与音乐噪声</a> 起转入 ANS，<a href='../../part5/24-neural-aec/index.html'>第 24 章 · 神经 AEC 与回声/噪声联合抑制</a> 会把这段后滤波换成神经模型。</p>
+<div class="analogy"><span class="card-label">给程序员的翻译</span><p style="margin-bottom:0">线性 AEC 是编译器能静态分析的那部分，残余抑制是运行时兜底的 rate limiter：模板来自预测谱，增益是逐 bin 的限流阀，β 是阈值松紧。<strong>阈值调得太狠，正常流量（近端语音）也会被限掉。</strong></p></div>
+<div class="card objectives"><span class="card-label">学习目标</span><ul>
+<li>能说明非线性回声为何让线性 AEC 留下不可消除的残余。</li>
+<li>能写出基于线性预测谱的残余回声功率估计与 Wiener 型后滤波增益。</li>
+<li>能解释 AEC3 中主/阴影滤波器、延迟估计与残余回声估计的分工。</li>
+<li>能运行实验，量化抑制强度 β 与残余 ERLE、双讲保真度的折中。</li>
+</ul></div>
+<section id="map"><h2><span class="sec-num">§</span>知识点地图</h2>
+<p class="code-hint">每个知识点都配了 1～2 个扩展学习链接；本章完整资源清单见 <a href="#extra-links">扩展学习</a>。</p>
+<table><thead><tr><th style="width:44px">#</th><th style="width:26%">知识点</th><th>扩展学习</th><th style="width:100px">状态</th></tr></thead><tbody>
+<tr><td>1</td><td>非线性回声与削波</td><td><a href="https://en.wikipedia.org/wiki/Echo_cancellation" target="_blank" rel="noopener noreferrer">Echo cancellation ↗</a> · <a href="https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/aec3/" target="_blank" rel="noopener noreferrer">WebRTC AEC3 模块 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>2</td><td>残余回声功率谱</td><td><a href="https://en.wikipedia.org/wiki/Echo_cancellation" target="_blank" rel="noopener noreferrer">Echo cancellation ↗</a> · <a href="https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/aec3/" target="_blank" rel="noopener noreferrer">WebRTC AEC3 模块 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>3</td><td>泄漏系数 γ</td><td><a href="https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/aec3/" target="_blank" rel="noopener noreferrer">WebRTC AEC3 模块 ↗</a> · <a href="https://github.com/microsoft/AEC-Challenge" target="_blank" rel="noopener noreferrer">Microsoft AEC Challenge ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>4</td><td>Wiener 型后滤波</td><td><a href="https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/aec3/" target="_blank" rel="noopener noreferrer">WebRTC AEC3 模块 ↗</a> · <a href="https://github.com/microsoft/AEC-Challenge" target="_blank" rel="noopener noreferrer">Microsoft AEC Challenge ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>5</td><td>AEC3 主/阴影滤波器</td><td><a href="https://en.wikipedia.org/wiki/Echo_cancellation" target="_blank" rel="noopener noreferrer">Echo cancellation ↗</a> · <a href="https://www.itu.int/rec/T-REC-G.168/en" target="_blank" rel="noopener noreferrer">ITU-T G.168 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>6</td><td>延迟估计与缓冲对齐</td><td><a href="https://www.rfc-editor.org/rfc/rfc3550" target="_blank" rel="noopener noreferrer">RFC 3550 RTP ↗</a> · <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API" target="_blank" rel="noopener noreferrer">MDN Web Audio API ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>7</td><td>双讲透明度</td><td><a href="https://www.itu.int/rec/T-REC-G.168/en" target="_blank" rel="noopener noreferrer">ITU-T G.168 ↗</a> · <a href="https://github.com/microsoft/AEC-Challenge" target="_blank" rel="noopener noreferrer">Microsoft AEC Challenge ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>8</td><td>过抑制与语音失真</td><td><a href="https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/aec3/" target="_blank" rel="noopener noreferrer">WebRTC AEC3 模块 ↗</a> · <a href="https://github.com/microsoft/AEC-Challenge" target="_blank" rel="noopener noreferrer">Microsoft AEC Challenge ↗</a></td><td>正文已覆盖</td></tr>
+</tbody></table></section>
+<section id="s11-1"><h2><span class="sec-num">§11.1</span>线性模型的天花板</h2>
+<p class="eq">e_lin[n] = y[n] − ŵ*x[n] ≈ (h*x)[n] − ŵ*x[n] + f_nl(x[n]) + d[n] + v[n]</p>
+<p><code>f_nl</code> 是扬声器饱和、外壳振动、编解码削波引入的非线性项，它<strong>不能写成 x 的线性卷积</strong>，所以再长的自适应滤波器也无解。本章实验用 <code>tanh(1.8·u)</code> 人为制造这种饱和，让线性级刻意留下一段可测量的残余，再交给后滤波。</p>
+<table><thead><tr><th style="width:20%">残余来源</th><th style="width:24%">与 x 的关系</th><th style="width:24%">线性 AEC 能否消除</th><th style="width:32%">对策</th></tr></thead><tbody>
+<tr><td>混响尾超出 L</td><td>线性但欠建模</td><td>加大 L 可缓解</td><td>分块 MDF 覆盖更长尾</td></tr>
+<tr><td>路径突变瞬间</td><td>线性但时变</td><td>需重收敛时间</td><td>阴影滤波器 + 快速重估</td></tr>
+<tr><td>扬声器削波</td><td>非线性 f_nl(x)</td><td>不能</td><td>残余功率估计 + 后滤波</td></tr>
+<tr><td>时钟漂移</td><td>延迟缓变</td><td>会周期性塌陷</td><td>延迟估计 + 重采样</td></tr>
+</tbody></table>
+</section>
+<section id="s11-2"><h2><span class="sec-num">§11.2</span>AEC3 的四块拼图</h2>
+<ul>
+<li><strong>延迟估计</strong>：在参考缓冲里找与 y 最相关的对齐位置，先把 x 与 y 放到同一时间轴。</li>
+<li><strong>主滤波器 + 阴影滤波器</strong>：阴影滤波器持续自由更新、不受双讲保护，只有稳定优于主滤波器才替换，兼顾快速重收敛与误判鲁棒性。</li>
+<li><strong>残余回声估计</strong>：用线性预测谱 Ŷ 与误差谱 E 的相干性，估出每个 bin 还漏了多少回声功率。</li>
+<li><strong>残余抑制器</strong>：把估计功率转成逐 bin 增益 G，作用在线性误差上，并与噪声抑制、AGC 串成完整 3A（<a href='../../part3/16-cascade-order/index.html'>第 16 章 · 3A 级联顺序与模块间相互干扰</a>）。</li>
+</ul>
+<p class="eq">P̂_res[k,t] = γ·|Ŷ[k,t]|²　，G[k,t] = max(G_floor, 1 − β·P̂_res[k,t] / P_e[k,t])</p>
+<div class="card note"><span class="card-label">为什么用 Ŷ 而不是 x</span><p style="margin-bottom:0">Ŷ 已经过 ŵ 的整形，刻度与真实回声能量一致；直接用 |X|² 会把尚未被线性级消掉的那部分也算进去，导致过抑制。</p></div>
+</section>
+<section id="s11-3"><h2><span class="sec-num">§11.3</span>一条永远存在的折中曲线</h2>
+<p class="eq">β ↑ ⇒ 残余 ERLE ↑　但　双讲段 SI-SDR ↓　（近端语音被当成残余一起压掉）</p>
+<p>实验扫描 <code>β ∈ {0.4, 1.0, 2.0}</code>，同时打印残余 ERLE、双讲段 segSNR 与 SI-SDR。工程上不能用『把回声压到零』做目标函数，必须把<strong>双讲透明度</strong>作为并列约束；这正是 <a href='../../part0/03-metrics/index.html'>第 03 章 · 怎么算「变好了」：客观指标、尺度与主观听测</a> 要求同时报失真类与主观/无参考指标的原因。</p>
+<div class="card warn"><span class="card-label">别把残余抑制当 ANS</span><p style="margin-bottom:0">后滤波的模板是回声预测谱 Ŷ，不是噪声谱 λ_n。两者混淆会在远端静音时把近端语音一起衰减——降噪任务属于 <a href='../12-spectral-subtraction/index.html'>第 12 章 · 谱减、过减因子与音乐噪声</a>～<a href='../13-wiener-mmse/index.html'>第 13 章 · Wiener 滤波、先验 SNR 与 MMSE-STSA</a>。</p></div>
+</section>
+<section id="lab"><h2><span class="sec-num">§</span>Python 实验</h2>
+<h3>实验 11-1 · 非线性回声下的残余抑制与 β 折中扫描</h3>
+<pre class="code" data-file="code/11-residual-echo.py" data-lang="Python 3 · 标准库"><code>#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""用 tanh 制造非线性回声，跑线性 NLMS 后做逐 bin 后滤波，打印 β 扫描下的残余 ERLE 与双讲保真度。
+
+全部语音 / 噪声 / 房间冲激响应均为代码合成信号，仅用于教学演示机制与量级。
+"""
+from __future__ import annotations
+
+import math
+import pathlib
+import random
+import statistics
+import sys
+import time
+
+_here = pathlib.Path(__file__).resolve()
+for _p in _here.parents:
+    if (_p / "tools" / "dsp.py").exists():
+        sys.path.insert(0, str(_p / "tools"))
+        break
+from dsp import (SAMPLE_RATE, fft, hann, stft, istft, magnitude_db, spectrum,
+                 white_noise, tone, chirp, synthetic_speech, rir, convolve,
+                 fft_convolve, delay, clip, normalize_peak, rms, rolling_rms,
+                 smooth, db, energy_db, snr_db, erle_db, seg_snr_db,
+                 scale_align, si_sdr_db, lufs_approx,
+                 write_wav, read_wav, wav_info)
+from chart import Chart, heatmap, BLUE, RED, GREEN, AMBER
+
+FIG = _here.parents[1] / "fig"
+AUDIO = _here.parents[1] / "audio"
+FIG.mkdir(exist_ok=True)
+AUDIO.mkdir(exist_ok=True)
+
+random.seed(7)
+
+# ---- 参数区 ----
+N, L, NF, HOP = 4096, 64, 256, 128
+MU = 0.60                  # 线性级 NLMS 步长
+BETAS = (0.4, 1.0, 2.0)   # 残余抑制强度扫描
+GAMMA = 0.20               # 残余回声功率泄漏系数
+FLOOR = 0.12               # 谱增益下限
+DT_START = int(0.55 * N)   # 双讲起点
+
+# ---- 计算与作图 ----
+rng = random.Random(7)
+far = synthetic_speech(rng, N)
+h = rir(rng, L, decay=0.005, direct_delay=12)
+linear_echo = fft_convolve(far, h)[:N]
+echo = [math.tanh(1.8 * v) for v in linear_echo]
+near_raw = synthetic_speech(rng, N)
+near = [0.7 * near_raw[i] if i &gt;= DT_START else 0.0 for i in range(N)]
+noise = white_noise(rng, N, 0.004)
+mic = [echo[i] + near[i] + noise[i] for i in range(N)]
+
+w = [0.0] * L
+echo_hat, err_linear = [0.0] * N, [0.0] * N
+for n in range(L, N):
+    xv = [far[n - i] for i in range(L)]
+    y = sum(w[i] * xv[i] for i in range(L))
+    echo_hat[n] = y
+    e = mic[n] - y
+    err_linear[n] = e
+    p = sum(v * v for v in xv) + 1e-3
+    for i in range(L):
+        w[i] += MU * e * xv[i] / p
+
+eh, ef = stft(echo_hat, NF, HOP), stft(err_linear, NF, HOP)
+
+def postfilter(beta):
+    out_frames = []
+    for t, (re, im) in enumerate(ef):
+        rr, ii = re[:], im[:]
+        ehr, ehi = eh[t]
+        for k in range(NF):
+            pe = re[k] ** 2 + im[k] ** 2
+            pr = GAMMA * (ehr[k] ** 2 + ehi[k] ** 2)
+            g = max(FLOOR, 1.0 - beta * pr / (pe + 1e-9))
+            rr[k] *= g
+            ii[k] *= g
+        out_frames.append((rr, ii))
+    return istft(out_frames, NF, HOP, N)
+
+def resid_erle(sig, lo, hi):
+    r = [sig[i] - near[i] for i in range(lo, hi)]
+    return erle_db(echo[lo:hi], r)
+
+results = []
+for beta in BETAS:
+    o = postfilter(beta)
+    o_dt = scale_align(o[DT_START:], near[DT_START:])
+    results.append((beta, o, resid_erle(o, 0, DT_START),
+                    seg_snr_db(near[DT_START:], o_dt),
+                    si_sdr_db(o_dt, near[DT_START:])))
+
+def avg_spec_db(x):
+    fr = stft(x, NF, HOP)
+    half = NF // 2
+    acc = [0.0] * half
+    for re, im in fr:
+        for k in range(half):
+            acc[k] += re[k] ** 2 + im[k] ** 2
+    return [10 * math.log10(a / len(fr) + 1e-12) for a in acc]
+
+s_lin, s_out = avg_spec_db(err_linear), avg_spec_db(results[1][1])
+
+c = Chart(FIG / "11-tradeoff.svg", "抑制强度折中：残余 ERLE vs 双讲近端保真",
+          xlabel="beta（残余抑制因子）", ylabel="dB",
+          xticks=[(i, "beta=%.1f" % BETAS[i]) for i in range(len(BETAS))])
+c.line(range(len(results)), [r[2] for r in results], BLUE, label="残余回声 ERLE (dB)")
+c.line(range(len(results)), [r[4] for r in results], GREEN, label="双讲段 SI-SDR (dB)")
+c.line(range(len(results)), [r[3] for r in results], AMBER, label="双讲段 segSNR (dB)")
+print("折中图:", c.save())
+d = Chart(FIG / "11-spectrum.svg", "后滤波前后的平均功率谱", xlabel="频率箱 k", ylabel="功率 dB")
+d.line(range(len(s_lin)), s_lin, RED, label="线性 AEC 误差谱")
+d.line(range(len(s_out)), s_out, GREEN, label="残余抑制后谱")
+print("谱图:", d.save())
+write_wav(AUDIO / "11-mic.wav", normalize_peak(mic))
+write_wav(AUDIO / "11-linear.wav", normalize_peak(err_linear))
+write_wav(AUDIO / "11-suppressed.wav", normalize_peak(results[1][1]))
+print("采样率=%d Hz 非线性=tanh(1.8x) 线性抽头=%d 频率箱=%d 箱宽=%.1f Hz" %
+      (SAMPLE_RATE, L, NF, SAMPLE_RATE / NF))
+print("线性级残余ERLE=%.2f dB（削波成分无法被线性滤波器解释）" % resid_erle(err_linear, 0, DT_START))
+for b, _o, er, ss, si in results:
+    print("beta=%.1f 残余ERLE=%.2f dB 双讲segSNR=%.2f dB(下限−10) 双讲SI-SDR=%.2f dB" %
+          (b, er, ss, si))
+print("抑制前后平均谱能量差=%.2f dB" % (statistics.fmean(s_lin) - statistics.fmean(s_out)))</code></pre>
+<p class="code-hint"><strong>操作：</strong>先听 11-linear.wav 里线性级消不掉的残余，再听 11-suppressed.wav；对照折中图判断 β=1.0 是否平衡。　<strong>预期与判读：</strong>β 增大时残余 ERLE 单调上升（22.60→23.14 dB），平均谱整体下移约 1.8 dB；但双讲段 segSNR 全部触到 −10 dB 下限、SI-SDR 停留在 −46～−36 dB，说明<strong>这套固定增益后滤波根本没有保住近端语音</strong>。折中不是「稍微变差」，而是必须先加双讲检测与条件化增益（<a href='../../part5/24-neural-aec/index.html'>第 24 章 · 神经 AEC 与回声/噪声联合抑制</a>）。</p>
+<p class="code-hint"><strong>改参数看趋势：</strong>把 GAMMA 调到 0.05，ERLE 提升变小但近端更保真；把 FLOOR 调到 0.5，过抑制消失但残余回声回升。　文件位置：<code>part2/11-residual-echo/code/11-residual-echo.py</code></p>
+<div class="chart-grid">
+<figure class="chart-figure"><img src="fig/11-tradeoff.svg" alt="β 扫描下残余 ERLE 与双讲保真度的折中" loading="lazy"><figcaption>图 1　β 扫描下残余 ERLE 与双讲保真度的折中（代码合成信号 / 教学示意）</figcaption></figure>
+<figure class="chart-figure"><img src="fig/11-spectrum.svg" alt="残余抑制前后的平均功率谱" loading="lazy"><figcaption>图 2　残余抑制前后的平均功率谱（代码合成信号 / 教学示意）</figcaption></figure>
+</div>
+<div class="audio-grid">
+<div class="audio-card"><h4>11-mic.wav</h4><audio controls preload="none" src="audio/11-mic.wav">浏览器不支持 audio 元素，请直接打开 audio/11-mic.wav。</audio><p>含非线性回声与双讲的麦克风信号（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+<div class="audio-card"><h4>11-linear.wav</h4><audio controls preload="none" src="audio/11-linear.wav">浏览器不支持 audio 元素，请直接打开 audio/11-linear.wav。</audio><p>仅线性 AEC 后，仍可听到残余回声（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+<div class="audio-card"><h4>11-suppressed.wav</h4><audio controls preload="none" src="audio/11-suppressed.wav">浏览器不支持 audio 元素，请直接打开 audio/11-suppressed.wav。</audio><p>beta=1.0 残余抑制后的输出（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+</div>
+<div class="card note"><p style="margin-bottom:0">代码块右上角可一键复制；仓库里的 <code>code/*.py</code> 由 <code>tools/extract_code.py</code> 从这些代码块自动抽取。脚本只用标准库、固定 <code>random.seed(7)</code>，运行后写出 <code>fig/*.svg</code> 与 <code>audio/*.wav</code>；批量运行用 <code>./tools/run_python.sh</code>。</p></div>
+</section>
+<section id="commands"><h2><span class="sec-num">§</span>可选真机命令片段</h2>
+<div class="card note"><p style="margin-bottom:0">以下命令<strong>不参与批量运行</strong>，需要本机自行安装对应工具。滤镜是否可用取决于本机 ffmpeg 版本与编译选项，请先用 <code>ffmpeg -filters</code> / <code>ffmpeg -version</code> 自查，并以 https://ffmpeg.org/ffmpeg-filters.html 与各自官方文档为准；本书不假定任何特定版本具备某项能力。</p></div>
+<h3>本机自查 AEC3 源码入口与官方链接</h3>
+<pre class="cmd" data-lang="shell"><code>git ls-remote https://webrtc.googlesource.com/src HEAD</code></pre>
+<p class="code-hint"><strong>说明：</strong>只检查仓库可达性；AEC3 残余回声估计与抑制结构以 https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/aec3/ 官方文档与源码为准，本书不假定任何特定版本。</p>
+</section>
+<section id="highlights"><h2><span class="sec-num">§</span>本章参考资料</h2><p>按本章知识点挑选的精读资料；更多检索入口见 <a href="#extra-links">扩展学习</a>。</p><div class="repo-grid">
+<div class="repo-card"><h3><a href="https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/aec3/" target="_blank" rel="noopener noreferrer">WebRTC AEC3 模块 ↗</a></h3><span class="tag">工程</span><p>分块频域自适应滤波 + 残余回声估计的现代 AEC 结构</p><p style="margin:0;color:var(--ink-faint)">推荐理由：AEC3 分块频域滤波 + 残余回声估计的工业参考</p></div>
+<div class="repo-card"><h3><a href="https://github.com/microsoft/AEC-Challenge" target="_blank" rel="noopener noreferrer">Microsoft AEC Challenge ↗</a></h3><span class="tag">数据集</span><p>声学回声消除挑战赛，含真实双讲与非线性失真录音</p><p style="margin:0;color:var(--ink-faint)">推荐理由：真实非线性失真与双讲录音，验证后滤波必备</p></div>
+<div class="repo-card"><h3><a href="https://www.itu.int/rec/T-REC-G.168/en" target="_blank" rel="noopener noreferrer">ITU-T G.168 ↗</a></h3><span class="tag">标准</span><p>网络回声消除器的测试标准，规定 ERLE 与双讲测试信号</p><p style="margin:0;color:var(--ink-faint)">推荐理由：残余回声与双讲透明度的测试口径</p></div>
+<div class="repo-card"><h3><a href="https://arxiv.org/abs/1709.08243" target="_blank" rel="noopener noreferrer">RNNoise 论文（arXiv 1709.08243） ↗</a></h3><span class="tag">论文</span><p>A Hybrid DSP/Deep Learning Approach to Real-Time Full-Band Speech Enhancement</p><p style="margin:0;color:var(--ink-faint)">推荐理由：混合 DSP/神经后滤波的经典思路</p></div>
+</div></section>
+<section id="repos"><h2><span class="sec-num">§</span>相关开源工程</h2><p>下列工程仅作技术参照，版权与许可证归各自维护者所有。本书实验不依赖它们，也与之无从属关系。</p><div class="repo-grid">
+<div class="repo-card"><h3><a href="https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/" target="_blank" rel="noopener noreferrer">WebRTC audio_processing ↗</a></h3><span class="tag">传统 · C++</span><p>工业级 3A 参考实现：AEC3 / NS / AGC2，读源码理解分块频域与双讲逻辑</p></div>
+<div class="repo-card"><h3><a href="https://github.com/microsoft/AEC-Challenge" target="_blank" rel="noopener noreferrer">Microsoft AEC-Challenge ↗</a></h3><span class="tag">数据集 · 基线</span><p>真实双讲、非线性失真与远端单讲录音，AEC 必测</p></div>
+<div class="repo-card"><h3><a href="https://github.com/xiph/rnnoise" target="_blank" rel="noopener noreferrer">RNNoise ↗</a></h3><span class="tag">AI · C</span><p>混合 DSP + GRU 的实时降噪，ffmpeg arnndn 的模型来源</p></div>
+</div></section>
+<section id="pitfalls"><h2><span class="sec-num">§</span>常见误区</h2><div class="card warn"><ul><li>用参考谱 |X|² 而非预测谱 |Ŷ|² 构造残余估计，导致过抑制。</li>
+<li>只优化残余 ERLE，把双讲近端语音一起压掉。</li>
+<li>把残余抑制与噪声抑制混为一谈，远端静音时误伤语音。</li>
+<li>增益下限设为 0，谱洞造成明显音乐噪声与语音发闷。</li></ul></div></section>
+<section id="exercises"><h2><span class="sec-num">§</span>习题与思考</h2><ol><li>解释 tanh 饱和为什么不能写成 x 的线性卷积。</li>
+<li>推导 β→0 与 β→∞ 时 G[k,t] 的极限，并说明折中曲线的两端。</li>
+<li>说明主/阴影滤波器如何同时满足快速重收敛与误判鲁棒性。</li></ol></section>
+<section id="extra-links"><h2><span class="sec-num">§</span>扩展学习</h2>
+<div class="repo-grid">
+<div class="repo-card"><h3><a href="https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/aec3/" target="_blank" rel="noopener noreferrer">WebRTC AEC3 模块 ↗</a></h3><span class="tag">工程</span><p>分块频域自适应滤波 + 残余回声估计的现代 AEC 结构</p></div>
+<div class="repo-card"><h3><a href="https://github.com/microsoft/AEC-Challenge" target="_blank" rel="noopener noreferrer">Microsoft AEC Challenge ↗</a></h3><span class="tag">数据集</span><p>声学回声消除挑战赛，含真实双讲与非线性失真录音</p></div>
+<div class="repo-card"><h3><a href="https://www.itu.int/rec/T-REC-G.168/en" target="_blank" rel="noopener noreferrer">ITU-T G.168 ↗</a></h3><span class="tag">标准</span><p>网络回声消除器的测试标准，规定 ERLE 与双讲测试信号</p></div>
+<div class="repo-card"><h3><a href="https://arxiv.org/abs/1709.08243" target="_blank" rel="noopener noreferrer">RNNoise 论文（arXiv 1709.08243） ↗</a></h3><span class="tag">论文</span><p>A Hybrid DSP/Deep Learning Approach to Real-Time Full-Band Speech Enhancement</p></div>
+</div>
+<h3>继续检索</h3><ul>
+<li>Google Scholar：<a href='https://scholar.google.com/scholar?q=AEC3%20double%20talk%20nonlinear%20post%20filter' target='_blank' rel='noopener noreferrer'>AEC3 double talk nonlinear post filter ↗</a></li>
+<li>arXiv：<a href='https://arxiv.org/search/?query=AEC3%20double%20talk%20nonlinear%20post%20filter&searchtype=all' target='_blank' rel='noopener noreferrer'>AEC3 double talk nonlinear post filter ↗</a></li>
+<li>GitHub：<a href='https://github.com/search?q=AEC3%20double%20talk%20nonlinear%20post%20filter&type=repositories' target='_blank' rel='noopener noreferrer'>AEC3 double talk nonlinear post filter ↗</a></li>
+</ul>
+<p class="code-hint">全书链接总表见 <a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a> 与 <a href="../../appendix/index.html#sA-7">附录 A.7</a>；滤镜是否可用请以本机 <code>ffmpeg -filters</code> 为准。</p>
+</section>
+<section id="further"><h2><span class="sec-num">§</span>延伸阅读与内链</h2><ul><li><a href='../12-spectral-subtraction/index.html'>第 12 章 · 谱减、过减因子与音乐噪声</a> 谱减与音乐噪声；<a href='../../part5/24-neural-aec/index.html'>第 24 章 · 神经 AEC 与回声/噪声联合抑制</a> 神经 AEC 与联合建模；<a href='../../part3/16-cascade-order/index.html'>第 16 章 · 3A 级联顺序与模块间相互干扰</a> 3A 级联顺序。</li></ul></section>
+<footer class="pager" data-autofill></footer>
+<footer class="site-foot">
+<p class="credits"><strong>作者</strong>：汪亮（bertonwang）　<strong>联系邮箱</strong>：<a href="mailto:47608843@qq.com">47608843@qq.com</a></p>
+<p class="ai-note"><strong>AI 使用说明</strong>：本教材的知识框架、正文、Python 实验脚本与参考资料清单在 AI 辅助下整理生成，并经人工校订、实际运行与静态自检。公式、数值与运行结果请以Python 3 实际输出及权威教材、官方文档为准；发现错漏欢迎通过上方邮箱勘误。</p>
+<p class="imprint">音频 3A 处理：从自适应滤波到神经增强 · 每章一个 <code>code/*.py</code> 实验脚本、<code>fig/*.svg</code> 矢量图与 <code>audio/*.wav</code> 试听样本（由 <code>tools/extract_code.py</code> 与脚本运行同步） · 只用 Python 3 标准库 · 教学材料，信号全部由代码合成。</p>
+</footer>
+</main>
+</body>
+</html>

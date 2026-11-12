@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 04 章 · 线性系统、卷积与频域实现 | 音频 3A 处理：从自适应滤波到神经增强</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<script src="../../assets/toc.js" defer></script>
+<script src="../../assets/app.js" defer></script>
+</head>
+<body data-root="../../" data-chapter="04">
+<aside id="sidebar"></aside>
+<main class="book-page">
+<nav class="breadcrumb" data-autofill>总目录</nav>
+<header class="chapter-head">
+<span class="kicker">第一篇 · 信号、系统与自适应滤波基础 · 上卷 · 传统算法（Model-based）</span>
+<h1><span class="ch-num">第 04 章</span>线性系统、卷积与频域实现</h1>
+<p class="lede">AEC 的每一次「预测回声」，都是一次带长滤波器的实时卷积。</p>
+<div class="meta">
+<span class="badge done">已完稿</span>
+<span class="badge s2">基础 · 自适应</span>
+<span class="badge traditional">上卷 · 传统算法</span>
+<span>建议 2 学时</span>
+<span>1 个 Python 实验 · 2 张图 · 2 段试听</span>
+<span>音频 3A 处理：从自适应滤波到神经增强</span>
+</div></header>
+<p class="bridge"><strong>本章位置：</strong><a href='../../part0/03-metrics/index.html'>第 03 章 · 怎么算「变好了」：客观指标、尺度与主观听测</a> 约定指标，本章补上最基础的算子；<a href='../05-adaptive-filter/index.html'>第 05 章 · 自适应滤波：LMS、NLMS 与收敛</a> 让这个滤波器的系数自己学出来，<a href='../06-fdaf/index.html'>第 06 章 · 频域自适应滤波：FDAF、分块 MDF 与收敛</a> 再把它搬进频域。</p>
+<div class="analogy"><span class="card-label">给程序员的翻译</span><p style="margin-bottom:0">时域卷积是嵌套循环，频域卷积是「先变换到可逐点乘的域、再变换回来」——典型的<strong>换域加速</strong>。补零长度 N ≥ B+L−1 就是防止环形缓冲区回绕。</p></div>
+<div class="card objectives"><span class="card-label">学习目标</span><ul>
+<li>能写出 LTI 系统的卷积与频域等价形式。</li>
+<li>能手算分块 overlap-add 频域卷积并验证数值一致。</li>
+<li>能说明滤波器长度、算力与混响尾的关系。</li>
+<li>能解释为什么频域实现是实时 AEC 的必然选择。</li>
+</ul></div>
+<section id="map"><h2><span class="sec-num">§</span>知识点地图</h2>
+<p class="code-hint">每个知识点都配了 1～2 个扩展学习链接；本章完整资源清单见 <a href="#extra-links">扩展学习</a>。</p>
+<table><thead><tr><th style="width:44px">#</th><th style="width:26%">知识点</th><th>扩展学习</th><th style="width:100px">状态</th></tr></thead><tbody>
+<tr><td>1</td><td>LTI 与冲激响应</td><td><a href="https://github.com/LCAV/pyroomacoustics" target="_blank" rel="noopener noreferrer">pyroomacoustics ↗</a> · <a href="https://docs.scipy.org/doc/scipy/reference/signal.html" target="_blank" rel="noopener noreferrer">SciPy signal ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>2</td><td>线性卷积</td><td><a href="https://www.dspguide.com/" target="_blank" rel="noopener noreferrer">The Scientist and Engineer&#x27;s Guide to DSP ↗</a> · <a href="https://docs.scipy.org/doc/scipy/reference/signal.html" target="_blank" rel="noopener noreferrer">SciPy signal ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>3</td><td>循环卷积与补零</td><td><a href="https://www.dspguide.com/" target="_blank" rel="noopener noreferrer">The Scientist and Engineer&#x27;s Guide to DSP ↗</a> · <a href="https://docs.scipy.org/doc/scipy/reference/signal.html" target="_blank" rel="noopener noreferrer">SciPy signal ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>4</td><td>overlap-add</td><td><a href="https://www.dspguide.com/" target="_blank" rel="noopener noreferrer">The Scientist and Engineer&#x27;s Guide to DSP ↗</a> · <a href="https://github.com/LCAV/pyroomacoustics" target="_blank" rel="noopener noreferrer">pyroomacoustics ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>5</td><td>FFT 卷积复杂度</td><td><a href="https://en.wikipedia.org/wiki/Cooley%E2%80%93Tukey_FFT_algorithm" target="_blank" rel="noopener noreferrer">Cooley–Tukey FFT ↗</a> · <a href="https://docs.python.org/3/library/index.html" target="_blank" rel="noopener noreferrer">Python 标准库文档 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>6</td><td>分块频域滤波</td><td><a href="https://en.wikipedia.org/wiki/Cooley%E2%80%93Tukey_FFT_algorithm" target="_blank" rel="noopener noreferrer">Cooley–Tukey FFT ↗</a> · <a href="https://docs.scipy.org/doc/scipy/reference/signal.html" target="_blank" rel="noopener noreferrer">SciPy signal ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>7</td><td>滤波器阶数</td><td><a href="https://www.dspguide.com/" target="_blank" rel="noopener noreferrer">The Scientist and Engineer&#x27;s Guide to DSP ↗</a> · <a href="https://github.com/LCAV/pyroomacoustics" target="_blank" rel="noopener noreferrer">pyroomacoustics ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>8</td><td>混响尾与尾长</td><td><a href="https://www.dspguide.com/" target="_blank" rel="noopener noreferrer">The Scientist and Engineer&#x27;s Guide to DSP ↗</a> · <a href="https://github.com/LCAV/pyroomacoustics" target="_blank" rel="noopener noreferrer">pyroomacoustics ↗</a></td><td>正文已覆盖</td></tr>
+</tbody></table></section>
+<section id="s4-1"><h2><span class="sec-num">§4.1</span>同一个运算，两种复杂度</h2>
+<p class="eq">y[n] = Σ_{k=0}^{L−1} h[k]x[n−k]　⇔　Y[k] = H[k]·X[k]（补足零后）</p>
+<table><thead><tr><th style="width:24%">实现</th><th style="width:26%">每输出样本代价</th><th style="width:24%">L=512 时相对量级</th><th style="width:26%">适用</th></tr></thead><tbody>
+<tr><td>朴素时域卷积</td><td>O(L) 乘加</td><td>~512</td><td>短滤波器、教学、离线核对</td></tr>
+<tr><td>分块频域 OLA</td><td>O(log(L+B))</td><td>~10–20</td><td>实时 AEC、长混响尾</td></tr>
+<tr><td>逐块 FDAF/MDF</td><td>O(log L) + 自适应更新</td><td>工业主流</td><td>第 06 章详述</td></tr>
+</tbody></table>
+<p>16 kHz 下覆盖 128 ms 混响需要 L≈2048 抽头。时域逐样本做 2048 次乘加约32 M 次/秒，而分块频域把它压到几 M 次/秒——<strong>这不是优化技巧，是能不能实时跑的分界线</strong>。</p>
+</section>
+<section id="s4-2"><h2><span class="sec-num">§4.2</span>分块 overlap-add 的正确性条件</h2>
+<ul>
+<li>每块长度 B，FFT 长度 N ≥ B + L − 1，否则循环卷积会绕回（时域混叠）。</li>
+<li><code>H</code> 预先补零到 N 点并做一次 FFT，之后每块只做一次正/逆变换与逐点乘。</li>
+<li>相邻块的尾部重叠部分相加，不能覆盖。</li>
+<li>本书 <code>fft_convolve()</code> 就是这一算法的最小实现，与 <code>convolve()</code> 的差值应停在浮点误差量级。</li>
+</ul>
+</section>
+<section id="lab"><h2><span class="sec-num">§</span>Python 实验</h2>
+<h3>实验 4-1 · 朴素卷积 vs 分块频域卷积的数值与耗时</h3>
+<pre class="code" data-file="code/04-convolution.py" data-lang="Python 3 · 标准库"><code>#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""在不同滤波器长度下比较两种实现的最大误差与耗时，并观察混响尾能量。
+
+全部语音 / 噪声 / 房间冲激响应均为代码合成信号，仅用于教学演示机制与量级。
+"""
+from __future__ import annotations
+
+import math
+import pathlib
+import random
+import statistics
+import sys
+import time
+
+_here = pathlib.Path(__file__).resolve()
+for _p in _here.parents:
+    if (_p / "tools" / "dsp.py").exists():
+        sys.path.insert(0, str(_p / "tools"))
+        break
+from dsp import (SAMPLE_RATE, fft, hann, stft, istft, magnitude_db, spectrum,
+                 white_noise, tone, chirp, synthetic_speech, rir, convolve,
+                 fft_convolve, delay, clip, normalize_peak, rms, rolling_rms,
+                 smooth, db, energy_db, snr_db, erle_db, seg_snr_db,
+                 scale_align, si_sdr_db, lufs_approx,
+                 write_wav, read_wav, wav_info)
+from chart import Chart, heatmap, BLUE, RED, GREEN, AMBER
+
+FIG = _here.parents[1] / "fig"
+AUDIO = _here.parents[1] / "audio"
+FIG.mkdir(exist_ok=True)
+AUDIO.mkdir(exist_ok=True)
+
+random.seed(7)
+
+# ---- 参数区 ----
+N = 4000
+LENS = (64, 128, 256, 512, 1024, 2048)   # 扫描到 2048，加速比才明显
+DECAY = 0.006
+
+# ---- 计算与作图 ----
+rng = random.Random(7)
+x = white_noise(rng, N, 0.4)
+errors, t_naive, t_fft = [], [], []
+for L in LENS:
+    h = rir(rng, L, decay=DECAY, direct_delay=min(24, L // 4))
+    t0 = time.perf_counter()
+    a = convolve(x[:1200], h)
+    t1 = time.perf_counter()
+    b = fft_convolve(x[:1200], h)
+    t2 = time.perf_counter()
+    errors.append(max(abs(u - v) for u, v in zip(a, b)))
+    t_naive.append(t1 - t0)
+    t_fft.append(t2 - t1)
+
+h = rir(rng, 256, decay=DECAY)
+wet = fft_convolve(synthetic_speech(rng, N), h)[:N]
+energy = [10 * math.log10(sum(v * v for v in h[i:i + 16]) / 16 + 1e-12)
+          for i in range(0, len(h) - 16, 16)]
+c = Chart(FIG / "04-complexity.svg", "两种卷积实现的耗时对比（毫秒）",
+          xlabel="滤波器长度 L", ylabel="耗时 ms",
+          xticks=[(i, "L=%d" % L) for i, L in enumerate(LENS)])
+c.bars(range(len(LENS)), [1000 * t for t in t_naive], RED, label="朴素 O(L)")
+c.bars(range(len(LENS)), [1000 * t for t in t_fft], GREEN, label="分块频域 OLA")
+print("复杂度图:", c.save())
+e = Chart(FIG / "04-rir-energy.svg", "RIR 分段能量衰减（dB）", xlabel="16 抽头块", ylabel="dB")
+e.line(range(len(energy)), energy, BLUE, label="分段能量")
+print("能量图:", e.save())
+write_wav(AUDIO / "04-dry.wav", normalize_peak(x))
+write_wav(AUDIO / "04-wet.wav", normalize_peak(wet))
+print("最大数值误差: " + " ".join("L=%d→%.1e" % (L, e) for L, e in zip(LENS, errors)))
+print("L=%d 时 朴素=%.1fms 频域=%.1fms 加速=%.1f× | RIR能量衰减 %.1f dB" %
+      (LENS[-1], 1000 * t_naive[-1], 1000 * t_fft[-1], t_naive[-1] / max(t_fft[-1], 1e-9),
+       energy[0] - energy[-1]))</code></pre>
+<p class="code-hint"><strong>操作：</strong>核对最大误差应停留在 1e-14 量级；观察 L 增大后两种实现的耗时差距拉开。　<strong>预期与判读：</strong>两种实现数值一致（浮点误差量级）；朴素卷积耗时随 L 线性增长，但手写 FFT 的常数开销很大，即使扫到 L=2048，本例频域实现也未必更快。<strong>算法复杂度优势不等于实测更快：实时 AEC 必须换工业级 FFT 库（见附录 A.6）。</strong></p>
+<p class="code-hint"><strong>改参数看趋势：</strong>把 <code>DECAY</code> 调到 0.02（长混响），湿信号尾音明显变长。　文件位置：<code>part1/04-lti-convolution/code/04-convolution.py</code></p>
+<div class="chart-grid">
+<figure class="chart-figure"><img src="fig/04-complexity.svg" alt="朴素与频域卷积耗时对比" loading="lazy"><figcaption>图 1　朴素与频域卷积耗时对比（代码合成信号 / 教学示意）</figcaption></figure>
+<figure class="chart-figure"><img src="fig/04-rir-energy.svg" alt="冲激响应分段能量衰减" loading="lazy"><figcaption>图 2　冲激响应分段能量衰减（代码合成信号 / 教学示意）</figcaption></figure>
+</div>
+<div class="audio-grid">
+<div class="audio-card"><h4>04-dry.wav</h4><audio controls preload="none" src="audio/04-dry.wav">浏览器不支持 audio 元素，请直接打开 audio/04-dry.wav。</audio><p>干信号（白噪声探测）（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+<div class="audio-card"><h4>04-wet.wav</h4><audio controls preload="none" src="audio/04-wet.wav">浏览器不支持 audio 元素，请直接打开 audio/04-wet.wav。</audio><p>经过 RIR 卷积后的湿信号（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+</div>
+<div class="card note"><p style="margin-bottom:0">代码块右上角可一键复制；仓库里的 <code>code/*.py</code> 由 <code>tools/extract_code.py</code> 从这些代码块自动抽取。脚本只用标准库、固定 <code>random.seed(7)</code>，运行后写出 <code>fig/*.svg</code> 与 <code>audio/*.wav</code>；批量运行用 <code>./tools/run_python.sh</code>。</p></div>
+</section>
+<section id="highlights"><h2><span class="sec-num">§</span>本章参考资料</h2><p>按本章知识点挑选的精读资料；更多检索入口见 <a href="#extra-links">扩展学习</a>。</p><div class="repo-grid">
+<div class="repo-card"><h3><a href="https://www.dspguide.com/" target="_blank" rel="noopener noreferrer">The Scientist and Engineer&#x27;s Guide to DSP ↗</a></h3><span class="tag">教材</span><p>免费在线 DSP 教材，卷积/FFT/滤波器章节讲解直观</p><p style="margin:0;color:var(--ink-faint)">推荐理由：卷积与 FFT 的直观讲解</p></div>
+<div class="repo-card"><h3><a href="https://docs.scipy.org/doc/scipy/reference/signal.html" target="_blank" rel="noopener noreferrer">SciPy signal ↗</a></h3><span class="tag">工程</span><p>lfilter / fftconvolve / stft / firwin 等工业级 DSP 原语</p><p style="margin:0;color:var(--ink-faint)">推荐理由：fftconvolve 的工业实现参照</p></div>
+<div class="repo-card"><h3><a href="https://ccrma.stanford.edu/~jos/" target="_blank" rel="noopener noreferrer">Stanford CCRMA · Julius O. Smith ↗</a></h3><span class="tag">教材</span><p>数字信号处理与音频 DSP 的免费在线书系</p><p style="margin:0;color:var(--ink-faint)">推荐理由：分块卷积与频域滤波的免费教材</p></div>
+<div class="repo-card"><h3><a href="https://numpy.org/doc/stable/" target="_blank" rel="noopener noreferrer">NumPy 文档 ↗</a></h3><span class="tag">工程</span><p>向量化 DSP 的事实标准；本书手写实现可逐步替换为 ndarray</p><p style="margin:0;color:var(--ink-faint)">推荐理由：向量化实现的迁移目标</p></div>
+</div></section>
+<section id="pitfalls"><h2><span class="sec-num">§</span>常见误区</h2><div class="card warn"><ul><li>FFT 长度不足 B+L−1，循环卷积造成时域混叠。</li>
+<li>忘记把相邻块的重叠尾相加，直接在块边界拼接。</li>
+<li>用短滤波器覆盖长混响，还以为是自适应算法不收敛。</li>
+<li>忽略浮点误差量级，把 1e-12 当成实现错误。</li></ul></div></section>
+<section id="exercises"><h2><span class="sec-num">§</span>习题与思考</h2><ol><li>推导 N ≥ B+L−1 的来源，并说明违反时会发生什么。</li>
+<li>估算 48 kHz、256 ms 混响需要的抽头数与每秒乘加量。</li>
+<li>把 fft_convolve 的块长 B 改成 64，观察耗时如何变化。</li></ol></section>
+<section id="extra-links"><h2><span class="sec-num">§</span>扩展学习</h2>
+<div class="repo-grid">
+<div class="repo-card"><h3><a href="https://www.dspguide.com/" target="_blank" rel="noopener noreferrer">The Scientist and Engineer&#x27;s Guide to DSP ↗</a></h3><span class="tag">教材</span><p>免费在线 DSP 教材，卷积/FFT/滤波器章节讲解直观</p></div>
+<div class="repo-card"><h3><a href="https://github.com/LCAV/pyroomacoustics" target="_blank" rel="noopener noreferrer">pyroomacoustics ↗</a></h3><span class="tag">工程</span><p>房间声学模拟、RIR 生成与波束形成实验工具</p></div>
+<div class="repo-card"><h3><a href="https://docs.scipy.org/doc/scipy/reference/signal.html" target="_blank" rel="noopener noreferrer">SciPy signal ↗</a></h3><span class="tag">工程</span><p>lfilter / fftconvolve / stft / firwin 等工业级 DSP 原语</p></div>
+<div class="repo-card"><h3><a href="https://en.wikipedia.org/wiki/Cooley%E2%80%93Tukey_FFT_algorithm" target="_blank" rel="noopener noreferrer">Cooley–Tukey FFT ↗</a></h3><span class="tag">百科</span><p>本书手写 radix-2 FFT 的算法依据</p></div>
+</div>
+<h3>继续检索</h3><ul>
+<li>Google Scholar：<a href='https://scholar.google.com/scholar?q=linear%20time%20invariant%20system%20convolution%20RIR' target='_blank' rel='noopener noreferrer'>linear time invariant system convolution RIR ↗</a></li>
+<li>arXiv：<a href='https://arxiv.org/search/?query=linear%20time%20invariant%20system%20convolution%20RIR&searchtype=all' target='_blank' rel='noopener noreferrer'>linear time invariant system convolution RIR ↗</a></li>
+<li>GitHub：<a href='https://github.com/search?q=linear%20time%20invariant%20system%20convolution%20RIR&type=repositories' target='_blank' rel='noopener noreferrer'>linear time invariant system convolution RIR ↗</a></li>
+</ul>
+<p class="code-hint">全书链接总表见 <a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a> 与 <a href="../../appendix/index.html#sA-7">附录 A.7</a>；滤镜是否可用请以本机 <code>ffmpeg -filters</code> 为准。</p>
+</section>
+<section id="further"><h2><span class="sec-num">§</span>延伸阅读与内链</h2><ul><li><a href='../06-fdaf/index.html'>第 06 章 · 频域自适应滤波：FDAF、分块 MDF 与收敛</a> 频域自适应滤波 FDAF/MDF；<a href='../../part2/10-nlms-aec/index.html'>第 10 章 · 用 NLMS 实现一个可验证的 AEC</a> NLMS 回声消除实现。</li></ul></section>
+<footer class="pager" data-autofill></footer>
+<footer class="site-foot">
+<p class="credits"><strong>作者</strong>：汪亮（bertonwang）　<strong>联系邮箱</strong>：<a href="mailto:47608843@qq.com">47608843@qq.com</a></p>
+<p class="ai-note"><strong>AI 使用说明</strong>：本教材的知识框架、正文、Python 实验脚本与参考资料清单在 AI 辅助下整理生成，并经人工校订、实际运行与静态自检。公式、数值与运行结果请以Python 3 实际输出及权威教材、官方文档为准；发现错漏欢迎通过上方邮箱勘误。</p>
+<p class="imprint">音频 3A 处理：从自适应滤波到神经增强 · 每章一个 <code>code/*.py</code> 实验脚本、<code>fig/*.svg</code> 矢量图与 <code>audio/*.wav</code> 试听样本（由 <code>tools/extract_code.py</code> 与脚本运行同步） · 只用 Python 3 标准库 · 教学材料，信号全部由代码合成。</p>
+</footer>
+</main>
+</body>
+</html>

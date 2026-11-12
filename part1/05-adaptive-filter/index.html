@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 05 章 · 自适应滤波：LMS、NLMS 与收敛 | 音频 3A 处理：从自适应滤波到神经增强</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<script src="../../assets/toc.js" defer></script>
+<script src="../../assets/app.js" defer></script>
+</head>
+<body data-root="../../" data-chapter="05">
+<aside id="sidebar"></aside>
+<main class="book-page">
+<nav class="breadcrumb" data-autofill>总目录</nav>
+<header class="chapter-head">
+<span class="kicker">第一篇 · 信号、系统与自适应滤波基础 · 上卷 · 传统算法（Model-based）</span>
+<h1><span class="ch-num">第 05 章</span>自适应滤波：LMS、NLMS 与收敛</h1>
+<p class="lede">把「求一组滤波系数」变成逐样本的梯度下降，这是整个上卷的心脏。</p>
+<div class="meta">
+<span class="badge done">已完稿</span>
+<span class="badge s2">基础 · 自适应</span>
+<span class="badge traditional">上卷 · 传统算法</span>
+<span>建议 3 学时</span>
+<span>1 个 Python 实验 · 2 张图 · 2 段试听</span>
+<span>音频 3A 处理：从自适应滤波到神经增强</span>
+</div></header>
+<p class="bridge"><strong>本章位置：</strong><a href='../04-lti-convolution/index.html'>第 04 章 · 线性系统、卷积与频域实现</a> 给出固定系数的卷积，本章让系数在线学习；<a href='../06-fdaf/index.html'>第 06 章 · 频域自适应滤波：FDAF、分块 MDF 与收敛</a> 把同一更新式搬进频域，<a href='../../part2/10-nlms-aec/index.html'>第 10 章 · 用 NLMS 实现一个可验证的 AEC</a> 用它实现完整 AEC。</p>
+<div class="analogy"><span class="card-label">给程序员的翻译</span><p style="margin-bottom:0">NLMS 就是<strong>在线随机梯度下降</strong>：<code>x</code> 是特征、<code>d</code> 是标签、<code>e</code> 是损失梯度、<code>μ/‖x‖²</code> 是自适应学习率。双讲相当于标签里混入了大量噪声样本，必须暂停训练。</p></div>
+<div class="card objectives"><span class="card-label">学习目标</span><ul>
+<li>能推导 LMS 与 NLMS 的更新式并说明归一化项的作用。</li>
+<li>能实现 NLMS 辨识一段房间冲激响应并画出学习曲线。</li>
+<li>能量化步长、正则项与滤波器长度对收敛速度/稳态误差的影响。</li>
+<li>能解释双讲时为何必须冻结系数更新。</li>
+</ul></div>
+<section id="map"><h2><span class="sec-num">§</span>知识点地图</h2>
+<p class="code-hint">每个知识点都配了 1～2 个扩展学习链接；本章完整资源清单见 <a href="#extra-links">扩展学习</a>。</p>
+<table><thead><tr><th style="width:44px">#</th><th style="width:26%">知识点</th><th>扩展学习</th><th style="width:100px">状态</th></tr></thead><tbody>
+<tr><td>1</td><td>最速下降与梯度估计</td><td><a href="https://en.wikipedia.org/wiki/Least_mean_squares_filter" target="_blank" rel="noopener noreferrer">Least mean squares filter ↗</a> · <a href="https://www.dsprelated.com/" target="_blank" rel="noopener noreferrer">DSPRelated ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>2</td><td>LMS 更新式</td><td><a href="https://en.wikipedia.org/wiki/Least_mean_squares_filter" target="_blank" rel="noopener noreferrer">Least mean squares filter ↗</a> · <a href="https://ccrma.stanford.edu/~jos/" target="_blank" rel="noopener noreferrer">Stanford CCRMA · Julius O. Smith ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>3</td><td>NLMS 归一化</td><td><a href="https://en.wikipedia.org/wiki/Least_mean_squares_filter" target="_blank" rel="noopener noreferrer">Least mean squares filter ↗</a> · <a href="https://gitlab.xiph.org/xiph/speexdsp" target="_blank" rel="noopener noreferrer">speexdsp 源码 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>4</td><td>步长与稳定性</td><td><a href="https://en.wikipedia.org/wiki/Least_mean_squares_filter" target="_blank" rel="noopener noreferrer">Least mean squares filter ↗</a> · <a href="https://www.dsprelated.com/" target="_blank" rel="noopener noreferrer">DSPRelated ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>5</td><td>正则项 δ</td><td><a href="https://en.wikipedia.org/wiki/Least_mean_squares_filter" target="_blank" rel="noopener noreferrer">Least mean squares filter ↗</a> · <a href="https://www.dsprelated.com/" target="_blank" rel="noopener noreferrer">DSPRelated ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>6</td><td>学习曲线与稳态误差</td><td><a href="https://en.wikipedia.org/wiki/Least_mean_squares_filter" target="_blank" rel="noopener noreferrer">Least mean squares filter ↗</a> · <a href="https://www.dsprelated.com/" target="_blank" rel="noopener noreferrer">DSPRelated ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>7</td><td>权重误差范数</td><td><a href="https://en.wikipedia.org/wiki/Least_mean_squares_filter" target="_blank" rel="noopener noreferrer">Least mean squares filter ↗</a> · <a href="https://www.dsprelated.com/" target="_blank" rel="noopener noreferrer">DSPRelated ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>8</td><td>双讲冻结</td><td><a href="https://www.itu.int/rec/T-REC-G.168/en" target="_blank" rel="noopener noreferrer">ITU-T G.168 ↗</a> · <a href="https://github.com/microsoft/AEC-Challenge" target="_blank" rel="noopener noreferrer">Microsoft AEC Challenge ↗</a></td><td>正文已覆盖</td></tr>
+</tbody></table></section>
+<section id="s5-1"><h2><span class="sec-num">§5.1</span>一条更新式，四个可调量</h2>
+<p class="eq">e[n] = d[n] − wᵀ[n]x[n]　|　LMS: w ← w + μ·e[n]·x[n]</p>
+<p class="eq">NLMS: w ← w + (μ / (‖x[n]‖² + δ))·e[n]·x[n]　，0 &lt; μ &lt; 2</p>
+<table><thead><tr><th style="width:18%">量</th><th style="width:42%">作用</th><th style="width:40%">调大的后果</th></tr></thead><tbody>
+<tr><td>μ 步长</td><td>收敛速度</td><td>收敛快但稳态误差大、双讲时更易发散</td></tr>
+<tr><td>δ 正则</td><td>防止输入能量接近 0 时步长爆炸</td><td>过大则收敛变慢，等效缩小 μ</td></tr>
+<tr><td>L 阶数</td><td>能覆盖的回声尾长度</td><td>算力线性增长、收敛变慢</td></tr>
+<tr><td>冻结条件</td><td>双讲/近端语音期间停止更新</td><td>太保守则路径变化后追不上</td></tr>
+</tbody></table>
+<p>NLMS 的归一化本质上是<strong>把学习率按输入能量做自适应缩放</strong>：语音电平忽大忽小时，LMS 的等效步长会剧烈波动，NLMS 则保持稳定。这就是它与 Adam/RMSProp 一类归一化优化器 homologous 的地方。</p>
+</section>
+<section id="s5-2"><h2><span class="sec-num">§5.2</span>收敛看两条曲线</h2>
+<ul>
+<li><strong>学习曲线</strong>：<code>10log₁₀(e²)</code> 随样本数下降，斜率反映收敛速度，地板高度反映稳态失调（misadjustment）。</li>
+<li><strong>权重误差</strong>：<code>‖w − h‖²</code> 下降，说明辨识的是真实路径而非仅仅拟合当前样本。</li>
+<li>双讲时 <code>d[n]</code> 中的近端语音与 <code>x[n]</code> 不相关，梯度里混入大噪声，系数会被推离 h——工业实现必须做双讲检测（第 07、11 章）。</li>
+</ul>
+</section>
+<section id="lab"><h2><span class="sec-num">§</span>Python 实验</h2>
+<h3>实验 5-1 · NLMS 辨识房间冲激响应与步长扫描</h3>
+<pre class="code" data-file="code/05-nlms.py" data-lang="Python 3 · 标准库"><code>#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""用 NLMS 在线估计 h，画学习曲线、比较三个步长，并输出消除后的可听残差。
+
+全部语音 / 噪声 / 房间冲激响应均为代码合成信号，仅用于教学演示机制与量级。
+"""
+from __future__ import annotations
+
+import math
+import pathlib
+import random
+import statistics
+import sys
+import time
+
+_here = pathlib.Path(__file__).resolve()
+for _p in _here.parents:
+    if (_p / "tools" / "dsp.py").exists():
+        sys.path.insert(0, str(_p / "tools"))
+        break
+from dsp import (SAMPLE_RATE, fft, hann, stft, istft, magnitude_db, spectrum,
+                 white_noise, tone, chirp, synthetic_speech, rir, convolve,
+                 fft_convolve, delay, clip, normalize_peak, rms, rolling_rms,
+                 smooth, db, energy_db, snr_db, erle_db, seg_snr_db,
+                 scale_align, si_sdr_db, lufs_approx,
+                 write_wav, read_wav, wav_info)
+from chart import Chart, heatmap, BLUE, RED, GREEN, AMBER
+
+FIG = _here.parents[1] / "fig"
+AUDIO = _here.parents[1] / "audio"
+FIG.mkdir(exist_ok=True)
+AUDIO.mkdir(exist_ok=True)
+
+random.seed(7)
+
+# ---- 参数区 ----
+N, L = 6000, 96
+MUS = (0.15, 0.50, 1.20)      # 三个步长对照
+DELTA = 1e-3                   # 正则项
+SMOOTH = 200                   # 学习曲线平滑窗
+
+# ---- 计算与作图 ----
+rng = random.Random(7)
+far = white_noise(rng, N, 0.35)      # 白噪声激励充分，收敛最快
+true_h = rir(rng, L, decay=0.004, direct_delay=12)
+echo = fft_convolve(far, true_h)[:N]
+target = [echo[i] + rng.gauss(0, 0.002) for i in range(N)]
+
+def nlms(mu):
+    w, errs, out = [0.0] * L, [], []
+    for n in range(L, N):
+        xv = [far[n - i] for i in range(L)]
+        y = sum(w[i] * xv[i] for i in range(L))
+        e = target[n] - y
+        power = sum(v * v for v in xv) + DELTA
+        for i in range(L):
+            w[i] += mu * e * xv[i] / power
+        errs.append(e * e)
+        out.append(e)
+    return w, errs, out
+
+results = {mu: nlms(mu) for mu in MUS}
+
+def smooth_curve(vals, win):
+    out, v = [], 0.0
+    for i, x in enumerate(vals):
+        v = v + (x - v) / min(i + 1, win)
+        out.append(10 * math.log10(v + 1e-12))
+    return out
+
+c = Chart(FIG / "05-learning.svg", "NLMS 学习曲线：不同步长的残差能量 (dB)",
+          xlabel="迭代样本", ylabel="dB")
+for mu, color in zip(MUS, (BLUE, GREEN, RED)):
+    c.line(range(len(results[mu][1])), smooth_curve(results[mu][1], SMOOTH),
+           color, label="μ=%.2f" % mu)
+print("学习图:", c.save())
+w = Chart(FIG / "05-weights.svg", "μ=0.50 时估计的滤波器系数 vs 真实 RIR",
+          xlabel="抽头 k", ylabel="幅度")
+w.line(range(L), true_h, "#9aa6b2", label="真实 h[k]")
+w.line(range(L), results[0.50][0], RED, label="估计 w[k]")
+print("权重图:", w.save())
+write_wav(AUDIO / "05-before.wav", normalize_peak(target))
+write_wav(AUDIO / "05-error.wav", normalize_peak(results[0.50][2]))
+for mu in MUS:
+    wt, errs, out = results[mu]
+    mse = statistics.fmean(errs[len(errs) // 2:])
+    werr = math.sqrt(sum((a - b) ** 2 for a, b in zip(wt, true_h)))
+    print("μ=%.2f 稳态MSE=%.6f 权重误差=%.4f 输出/输入能量比=%.4f" %
+          (mu, mse, werr, sum(v * v for v in out) / sum(v * v for v in target)))
+print("前半段均方误差=%.6f 后半段=%.6f（下降说明收敛）" %
+      (statistics.fmean(results[0.50][1][:1000]),
+       statistics.fmean(results[0.50][1][-1000:])))</code></pre>
+<p class="code-hint"><strong>操作：</strong>对照三个步长的稳态 MSE、权重误差与学习曲线；试听 <code>05-error.wav</code>。　<strong>预期与判读：</strong>学习曲线先快速下降再进入稳态；权重误差随 μ 单调变大（0.0018→0.0036→0.0078），而稳态 MSE 都在 1e-5 量级且非单调（受观测噪声地板影响）。<strong>大步长收敛快、失调大，但稳态误差还叠加了噪声地板，不能只看一个数。</strong></p>
+<p class="code-hint"><strong>改参数看趋势：</strong>把 <code>far</code> 换成 <code>synthetic_speech</code>（有色激励），观察收敛明显变慢。　文件位置：<code>part1/05-adaptive-filter/code/05-nlms.py</code></p>
+<div class="chart-grid">
+<figure class="chart-figure"><img src="fig/05-learning.svg" alt="三个步长的学习曲线" loading="lazy"><figcaption>图 1　三个步长的学习曲线（代码合成信号 / 教学示意）</figcaption></figure>
+<figure class="chart-figure"><img src="fig/05-weights.svg" alt="估计系数与真实冲激响应" loading="lazy"><figcaption>图 2　估计系数与真实冲激响应（代码合成信号 / 教学示意）</figcaption></figure>
+</div>
+<div class="audio-grid">
+<div class="audio-card"><h4>05-before.wav</h4><audio controls preload="none" src="audio/05-before.wav">浏览器不支持 audio 元素，请直接打开 audio/05-before.wav。</audio><p>含回声的目标信号（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+<div class="audio-card"><h4>05-error.wav</h4><audio controls preload="none" src="audio/05-error.wav">浏览器不支持 audio 元素，请直接打开 audio/05-error.wav。</audio><p>NLMS 输出的残差（回声已被消除）（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+</div>
+<div class="card note"><p style="margin-bottom:0">代码块右上角可一键复制；仓库里的 <code>code/*.py</code> 由 <code>tools/extract_code.py</code> 从这些代码块自动抽取。脚本只用标准库、固定 <code>random.seed(7)</code>，运行后写出 <code>fig/*.svg</code> 与 <code>audio/*.wav</code>；批量运行用 <code>./tools/run_python.sh</code>。</p></div>
+</section>
+<section id="highlights"><h2><span class="sec-num">§</span>本章参考资料</h2><p>按本章知识点挑选的精读资料；更多检索入口见 <a href="#extra-links">扩展学习</a>。</p><div class="repo-grid">
+<div class="repo-card"><h3><a href="https://en.wikipedia.org/wiki/Least_mean_squares_filter" target="_blank" rel="noopener noreferrer">Least mean squares filter ↗</a></h3><span class="tag">百科</span><p>LMS / NLMS 的更新式与收敛条件</p><p style="margin:0;color:var(--ink-faint)">推荐理由：LMS/NLMS 更新式与收敛条件</p></div>
+<div class="repo-card"><h3><a href="https://ccrma.stanford.edu/~jos/" target="_blank" rel="noopener noreferrer">Stanford CCRMA · Julius O. Smith ↗</a></h3><span class="tag">教材</span><p>数字信号处理与音频 DSP 的免费在线书系</p><p style="margin:0;color:var(--ink-faint)">推荐理由：自适应滤波的免费在线讲义</p></div>
+<div class="repo-card"><h3><a href="https://gitlab.xiph.org/xiph/speexdsp" target="_blank" rel="noopener noreferrer">speexdsp 源码 ↗</a></h3><span class="tag">工程</span><p>speex_echo_cancellation / speex_preprocess_ctl 的参考实现</p><p style="margin:0;color:var(--ink-faint)">推荐理由：经典 AEC 里 NLMS 的工业实现</p></div>
+<div class="repo-card"><h3><a href="https://numpy.org/doc/stable/" target="_blank" rel="noopener noreferrer">NumPy 文档 ↗</a></h3><span class="tag">工程</span><p>向量化 DSP 的事实标准；本书手写实现可逐步替换为 ndarray</p><p style="margin:0;color:var(--ink-faint)">推荐理由：把权重更新向量化后的对照</p></div>
+</div></section>
+<section id="pitfalls"><h2><span class="sec-num">§</span>常见误区</h2><div class="card warn"><ul><li>δ 设为 0，静音段输入能量趋零导致系数爆炸。</li>
+<li>μ 取到 2 以上，更新发散。</li>
+<li>用语音而非白噪声做激励，误判为算法不收敛。</li>
+<li>双讲时继续更新，滤波器被近端语音带跑。</li></ul></div></section>
+<section id="exercises"><h2><span class="sec-num">§</span>习题与思考</h2><ol><li>推导 LMS 的均方收敛条件 0 < μ < 2/λ_max。</li>
+<li>解释为什么 δ 必须与输入功率同量级。</li>
+<li>在实验里加入双讲段并观察权重误差如何跳变。</li></ol></section>
+<section id="extra-links"><h2><span class="sec-num">§</span>扩展学习</h2>
+<div class="repo-grid">
+<div class="repo-card"><h3><a href="https://en.wikipedia.org/wiki/Least_mean_squares_filter" target="_blank" rel="noopener noreferrer">Least mean squares filter ↗</a></h3><span class="tag">百科</span><p>LMS / NLMS 的更新式与收敛条件</p></div>
+<div class="repo-card"><h3><a href="https://www.dsprelated.com/" target="_blank" rel="noopener noreferrer">DSPRelated ↗</a></h3><span class="tag">教材</span><p>自适应滤波、AGC 与实时实现的工程文章与博客</p></div>
+<div class="repo-card"><h3><a href="https://ccrma.stanford.edu/~jos/" target="_blank" rel="noopener noreferrer">Stanford CCRMA · Julius O. Smith ↗</a></h3><span class="tag">教材</span><p>数字信号处理与音频 DSP 的免费在线书系</p></div>
+<div class="repo-card"><h3><a href="https://numpy.org/doc/stable/" target="_blank" rel="noopener noreferrer">NumPy 文档 ↗</a></h3><span class="tag">工程</span><p>向量化 DSP 的事实标准；本书手写实现可逐步替换为 ndarray</p></div>
+</div>
+<h3>继续检索</h3><ul>
+<li>Google Scholar：<a href='https://scholar.google.com/scholar?q=LMS%20NLMS%20adaptive%20filter%20convergence%20step%20size' target='_blank' rel='noopener noreferrer'>LMS NLMS adaptive filter convergence step size ↗</a></li>
+<li>arXiv：<a href='https://arxiv.org/search/?query=LMS%20NLMS%20adaptive%20filter%20convergence%20step%20size&searchtype=all' target='_blank' rel='noopener noreferrer'>LMS NLMS adaptive filter convergence step size ↗</a></li>
+<li>GitHub：<a href='https://github.com/search?q=LMS%20NLMS%20adaptive%20filter%20convergence%20step%20size&type=repositories' target='_blank' rel='noopener noreferrer'>LMS NLMS adaptive filter convergence step size ↗</a></li>
+</ul>
+<p class="code-hint">全书链接总表见 <a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a> 与 <a href="../../appendix/index.html#sA-7">附录 A.7</a>；滤镜是否可用请以本机 <code>ffmpeg -filters</code> 为准。</p>
+</section>
+<section id="further"><h2><span class="sec-num">§</span>延伸阅读与内链</h2><ul><li><a href='../06-fdaf/index.html'>第 06 章 · 频域自适应滤波：FDAF、分块 MDF 与收敛</a> 频域自适应；<a href='../07-doubletalk/index.html'>第 07 章 · 双讲检测、时延漂移与路径突变</a> 双讲检测；<a href='../../part2/10-nlms-aec/index.html'>第 10 章 · 用 NLMS 实现一个可验证的 AEC</a> AEC 实现。</li></ul></section>
+<footer class="pager" data-autofill></footer>
+<footer class="site-foot">
+<p class="credits"><strong>作者</strong>：汪亮（bertonwang）　<strong>联系邮箱</strong>：<a href="mailto:47608843@qq.com">47608843@qq.com</a></p>
+<p class="ai-note"><strong>AI 使用说明</strong>：本教材的知识框架、正文、Python 实验脚本与参考资料清单在 AI 辅助下整理生成，并经人工校订、实际运行与静态自检。公式、数值与运行结果请以Python 3 实际输出及权威教材、官方文档为准；发现错漏欢迎通过上方邮箱勘误。</p>
+<p class="imprint">音频 3A 处理：从自适应滤波到神经增强 · 每章一个 <code>code/*.py</code> 实验脚本、<code>fig/*.svg</code> 矢量图与 <code>audio/*.wav</code> 试听样本（由 <code>tools/extract_code.py</code> 与脚本运行同步） · 只用 Python 3 标准库 · 教学材料，信号全部由代码合成。</p>
+</footer>
+</main>
+</body>
+</html>

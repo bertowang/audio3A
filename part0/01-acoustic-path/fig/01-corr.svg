@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 430" width="780" height="430" role="img">
+<title>参考信号与麦克风信号的归一化互相关</title>
+<desc>由 tools/chart.py 生成的教材示意插图，数据为合成数据。</desc>
+<rect x="0" y="0" width="780" height="430" fill="#ffffff"/>
+<text x="76.0" y="24" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="15" font-weight="600" fill="#23262b">参考信号与麦克风信号的归一化互相关</text>
+<line x1="76.0" y1="372.0" x2="756.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="376.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">-0.265</text>
+<line x1="76.0" y1="306.8" x2="756.0" y2="306.8" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="310.8" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">-0.063</text>
+<line x1="76.0" y1="241.6" x2="756.0" y2="241.6" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="245.6" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">0.138</text>
+<line x1="76.0" y1="176.4" x2="756.0" y2="176.4" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="180.4" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">0.340</text>
+<line x1="76.0" y1="111.2" x2="756.0" y2="111.2" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="115.2" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">0.542</text>
+<line x1="76.0" y1="46.0" x2="756.0" y2="46.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="68.0" y="50.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="end">0.743</text>
+<line x1="76.0" y1="46.0" x2="76.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="76.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">-4.76</text>
+<line x1="212.0" y1="46.0" x2="212.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="212.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">20.94</text>
+<line x1="348.0" y1="46.0" x2="348.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="348.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">46.65</text>
+<line x1="484.0" y1="46.0" x2="484.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="484.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">72.35</text>
+<line x1="620.0" y1="46.0" x2="620.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="620.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">98.06</text>
+<line x1="756.0" y1="46.0" x2="756.0" y2="372.0" stroke="#e8e6e0" stroke-width="1"/>
+<text x="756.0" y="390.0" font-family="SF Mono, JetBrains Mono, Menlo, Consolas, monospace" font-size="11" fill="#8a909b" text-anchor="middle">123.8</text>
+<line x1="76.0" y1="372.0" x2="756.0" y2="372.0" stroke="#8a909b" stroke-width="1.4"/>
+<line x1="76.0" y1="46.0" x2="76.0" y2="372.0" stroke="#8a909b" stroke-width="1.4"/>
+<text x="416.0" y="418.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="12" fill="#8a909b" text-anchor="middle">滞后 lag</text>
+<text x="14" y="209.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="12" fill="#8a909b" transform="rotate(-90 14 209.0)" text-anchor="middle">相关系数</text>
+<polyline points="101.19,284.94 106.48,287.37 111.77,289.11 117.06,291.46 122.35,303.20 127.64,285.34 132.93,287.96 138.22,282.72 143.51,297.19 148.80,272.28 154.10,297.48 159.39,283.38 164.68,285.39 169.97,286.45 175.26,295.72 180.55,285.14 185.84,288.99 191.13,291.32 196.42,281.97 201.71,283.59 207.01,287.51 212.30,281.10 217.59,292.56 222.88,289.29 228.17,73.17 233.46,254.70 238.75,303.90 244.04,266.52 249.33,276.23 254.62,274.05 259.92,270.90 265.21,265.49 270.50,312.79 275.79,290.54 281.08,276.62 286.37,242.77 291.66,313.16 296.95,241.80 302.24,262.93 307.53,314.66 312.83,263.40 318.12,264.80 323.41,318.96 328.70,275.34 333.99,296.68 339.28,313.54 344.57,298.50 349.86,315.33 355.15,297.97 360.44,277.72 365.74,261.57 371.03,302.09 376.32,324.73 381.61,273.30 386.90,344.83 392.19,288.11 397.48,319.67 402.77,257.30 408.06,301.78 413.35,274.71 418.65,320.59 423.94,272.05 429.23,285.27 434.52,253.93 439.81,301.36 445.10,289.80 450.39,278.88 455.68,284.01 460.97,270.20 466.26,282.10 471.56,287.69 476.85,318.64 482.14,296.16 487.43,296.87 492.72,267.92 498.01,274.38 503.30,222.84 508.59,263.72 513.88,337.01 519.17,284.18 524.47,262.04 529.76,282.96 535.05,253.46 540.34,298.41 545.63,299.26 550.92,283.54 556.21,291.61 561.50,283.61 566.79,320.08 572.08,273.84 577.38,271.44 582.67,275.05 587.96,307.67 593.25,251.33 598.54,279.91 603.83,289.75 609.12,284.06 614.41,305.65 619.70,245.74 624.99,281.05 630.29,293.15 635.58,281.75 640.87,291.46 646.16,318.27 651.45,293.43 656.74,288.85 662.03,285.09 667.32,288.99 672.61,264.87 677.90,276.23 683.20,279.51 688.49,297.25 693.78,279.59 699.07,286.55 704.36,288.72 709.65,297.69 714.94,288.37 720.23,279.82 725.52,294.36 730.81,294.86" fill="none" stroke="#2f6b4f" stroke-width="2" stroke-linejoin="round" opacity="1.0"/>
+<line x1="228.17" y1="46.0" x2="228.17" y2="372.0" stroke="#8a3b26" stroke-width="1.2" stroke-dasharray="4 4"/>
+<rect x="80.0" y="50.0" width="178" height="28" fill="#ffffff" fill-opacity="0.86" stroke="#e8e6e0" rx="3"/>
+<line x1="86.0" y1="66.0" x2="104.0" y2="66.0" stroke="#2f6b4f" stroke-width="3"/>
+<text x="110.0" y="70.0" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, -apple-system, sans-serif" font-size="11" fill="#23262b">归一化互相关</text>
+</svg>

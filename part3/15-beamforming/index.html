@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 15 章 · 麦克风阵列与波束形成：从 delay-and-sum 到 MVDR | 音频 3A 处理：从自适应滤波到神经增强</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<script src="../../assets/toc.js" defer></script>
+<script src="../../assets/app.js" defer></script>
+</head>
+<body data-root="../../" data-chapter="15">
+<aside id="sidebar"></aside>
+<main class="book-page">
+<nav class="breadcrumb" data-autofill>总目录</nav>
+<header class="chapter-head">
+<span class="kicker">第三篇 · 级联、评测与工程链路 · 上卷 · 传统算法（Model-based）</span>
+<h1><span class="ch-num">第 15 章</span>麦克风阵列与波束形成：从 delay-and-sum 到 MVDR</h1>
+<p class="lede">多一路空间信息，就能在频域处理之前先把方向性的干扰压掉。</p>
+<div class="meta">
+<span class="badge done">已完稿</span>
+<span class="badge s2">级联 · 评测</span>
+<span class="badge traditional">上卷 · 传统算法</span>
+<span>建议 3 学时</span>
+<span>1 个 Python 实验 · 2 张图 · 2 段试听</span>
+<span>音频 3A 处理：从自适应滤波到神经增强</span>
+</div></header>
+<p class="bridge"><strong>本章位置：</strong>上卷三大引擎已齐备；<a href='../16-cascade-order/index.html'>第 16 章 · 3A 级联顺序与模块间相互干扰</a> 讨论它们在链路里的排列顺序，<a href='../17-toolchain/index.html'>第 17 章 · ffmpeg / WebRTC / SpeexDSP 工具链实操</a> 给出可复现的命令行工具链，下卷 <a href='../../part5/26-joint-3a/index.html'>第 26 章 · 联合 3A：多任务、级联与端到端建模</a> 会把阵列与网络合并建模。</p>
+<div class="analogy"><span class="card-label">给程序员的翻译</span><p style="margin-bottom:0">波束形成就是「按 key 对齐后做 group-by 求平均」：对齐正确的那一路内容相干叠加，未对齐的项在平均中互相抵消。</p></div>
+<div class="card objectives"><span class="card-label">学习目标</span><ul>
+<li>能写出均匀线阵的到达时间差 TDOA 公式。</li>
+<li>能实现 delay-and-sum 波束形成并画出指向性曲线。</li>
+<li>能说明空间混叠、近场与通道失配对阵列的限制。</li>
+<li>能解释波束形成在 3A 链路中的位置与代价。</li>
+</ul></div>
+<section id="map"><h2><span class="sec-num">§</span>知识点地图</h2>
+<p class="code-hint">每个知识点都配了 1～2 个扩展学习链接；本章完整资源清单见 <a href="#extra-links">扩展学习</a>。</p>
+<table><thead><tr><th style="width:44px">#</th><th style="width:26%">知识点</th><th>扩展学习</th><th style="width:100px">状态</th></tr></thead><tbody>
+<tr><td>1</td><td>均匀线阵 ULA</td><td><a href="https://en.wikipedia.org/wiki/Beamforming" target="_blank" rel="noopener noreferrer">Beamforming ↗</a> · <a href="https://github.com/LCAV/pyroomacoustics" target="_blank" rel="noopener noreferrer">pyroomacoustics ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>2</td><td>到达时间差 TDOA</td><td><a href="https://en.wikipedia.org/wiki/Beamforming" target="_blank" rel="noopener noreferrer">Beamforming ↗</a> · <a href="https://github.com/LCAV/pyroomacoustics" target="_blank" rel="noopener noreferrer">pyroomacoustics ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>3</td><td>远场假设</td><td><a href="https://en.wikipedia.org/wiki/Beamforming" target="_blank" rel="noopener noreferrer">Beamforming ↗</a> · <a href="https://github.com/LCAV/pyroomacoustics" target="_blank" rel="noopener noreferrer">pyroomacoustics ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>4</td><td>delay-and-sum</td><td><a href="https://en.wikipedia.org/wiki/Beamforming" target="_blank" rel="noopener noreferrer">Beamforming ↗</a> · <a href="https://github.com/LCAV/pyroomacoustics" target="_blank" rel="noopener noreferrer">pyroomacoustics ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>5</td><td>指向性图</td><td><a href="https://en.wikipedia.org/wiki/Beamforming" target="_blank" rel="noopener noreferrer">Beamforming ↗</a> · <a href="https://github.com/LCAV/pyroomacoustics" target="_blank" rel="noopener noreferrer">pyroomacoustics ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>6</td><td>空间混叠</td><td><a href="https://en.wikipedia.org/wiki/Beamforming" target="_blank" rel="noopener noreferrer">Beamforming ↗</a> · <a href="https://github.com/LCAV/pyroomacoustics" target="_blank" rel="noopener noreferrer">pyroomacoustics ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>7</td><td>MVDR 与自适应波束</td><td><a href="https://en.wikipedia.org/wiki/Least_mean_squares_filter" target="_blank" rel="noopener noreferrer">Least mean squares filter ↗</a> · <a href="https://www.dsprelated.com/" target="_blank" rel="noopener noreferrer">DSPRelated ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>8</td><td>阵列前置与 AEC</td><td><a href="https://en.wikipedia.org/wiki/Echo_cancellation" target="_blank" rel="noopener noreferrer">Echo cancellation ↗</a> · <a href="https://www.itu.int/rec/T-REC-G.168/en" target="_blank" rel="noopener noreferrer">ITU-T G.168 ↗</a></td><td>正文已覆盖</td></tr>
+</tbody></table></section>
+<section id="s15-1"><h2><span class="sec-num">§15.1</span>多一只麦克风，就多一个维度</h2>
+<p class="eq">τ_m(θ) = m·d·sin(θ)/c　，y_m[n] = s[n − τ_m(θ₀)] + u[n − τ_m(θ_u)] + v_m[n]</p>
+<p>均匀线阵相邻麦克风间距为 <code>d</code>、声速 <code>c</code>，来自角度 <code>θ</code> 的平面波在相邻通道之间差 <code>τ</code> 秒。<strong>delay-and-sum</strong> 按目标方向把各通道重新对齐再求平均：目标方向相干叠加，其它方向因相位不一致而部分抵消。</p>
+<table><thead><tr><th style="width:16%">概念</th><th style="width:38%">公式 / 条件</th><th style="width:46%">工程含义</th></tr></thead><tbody>
+<tr><td>TDOA</td><td>τ = d·sinθ/c</td><td>θ=0 时各通道无延迟，±90° 时最大</td></tr>
+<tr><td>空间混叠</td><td>d < c/(2·f_max)</td><td>高频时 d 过大会出现多个指向峰</td></tr>
+<tr><td>阵增益</td><td>白噪声下约 10log₁₀M dB</td><td>M 路非相干噪声平均后功率降为 1/M</td></tr>
+<tr><td>近场</td><td>声源距离 < 2d²/λ</td><td>平面波假设失效，需球面波模型</td></tr>
+</tbody></table>
+</section>
+<section id="s15-2"><h2><span class="sec-num">§15.2</span>固定波束、自适应波束与 3A 的位置</h2>
+<p>delay-and-sum 权值与数据无关，稳定、零训练、可解释；<strong>MVDR</strong> 在「目标方向无失真」约束下最小化输出功率，需估计多通道协方差矩阵并求逆，能挖出深零陷，但对导向矢量误差与通道失配敏感。</p>
+<ul>
+<li><strong>位置</strong>：通常放在 AEC 之前减少进入链路的干扰；也有人放在 AEC 之后，避免自适应滤波器去追一个随波束变化的回声路径。</li>
+<li><strong>代价</strong>：多通道采集、校准、同步与额外算力，端侧未必负担得起。</li>
+<li><strong>互补性</strong>：阵列解决「空间可分」，3A 解决「时间与频率可分」，二者不互相替代。</li>
+</ul>
+<div class="card note"><span class="card-label">教学边界</span><p style="margin-bottom:0">实验用整数样本延迟与完全校准的合成阵列，未模拟分数延迟滤波器、通道增益失配与真实房间混响；真实系统请用 pyroomacoustics 的镜像源模型生成多通道 RIR。</p></div>
+</section>
+<section id="lab"><h2><span class="sec-num">§</span>Python 实验</h2>
+<h3>实验 15-1 · 均匀线阵 delay-and-sum 与指向性扫描</h3>
+<pre class="code" data-file="code/15-beamforming.py" data-lang="Python 3 · 标准库"><code>#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""合成 4 通道阵列信号，按角度扫描固定波束，测量干扰抑制并输出可试听样本。
+
+全部语音 / 噪声 / 房间冲激响应均为代码合成信号，仅用于教学演示机制与量级。
+"""
+from __future__ import annotations
+
+import math
+import pathlib
+import random
+import statistics
+import sys
+import time
+
+_here = pathlib.Path(__file__).resolve()
+for _p in _here.parents:
+    if (_p / "tools" / "dsp.py").exists():
+        sys.path.insert(0, str(_p / "tools"))
+        break
+from dsp import (SAMPLE_RATE, fft, hann, stft, istft, magnitude_db, spectrum,
+                 white_noise, tone, chirp, synthetic_speech, rir, convolve,
+                 fft_convolve, delay, clip, normalize_peak, rms, rolling_rms,
+                 smooth, db, energy_db, snr_db, erle_db, seg_snr_db,
+                 scale_align, si_sdr_db, lufs_approx,
+                 write_wav, read_wav, wav_info)
+from chart import Chart, heatmap, BLUE, RED, GREEN, AMBER
+
+FIG = _here.parents[1] / "fig"
+AUDIO = _here.parents[1] / "audio"
+FIG.mkdir(exist_ok=True)
+AUDIO.mkdir(exist_ok=True)
+
+random.seed(7)
+
+# ---- 参数区 ----
+N = 8000
+MICS = 4
+SPACING = 0.10             # 麦克风间距（米）
+SPEED = 340.0              # 声速 m/s
+INTERFERER_ANGLE = 65      # 干扰源角度（度）
+ANGLES = tuple(range(-80, 81, 20))
+
+# ---- 计算与作图 ----
+rng = random.Random(7)
+target = chirp(150, 3000, N, amp=0.35)
+interf = tone(730, N, amp=0.30)
+def shift(x, d):
+    return [x[i - d] if 0 &lt;= i - d &lt; N else 0.0 for i in range(N)]
+def tdoa(angle, m):
+    return int(round(m * SPACING * math.sin(math.radians(angle)) / SPEED * SAMPLE_RATE))
+mics = []
+for m in range(MICS):
+    s = shift(target, tdoa(0, m))
+    u = shift(interf, tdoa(INTERFERER_ANGLE, m))
+    v = white_noise(rng, N, 0.010)
+    mics.append([s[i] + 0.9 * u[i] + v[i] for i in range(N)])
+def beam(theta):
+    parts = [shift(mics[m], -tdoa(theta, m)) for m in range(MICS)]
+    return [sum(p[i] for p in parts) / MICS for i in range(N)]
+scores = [seg_snr_db(target, scale_align(beam(a), target)) for a in ANGLES]
+best = ANGLES[scores.index(max(scores))]
+out = beam(best)
+c = Chart(FIG / "15-directivity.svg", "delay-and-sum 指向性：各扫描角的分段 SNR",
+          xlabel="扫描角（度）", ylabel="dB",
+          xticks=[(i, "%d" % a) for i, a in enumerate(ANGLES)])
+c.line(range(len(ANGLES)), scores, BLUE, label="分段 SNR (dB)")
+c.vline(ANGLES.index(best), RED, label="峰值角")
+print("指向图:", c.save())
+w = Chart(FIG / "15-waveform.svg", "单通道与波束输出波形（前 1200 样本）",
+          xlabel="样本", ylabel="幅度")
+w.line(range(1200), mics[0][:1200], "#9aa6b2", label="单通道")
+w.line(range(1200), out[:1200], GREEN, label="波束输出")
+print("波形图:", w.save())
+write_wav(AUDIO / "15-single.wav", normalize_peak(mics[0]))
+write_wav(AUDIO / "15-beam.wav", normalize_peak(out))
+print("扫描角 SNR: " + " ".join("%d度=%.1f" % (a, s) for a, s in zip(ANGLES, scores)))
+print("最佳角度=%d度 | 单通道 segSNR=%.2f -&gt; 波束=%.2f dB | SAMPLE_RATE=%d MICS=%d" %
+      (best, seg_snr_db(target, scale_align(mics[0], target)), max(scores), SAMPLE_RATE, MICS))</code></pre>
+<p class="code-hint"><strong>操作：</strong>对照指向性曲线的峰值角度与真实目标方向 0°，试听两个 WAV。　<strong>预期与判读：</strong>分段 SNR 在目标方向附近出现峰值，说明对齐后目标相干叠加、干扰被部分抵消。本实验使用整数延迟与理想校准，真实阵列还需处理分数延迟与通道失配。</p>
+<p class="code-hint"><strong>改参数看趋势：</strong>把 SPACING 改成 0.02（阵孔径变小），指向性曲线会明显变钝。　文件位置：<code>part3/15-beamforming/code/15-beamforming.py</code></p>
+<div class="chart-grid">
+<figure class="chart-figure"><img src="fig/15-directivity.svg" alt="各扫描角的分段 SNR 指向性曲线" loading="lazy"><figcaption>图 1　各扫描角的分段 SNR 指向性曲线（代码合成信号 / 教学示意）</figcaption></figure>
+<figure class="chart-figure"><img src="fig/15-waveform.svg" alt="单通道与波束输出波形对照" loading="lazy"><figcaption>图 2　单通道与波束输出波形对照（代码合成信号 / 教学示意）</figcaption></figure>
+</div>
+<div class="audio-grid">
+<div class="audio-card"><h4>15-single.wav</h4><audio controls preload="none" src="audio/15-single.wav">浏览器不支持 audio 元素，请直接打开 audio/15-single.wav。</audio><p>单通道：目标与单音干扰混在一起（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+<div class="audio-card"><h4>15-beam.wav</h4><audio controls preload="none" src="audio/15-beam.wav">浏览器不支持 audio 元素，请直接打开 audio/15-beam.wav。</audio><p>波束输出：方向性干扰被部分抵消（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+</div>
+<div class="card note"><p style="margin-bottom:0">代码块右上角可一键复制；仓库里的 <code>code/*.py</code> 由 <code>tools/extract_code.py</code> 从这些代码块自动抽取。脚本只用标准库、固定 <code>random.seed(7)</code>，运行后写出 <code>fig/*.svg</code> 与 <code>audio/*.wav</code>；批量运行用 <code>./tools/run_python.sh</code>。</p></div>
+</section>
+<section id="commands"><h2><span class="sec-num">§</span>可选真机命令片段</h2>
+<div class="card note"><p style="margin-bottom:0">以下命令<strong>不参与批量运行</strong>，需要本机自行安装对应工具。滤镜是否可用取决于本机 ffmpeg 版本与编译选项，请先用 <code>ffmpeg -filters</code> / <code>ffmpeg -version</code> 自查，并以 https://ffmpeg.org/ffmpeg-filters.html 与各自官方文档为准；本书不假定任何特定版本具备某项能力。</p></div>
+<h3>用 ffmpeg 检查多通道文件的通道布局</h3>
+<pre class="cmd" data-lang="shell"><code>ffmpeg -hide_banner -i array.wav -af astats=metadata=1 -f null - 2&gt;&amp;1 | grep RMS</code></pre>
+<p class="code-hint"><strong>说明：</strong>astats 可逐通道给出 RMS 与峰值统计，用于核对多通道采集是否失衡；滤镜可用性以本机 `ffmpeg -filters` 与 https://ffmpeg.org/ffmpeg-filters.html 为准。</p>
+</section>
+<section id="highlights"><h2><span class="sec-num">§</span>本章参考资料</h2><p>按本章知识点挑选的精读资料；更多检索入口见 <a href="#extra-links">扩展学习</a>。</p><div class="repo-grid">
+<div class="repo-card"><h3><a href="https://en.wikipedia.org/wiki/Beamforming" target="_blank" rel="noopener noreferrer">Beamforming ↗</a></h3><span class="tag">百科</span><p>阵列信号处理与 delay-and-sum / MVDR</p><p style="margin:0;color:var(--ink-faint)">推荐理由：delay-and-sum 与 MVDR 的标准定义</p></div>
+<div class="repo-card"><h3><a href="https://github.com/LCAV/pyroomacoustics" target="_blank" rel="noopener noreferrer">pyroomacoustics ↗</a></h3><span class="tag">工程</span><p>房间声学模拟、RIR 生成与波束形成实验工具</p><p style="margin:0;color:var(--ink-faint)">推荐理由：生成更真实的多通道 RIR 与阵列仿真</p></div>
+<div class="repo-card"><h3><a href="https://ccrma.stanford.edu/~jos/" target="_blank" rel="noopener noreferrer">Stanford CCRMA · Julius O. Smith ↗</a></h3><span class="tag">教材</span><p>数字信号处理与音频 DSP 的免费在线书系</p><p style="margin:0;color:var(--ink-faint)">推荐理由：阵列信号处理与延迟线讲义</p></div>
+<div class="repo-card"><h3><a href="https://github.com/speechbrain/speechbrain" target="_blank" rel="noopener noreferrer">SpeechBrain ↗</a></h3><span class="tag">工程</span><p>基于 PyTorch 的语音工具箱，含 SE / 分离 / 识别配方</p><p style="margin:0;color:var(--ink-faint)">推荐理由：神经波束形成与多通道增强配方</p></div>
+</div></section>
+<section id="pitfalls"><h2><span class="sec-num">§</span>常见误区</h2><div class="card warn"><ul><li>忽略 d 与最高频率的关系，高频出现栅瓣与空间混叠。</li>
+<li>用整数延迟近似分数延迟，宽带信号下指向性失真。</li>
+<li>把波束放在 AEC 之后却不同步更新参考路径，回声模型被破坏。</li>
+<li>忽略通道增益/相位失配，MVDR 的零陷落在错误方向。</li></ul></div></section>
+<section id="exercises"><h2><span class="sec-num">§</span>习题与思考</h2><ol><li>推导 d=0.10 m、16 kHz 下 65° 入射的相邻通道延迟（样本）。</li>
+<li>解释为什么 M 路非相干噪声平均后功率降为 1/M。</li>
+<li>列举两种会造成 MVDR 导向矢量失配的现实因素。</li></ol></section>
+<section id="extra-links"><h2><span class="sec-num">§</span>扩展学习</h2>
+<div class="repo-grid">
+<div class="repo-card"><h3><a href="https://en.wikipedia.org/wiki/Beamforming" target="_blank" rel="noopener noreferrer">Beamforming ↗</a></h3><span class="tag">百科</span><p>阵列信号处理与 delay-and-sum / MVDR</p></div>
+<div class="repo-card"><h3><a href="https://github.com/LCAV/pyroomacoustics" target="_blank" rel="noopener noreferrer">pyroomacoustics ↗</a></h3><span class="tag">工程</span><p>房间声学模拟、RIR 生成与波束形成实验工具</p></div>
+<div class="repo-card"><h3><a href="https://ccrma.stanford.edu/~jos/" target="_blank" rel="noopener noreferrer">Stanford CCRMA · Julius O. Smith ↗</a></h3><span class="tag">教材</span><p>数字信号处理与音频 DSP 的免费在线书系</p></div>
+<div class="repo-card"><h3><a href="https://github.com/speechbrain/speechbrain" target="_blank" rel="noopener noreferrer">SpeechBrain ↗</a></h3><span class="tag">工程</span><p>基于 PyTorch 的语音工具箱，含 SE / 分离 / 识别配方</p></div>
+</div>
+<h3>继续检索</h3><ul>
+<li>Google Scholar：<a href='https://scholar.google.com/scholar?q=microphone%20array%20delay%20and%20sum%20MVDR%20beamformer' target='_blank' rel='noopener noreferrer'>microphone array delay and sum MVDR beamformer ↗</a></li>
+<li>arXiv：<a href='https://arxiv.org/search/?query=microphone%20array%20delay%20and%20sum%20MVDR%20beamformer&searchtype=all' target='_blank' rel='noopener noreferrer'>microphone array delay and sum MVDR beamformer ↗</a></li>
+<li>GitHub：<a href='https://github.com/search?q=microphone%20array%20delay%20and%20sum%20MVDR%20beamformer&type=repositories' target='_blank' rel='noopener noreferrer'>microphone array delay and sum MVDR beamformer ↗</a></li>
+</ul>
+<p class="code-hint">全书链接总表见 <a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a> 与 <a href="../../appendix/index.html#sA-7">附录 A.7</a>；滤镜是否可用请以本机 <code>ffmpeg -filters</code> 为准。</p>
+</section>
+<section id="further"><h2><span class="sec-num">§</span>延伸阅读与内链</h2><ul><li><a href='../16-cascade-order/index.html'>第 16 章 · 3A 级联顺序与模块间相互干扰</a> 级联顺序；<a href='../../part5/26-joint-3a/index.html'>第 26 章 · 联合 3A：多任务、级联与端到端建模</a> 联合 3A；<a href='../../part4/20-data-synthesis/index.html'>第 20 章 · 训练数据合成：RIR、噪声、SNR 配比与数据泄漏</a> 多通道数据合成。</li></ul></section>
+<footer class="pager" data-autofill></footer>
+<footer class="site-foot">
+<p class="credits"><strong>作者</strong>：汪亮（bertonwang）　<strong>联系邮箱</strong>：<a href="mailto:47608843@qq.com">47608843@qq.com</a></p>
+<p class="ai-note"><strong>AI 使用说明</strong>：本教材的知识框架、正文、Python 实验脚本与参考资料清单在 AI 辅助下整理生成，并经人工校订、实际运行与静态自检。公式、数值与运行结果请以Python 3 实际输出及权威教材、官方文档为准；发现错漏欢迎通过上方邮箱勘误。</p>
+<p class="imprint">音频 3A 处理：从自适应滤波到神经增强 · 每章一个 <code>code/*.py</code> 实验脚本、<code>fig/*.svg</code> 矢量图与 <code>audio/*.wav</code> 试听样本（由 <code>tools/extract_code.py</code> 与脚本运行同步） · 只用 Python 3 标准库 · 教学材料，信号全部由代码合成。</p>
+</footer>
+</main>
+</body>
+</html>

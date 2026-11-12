@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 24 章 · 神经 AEC 与回声/噪声联合抑制 | 音频 3A 处理：从自适应滤波到神经增强</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<script src="../../assets/toc.js" defer></script>
+<script src="../../assets/app.js" defer></script>
+</head>
+<body data-root="../../" data-chapter="24">
+<aside id="sidebar"></aside>
+<main class="book-page">
+<nav class="breadcrumb" data-autofill>总目录</nav>
+<header class="chapter-head">
+<span class="kicker">第五篇 · 神经 3A 与联合建模 · 下卷 · AI 算法（Data-driven）</span>
+<h1><span class="ch-num">第 24 章</span>神经 AEC 与回声/噪声联合抑制</h1>
+<p class="lede">把远端参考接进网络：从「减掉预测回声」到「学一个残余抑制器」。</p>
+<div class="meta">
+<span class="badge done">已完稿</span>
+<span class="badge s4">神经 3A</span>
+<span class="badge neural">下卷 · AI 算法</span>
+<span>建议 3 学时</span>
+<span>1 个 Python 实验 · 2 张图 · 2 段试听</span>
+<span>音频 3A 处理：从自适应滤波到神经增强</span>
+</div></header>
+<p class="bridge"><strong>本章位置：</strong><a href='../23-neural-ns/index.html'>第 23 章 · 神经噪声抑制：从 RNNoise 到 DNS Challenge</a> 处理无参考的噪声，本章把参考信号接回来；<a href='../25-neural-agc/index.html'>第 25 章 · 神经增益控制与感知响度</a> 处理增益，<a href='../26-joint-3a/index.html'>第 26 章 · 联合 3A：多任务、级联与端到端建模</a> 把三个任务合到一个模型里。</p>
+<div class="analogy"><span class="card-label">给程序员的翻译</span><p style="margin-bottom:0">神经 AEC 是一个「有第二个输入端口的掩码估计器」：远端参考是条件变量，网络学的是条件分布 p(近端谱 | 麦克风谱, 参考谱)。</p></div>
+<div class="card objectives"><span class="card-label">学习目标</span><ul>
+<li>能画出神经 AEC 的三种接法并说明各自的输入输出。</li>
+<li>能解释参考信号如何作为条件输入进入网络。</li>
+<li>能量化双讲条件下固定抑制与自适应抑制的差距。</li>
+<li>能说明为什么神经方法常作为线性 AEC 的后处理而非替代。</li>
+</ul></div>
+<section id="map"><h2><span class="sec-num">§</span>知识点地图</h2>
+<p class="code-hint">每个知识点都配了 1～2 个扩展学习链接；本章完整资源清单见 <a href="#extra-links">扩展学习</a>。</p>
+<table><thead><tr><th style="width:44px">#</th><th style="width:26%">知识点</th><th>扩展学习</th><th style="width:100px">状态</th></tr></thead><tbody>
+<tr><td>1</td><td>线性 AEC + 神经后处理</td><td><a href="https://en.wikipedia.org/wiki/Echo_cancellation" target="_blank" rel="noopener noreferrer">Echo cancellation ↗</a> · <a href="https://www.itu.int/rec/T-REC-G.168/en" target="_blank" rel="noopener noreferrer">ITU-T G.168 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>2</td><td>参考信号条件输入</td><td><a href="https://github.com/microsoft/AEC-Challenge" target="_blank" rel="noopener noreferrer">Microsoft AEC Challenge ↗</a> · <a href="https://github.com/modelscope/ClearerVoice-Studio" target="_blank" rel="noopener noreferrer">ClearerVoice-Studio ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>3</td><td>对齐与时延估计</td><td><a href="https://github.com/microsoft/AEC-Challenge" target="_blank" rel="noopener noreferrer">Microsoft AEC Challenge ↗</a> · <a href="https://github.com/modelscope/ClearerVoice-Studio" target="_blank" rel="noopener noreferrer">ClearerVoice-Studio ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>4</td><td>残余回声功率谱</td><td><a href="https://en.wikipedia.org/wiki/Echo_cancellation" target="_blank" rel="noopener noreferrer">Echo cancellation ↗</a> · <a href="https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/aec3/" target="_blank" rel="noopener noreferrer">WebRTC AEC3 模块 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>5</td><td>双讲透明度</td><td><a href="https://www.itu.int/rec/T-REC-G.168/en" target="_blank" rel="noopener noreferrer">ITU-T G.168 ↗</a> · <a href="https://github.com/microsoft/AEC-Challenge" target="_blank" rel="noopener noreferrer">Microsoft AEC Challenge ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>6</td><td>ERLE 与近端失真权衡</td><td><a href="https://github.com/microsoft/AEC-Challenge" target="_blank" rel="noopener noreferrer">Microsoft AEC Challenge ↗</a> · <a href="https://github.com/modelscope/ClearerVoice-Studio" target="_blank" rel="noopener noreferrer">ClearerVoice-Studio ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>7</td><td>端到端神经 AEC</td><td><a href="https://en.wikipedia.org/wiki/Echo_cancellation" target="_blank" rel="noopener noreferrer">Echo cancellation ↗</a> · <a href="https://www.itu.int/rec/T-REC-G.168/en" target="_blank" rel="noopener noreferrer">ITU-T G.168 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>8</td><td>AEC Challenge</td><td><a href="https://en.wikipedia.org/wiki/Echo_cancellation" target="_blank" rel="noopener noreferrer">Echo cancellation ↗</a> · <a href="https://www.itu.int/rec/T-REC-G.168/en" target="_blank" rel="noopener noreferrer">ITU-T G.168 ↗</a></td><td>正文已覆盖</td></tr>
+</tbody></table></section>
+<section id="s24-1"><h2><span class="sec-num">§24.1</span>三种接法，同一个接口</h2>
+<table><thead><tr><th style="width:18%">接法</th><th style="width:32%">网络输入</th><th style="width:24%">网络输出</th><th style="width:26%">特点</th></tr></thead><tbody>
+<tr><td>后处理型</td><td>误差谱 + 远端参考谱</td><td>残余回声/噪声增益</td><td>最稳，工业主流</td></tr>
+<tr><td>联合估计型</td><td>麦克风谱 + 远端参考谱</td><td>近端语音掩码</td><td>端到端优化，需大量配对数据</td></tr>
+<tr><td>全替代型</td><td>麦克风波形 + 远端波形</td><td>增强波形</td><td>无需手工 AEC，但算力与风险最高</td></tr>
+</tbody></table>
+<p>主流工程几乎都保留线性 AEC：它有参考、可证明收敛、低算力，能把回声能量先消掉 20～30 dB；网络只处理<strong>非线性失真、路径突变与双讲残差</strong>。Micrsoft AEC Challenge 的基线也是「经典线性 AEC + 神经后处理」的组合。</p>
+</section>
+<section id="s24-2"><h2><span class="sec-num">§24.2</span>双讲是神经 AEC 的试金石</h2>
+<p class="eq">G[t,k] = max(G_floor, 1 − β·P̂_res[t,k] / P_e[t,k])　，P̂_res ≈ γ·|Ŷ|²</p>
+<p>残余回声功率无法直接观测，但线性滤波器的输出 <code>Ŷ</code> 携带「此刻应该有多少回声」的信息，把它按泄漏系数缩放就是廉价估计（WebRTC AEC3 的核心思想）。双讲时 <code>P_e</code> 中混进大量近端语音，若用静态系数抵消会把近端一起压掉；网络学到的正是「根据参考与误差的关系判断此刻该压多少」。</p>
+<ul>
+<li><strong>对齐</strong>：参考信号必须先与麦克风对齐，否则网络学到的是错误的时延分布。</li>
+<li><strong>透明度</strong>：双讲段应同时报近端 SI-SDR 与 ERLE，只看 ERLE 会奖励过度抑制。</li>
+<li><strong>非线性</strong>：扬声器削波产生的谐波与参考不成线性关系，只能靠后处理。</li>
+</ul>
+<div class="card note"><span class="card-label">实验口径</span><p style="margin-bottom:0">本实验用一段<strong>前半段有回声、后半段无回声</strong>的受控信号，对比静态抵消系数与逐帧 oracle 抵消。量化的是「条件化估计」相对「固定参数」的价值，不是任何具体网络的性能。</p></div>
+</section>
+<section id="lab"><h2><span class="sec-num">§</span>Python 实验</h2>
+<h3>实验 24-1 · 时变残余回声下的静态抵消 vs 逐帧 oracle 抵消</h3>
+<pre class="code" data-file="code/24-neural-aec.py" data-lang="Python 3 · 标准库"><code>#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""构造前半段有回声、后半段无回声的受控场景，量化静态系数与逐帧估计的差距。
+
+全部语音 / 噪声 / 房间冲激响应均为代码合成信号，仅用于教学演示机制与量级。
+"""
+from __future__ import annotations
+
+import math
+import pathlib
+import random
+import statistics
+import sys
+import time
+
+_here = pathlib.Path(__file__).resolve()
+for _p in _here.parents:
+    if (_p / "tools" / "dsp.py").exists():
+        sys.path.insert(0, str(_p / "tools"))
+        break
+from dsp import (SAMPLE_RATE, fft, hann, stft, istft, magnitude_db, spectrum,
+                 white_noise, tone, chirp, synthetic_speech, rir, convolve,
+                 fft_convolve, delay, clip, normalize_peak, rms, rolling_rms,
+                 smooth, db, energy_db, snr_db, erle_db, seg_snr_db,
+                 scale_align, si_sdr_db, lufs_approx,
+                 write_wav, read_wav, wav_info)
+from chart import Chart, heatmap, BLUE, RED, GREEN, AMBER
+
+FIG = _here.parents[1] / "fig"
+AUDIO = _here.parents[1] / "audio"
+FIG.mkdir(exist_ok=True)
+AUDIO.mkdir(exist_ok=True)
+
+random.seed(7)
+
+# ---- 参数区 ----
+N = 8000
+LEAK_FIRST = 0.50        # 前半段线性 AEC 残留的回声比例
+LEAK_SECOND = 0.00       # 后半段远端静音 / 路径变化后不再有回声
+STATIC_ALPHA = 0.25      # 静态抵消固定使用的系数
+
+# ---- 计算与作图 ----
+rng = random.Random(7)
+far = synthetic_speech(rng, N)
+near = synthetic_speech(rng, N)
+h = rir(rng, 128, decay=0.006)
+echo_full = [1.4 * v for v in fft_convolve(far, h)[:N]]
+alpha = [LEAK_FIRST if i &lt; N // 2 else LEAK_SECOND for i in range(N)]
+res_echo = [alpha[i] * echo_full[i] for i in range(N)]
+noise = white_noise(rng, N, 0.003)
+
+def run(near_gain, mode):
+    clean = [near_gain * near[i] for i in range(N)]
+    linear = [clean[i] + res_echo[i] + noise[i] for i in range(N)]
+    if mode == "linear":
+        out = linear
+    elif mode == "static":
+        out = [linear[i] - STATIC_ALPHA * echo_full[i] for i in range(N)]
+    else:
+        out = [linear[i] - alpha[i] * echo_full[i] for i in range(N)]
+    residual = [out[i] - clean[i] for i in range(N)]
+    return erle_db(res_echo, residual), seg_snr_db(clean, scale_align(out, clean)), out
+conditions = (("单讲", 0.30), ("双讲", 0.90))
+modes = (("线性AEC", "linear"), ("静态抵消", "static"), ("逐帧抵消", "adaptive"))
+erles, snrs, labels = [], [], []
+for cname, ng in conditions:
+    for mname, mode in modes:
+        e, s, out = run(ng, mode)
+        erles.append(e)
+        snrs.append(s)
+        labels.append(cname + "-" + mname)
+        if cname == "双讲" and mode == "linear":
+            linear_dt = out
+        if cname == "双讲" and mode == "adaptive":
+            adaptive_dt = out
+c = Chart(FIG / "24-aec.svg", "单讲/双讲下三种方案的 ERLE 与分段 SNR", xlabel="场景-方案", ylabel="dB",
+          xticks=[(i, l) for i, l in enumerate(labels)])
+c.bars(range(len(labels)), erles, BLUE, label="ERLE (dB)")
+c.bars(range(len(labels)), snrs, GREEN, label="分段 SNR (dB)")
+print("AEC图:", c.save())
+heatmap(FIG / "24-matrix.svg", [erles, snrs], ["ERLE", "分段 SNR"], labels,
+        title="六组实验的指标矩阵", vmin=-10, vmax=35, annotate=True)
+print("矩阵图:", str(FIG / "24-matrix.svg"))
+write_wav(AUDIO / "24-linear.wav", normalize_peak(linear_dt))
+write_wav(AUDIO / "24-adaptive.wav", normalize_peak(adaptive_dt))
+for l, e, s in zip(labels, erles, snrs):
+    print("%s: ERLE=%.2f dB segSNR=%.2f dB" % (l, e, s))
+print("SAMPLE_RATE=%d | 前半段泄漏=%.2f 后半段=%.2f 静态系数=%.2f" %
+      (SAMPLE_RATE, LEAK_FIRST, LEAK_SECOND, STATIC_ALPHA))</code></pre>
+<p class="code-hint"><strong>操作：</strong>重点比较双讲三组的分段 SNR；试听两个双讲 WAV。　<strong>预期与判读：</strong>静态系数在前半段只抵消了一部分回声，后半段远端已静音却仍继续减，等于<strong>凭空往输出里加入反向回声</strong>，近端语音被明显损伤；逐帧估计随路径变化更新，两项指标都更好。这正是双讲与路径突变下必须用条件化的神经后处理替代固定增益的原因。</p>
+<p class="code-hint"><strong>改参数看趋势：</strong>把 STATIC_ALPHA 改成 0.50，前半段抵消更准，但后半段的反向回声也更强。　文件位置：<code>part5/24-neural-aec/code/24-neural-aec.py</code></p>
+<div class="chart-grid">
+<figure class="chart-figure"><img src="fig/24-aec.svg" alt="三种方案在单讲/双讲下的指标" loading="lazy"><figcaption>图 1　三种方案在单讲/双讲下的指标（代码合成信号 / 教学示意）</figcaption></figure>
+<figure class="chart-figure"><img src="fig/24-matrix.svg" alt="六组实验的指标矩阵" loading="lazy"><figcaption>图 2　六组实验的指标矩阵（代码合成信号 / 教学示意）</figcaption></figure>
+</div>
+<div class="audio-grid">
+<div class="audio-card"><h4>24-linear.wav</h4><audio controls preload="none" src="audio/24-linear.wav">浏览器不支持 audio 元素，请直接打开 audio/24-linear.wav。</audio><p>双讲：仅线性 AEC，前半段有残余回声（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+<div class="audio-card"><h4>24-adaptive.wav</h4><audio controls preload="none" src="audio/24-adaptive.wav">浏览器不支持 audio 元素，请直接打开 audio/24-adaptive.wav。</audio><p>双讲：逐帧抵消后的输出（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+</div>
+<div class="card note"><p style="margin-bottom:0">代码块右上角可一键复制；仓库里的 <code>code/*.py</code> 由 <code>tools/extract_code.py</code> 从这些代码块自动抽取。脚本只用标准库、固定 <code>random.seed(7)</code>，运行后写出 <code>fig/*.svg</code> 与 <code>audio/*.wav</code>；批量运行用 <code>./tools/run_python.sh</code>。</p></div>
+</section>
+<section id="commands"><h2><span class="sec-num">§</span>可选真机命令片段</h2>
+<div class="card note"><p style="margin-bottom:0">以下命令<strong>不参与批量运行</strong>，需要本机自行安装对应工具。滤镜是否可用取决于本机 ffmpeg 版本与编译选项，请先用 <code>ffmpeg -filters</code> / <code>ffmpeg -version</code> 自查，并以 https://ffmpeg.org/ffmpeg-filters.html 与各自官方文档为准；本书不假定任何特定版本具备某项能力。</p></div>
+<h3>查看 AEC Challenge 的数据与基线说明</h3>
+<pre class="cmd" data-lang="shell"><code>git clone --depth 1 https://github.com/microsoft/AEC-Challenge &amp;&amp; ls AEC-Challenge/</code></pre>
+<p class="code-hint"><strong>说明：</strong>该仓库提供真实双讲、非线性失真与远端单讲录音；请以其 README 与许可为准，本书实验全部使用合成信号。</p>
+</section>
+<section id="highlights"><h2><span class="sec-num">§</span>本章参考资料</h2><p>按本章知识点挑选的精读资料；更多检索入口见 <a href="#extra-links">扩展学习</a>。</p><div class="repo-grid">
+<div class="repo-card"><h3><a href="https://github.com/microsoft/AEC-Challenge" target="_blank" rel="noopener noreferrer">Microsoft AEC Challenge ↗</a></h3><span class="tag">数据集</span><p>声学回声消除挑战赛，含真实双讲与非线性失真录音</p><p style="margin:0;color:var(--ink-faint)">推荐理由：真实双讲与非线性失真的标准评测集</p></div>
+<div class="repo-card"><h3><a href="https://github.com/modelscope/ClearerVoice-Studio" target="_blank" rel="noopener noreferrer">ClearerVoice-Studio ↗</a></h3><span class="tag">工程</span><p>语音增强/分离/超分的开源训练与推理框架</p><p style="margin:0;color:var(--ink-faint)">推荐理由：开源增强/分离框架里的 AEC 相关配方</p></div>
+<div class="repo-card"><h3><a href="https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/aec3/" target="_blank" rel="noopener noreferrer">WebRTC AEC3 模块 ↗</a></h3><span class="tag">工程</span><p>分块频域自适应滤波 + 残余回声估计的现代 AEC 结构</p><p style="margin:0;color:var(--ink-faint)">推荐理由：线性滤波输出用于残余回声估计的工业范例</p></div>
+<div class="repo-card"><h3><a href="https://github.com/speechbrain/speechbrain" target="_blank" rel="noopener noreferrer">SpeechBrain ↗</a></h3><span class="tag">工程</span><p>基于 PyTorch 的语音工具箱，含 SE / 分离 / 识别配方</p><p style="margin:0;color:var(--ink-faint)">推荐理由：条件输入与多任务训练的参考实现</p></div>
+</div></section>
+<section id="repos"><h2><span class="sec-num">§</span>相关开源工程</h2><p>下列工程仅作技术参照，版权与许可证归各自维护者所有。本书实验不依赖它们，也与之无从属关系。</p><div class="repo-grid">
+<div class="repo-card"><h3><a href="https://github.com/microsoft/AEC-Challenge" target="_blank" rel="noopener noreferrer">Microsoft AEC-Challenge ↗</a></h3><span class="tag">数据集 · 基线</span><p>真实双讲、非线性失真与远端单讲录音</p></div>
+<div class="repo-card"><h3><a href="https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/" target="_blank" rel="noopener noreferrer">WebRTC audio_processing ↗</a></h3><span class="tag">传统 · C++</span><p>AEC3 的残余回声估计与双讲处理源码</p></div>
+</div></section>
+<section id="pitfalls"><h2><span class="sec-num">§</span>常见误区</h2><div class="card warn"><ul><li>忘记对齐参考与麦克风，网络学到错误的时延。</li>
+<li>只报单讲 ERLE，忽略双讲段的近端失真。</li>
+<li>用线性 AEC 的输出直接当标签，把残余回声也标成干净语音。</li>
+<li>把 oracle 残余功率谱当成网络可观测输入。</li></ul></div></section>
+<section id="exercises"><h2><span class="sec-num">§</span>习题与思考</h2><ol><li>画出后处理型神经 AEC 的张量流图并标注因果性。</li>
+<li>解释为什么工业系统保留线性 AEC 而不做全替代。</li>
+<li>设计一组同时报 ERLE 与双讲透明度的评测表。</li></ol></section>
+<section id="extra-links"><h2><span class="sec-num">§</span>扩展学习</h2>
+<div class="repo-grid">
+<div class="repo-card"><h3><a href="https://github.com/microsoft/AEC-Challenge" target="_blank" rel="noopener noreferrer">Microsoft AEC Challenge ↗</a></h3><span class="tag">数据集</span><p>声学回声消除挑战赛，含真实双讲与非线性失真录音</p></div>
+<div class="repo-card"><h3><a href="https://github.com/modelscope/ClearerVoice-Studio" target="_blank" rel="noopener noreferrer">ClearerVoice-Studio ↗</a></h3><span class="tag">工程</span><p>语音增强/分离/超分的开源训练与推理框架</p></div>
+<div class="repo-card"><h3><a href="https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/aec3/" target="_blank" rel="noopener noreferrer">WebRTC AEC3 模块 ↗</a></h3><span class="tag">工程</span><p>分块频域自适应滤波 + 残余回声估计的现代 AEC 结构</p></div>
+<div class="repo-card"><h3><a href="https://github.com/speechbrain/speechbrain" target="_blank" rel="noopener noreferrer">SpeechBrain ↗</a></h3><span class="tag">工程</span><p>基于 PyTorch 的语音工具箱，含 SE / 分离 / 识别配方</p></div>
+</div>
+<h3>继续检索</h3><ul>
+<li>Google Scholar：<a href='https://scholar.google.com/scholar?q=deep%20acoustic%20echo%20cancellation%20joint%20AEC%20NS' target='_blank' rel='noopener noreferrer'>deep acoustic echo cancellation joint AEC NS ↗</a></li>
+<li>arXiv：<a href='https://arxiv.org/search/?query=deep%20acoustic%20echo%20cancellation%20joint%20AEC%20NS&searchtype=all' target='_blank' rel='noopener noreferrer'>deep acoustic echo cancellation joint AEC NS ↗</a></li>
+<li>GitHub：<a href='https://github.com/search?q=deep%20acoustic%20echo%20cancellation%20joint%20AEC%20NS&type=repositories' target='_blank' rel='noopener noreferrer'>deep acoustic echo cancellation joint AEC NS ↗</a></li>
+</ul>
+<p class="code-hint">全书链接总表见 <a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a> 与 <a href="../../appendix/index.html#sA-7">附录 A.7</a>；滤镜是否可用请以本机 <code>ffmpeg -filters</code> 为准。</p>
+</section>
+<section id="further"><h2><span class="sec-num">§</span>延伸阅读与内链</h2><ul><li><a href='../../part2/11-residual-echo/index.html'>第 11 章 · 残余回声抑制与 WebRTC AEC3 结构</a> 残余回声抑制；<a href='../26-joint-3a/index.html'>第 26 章 · 联合 3A：多任务、级联与端到端建模</a> 联合 3A；<a href='../../part6/30-generalization/index.html'>第 30 章 · 泛化、鲁棒性与评测陷阱</a> 泛化。</li></ul></section>
+<footer class="pager" data-autofill></footer>
+<footer class="site-foot">
+<p class="credits"><strong>作者</strong>：汪亮（bertonwang）　<strong>联系邮箱</strong>：<a href="mailto:47608843@qq.com">47608843@qq.com</a></p>
+<p class="ai-note"><strong>AI 使用说明</strong>：本教材的知识框架、正文、Python 实验脚本与参考资料清单在 AI 辅助下整理生成，并经人工校订、实际运行与静态自检。公式、数值与运行结果请以Python 3 实际输出及权威教材、官方文档为准；发现错漏欢迎通过上方邮箱勘误。</p>
+<p class="imprint">音频 3A 处理：从自适应滤波到神经增强 · 每章一个 <code>code/*.py</code> 实验脚本、<code>fig/*.svg</code> 矢量图与 <code>audio/*.wav</code> 试听样本（由 <code>tools/extract_code.py</code> 与脚本运行同步） · 只用 Python 3 标准库 · 教学材料，信号全部由代码合成。</p>
+</footer>
+</main>
+</body>
+</html>

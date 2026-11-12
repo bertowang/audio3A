@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 03 章 · 怎么算「变好了」：客观指标、尺度与主观听测 | 音频 3A 处理：从自适应滤波到神经增强</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<script src="../../assets/toc.js" defer></script>
+<script src="../../assets/app.js" defer></script>
+</head>
+<body data-root="../../" data-chapter="03">
+<aside id="sidebar"></aside>
+<main class="book-page">
+<nav class="breadcrumb" data-autofill>总目录</nav>
+<header class="chapter-head">
+<span class="kicker">卷首 · 3A 问题全景 · 卷首 · 共同语言与问题定义</span>
+<h1><span class="ch-num">第 03 章</span>怎么算「变好了」：客观指标、尺度与主观听测</h1>
+<p class="lede">没有度量就没有工程；但每个指标都只回答一个问题，且都带自己的陷阱。</p>
+<div class="meta">
+<span class="badge done">已完稿</span>
+<span class="badge s1">问题定义</span>
+<span>建议 3 学时</span>
+<span>1 个 Python 实验 · 2 张图 · 3 段试听</span>
+<span>音频 3A 处理：从自适应滤波到神经增强</span>
+</div></header>
+<p class="bridge"><strong>本章位置：</strong>卷首结束。<a href='../../part1/04-lti-convolution/index.html'>第 04 章 · 线性系统、卷积与频域实现</a> 起进入上卷，先补线性系统与自适应滤波两块数学地基，再在 <a href='../../part2/09-aec-architecture/index.html'>第 09 章 · AEC 总体结构：参考信号、线性滤波与残余抑制</a>～<a href='../../part2/14-agc/index.html'>第 14 章 · AGC：包络跟踪、攻击释放、限幅与响度</a> 实现三大引擎。</p>
+<div class="analogy"><span class="card-label">给程序员的翻译</span><p style="margin-bottom:0">指标是监控面板：ERLE 是回声模块的 unit test，segSNR 是信噪比 SLO，SI-SDR 是尺度不变的回归测试，DNSMOS 是线上无标签监控。<strong>只看一块面板做决策，迟早被「静音策略」骗过。</strong></p></div>
+<div class="card objectives"><span class="card-label">学习目标</span><ul>
+<li>能计算 ERLE、分段 SNR、SI-SDR 与响度近似值。</li>
+<li>能说明为什么 AGC 之后必须先做尺度对齐。</li>
+<li>能区分有参考指标与无参考指标、 intrusive 与 non-intrusive。</li>
+<li>能设计一组覆盖双讲与噪声类型的评测集。</li>
+</ul></div>
+<section id="map"><h2><span class="sec-num">§</span>知识点地图</h2>
+<p class="code-hint">每个知识点都配了 1～2 个扩展学习链接；本章完整资源清单见 <a href="#extra-links">扩展学习</a>。</p>
+<table><thead><tr><th style="width:44px">#</th><th style="width:26%">知识点</th><th>扩展学习</th><th style="width:100px">状态</th></tr></thead><tbody>
+<tr><td>1</td><td>ERLE 与回声残余</td><td><a href="https://en.wikipedia.org/wiki/Echo_cancellation" target="_blank" rel="noopener noreferrer">Echo cancellation ↗</a> · <a href="https://webrtc.googlesource.com/src/+/refs/heads/main/modules/audio_processing/aec3/" target="_blank" rel="noopener noreferrer">WebRTC AEC3 模块 ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>2</td><td>分段 SNR</td><td><a href="https://www.itu.int/rec/T-REC-P.862/en" target="_blank" rel="noopener noreferrer">ITU-T P.862 PESQ ↗</a> · <a href="https://www.itu.int/rec/T-REC-P.863/en" target="_blank" rel="noopener noreferrer">ITU-T P.863 POLQA ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>3</td><td>SI-SDR 与尺度不变性</td><td><a href="https://www.itu.int/rec/T-REC-P.862/en" target="_blank" rel="noopener noreferrer">ITU-T P.862 PESQ ↗</a> · <a href="https://www.itu.int/rec/T-REC-P.863/en" target="_blank" rel="noopener noreferrer">ITU-T P.863 POLQA ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>4</td><td>PESQ / POLQA / STOI</td><td><a href="https://www.itu.int/rec/T-REC-P.862/en" target="_blank" rel="noopener noreferrer">ITU-T P.862 PESQ ↗</a> · <a href="https://www.itu.int/rec/T-REC-P.863/en" target="_blank" rel="noopener noreferrer">ITU-T P.863 POLQA ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>5</td><td>DNSMOS 无参考评分</td><td><a href="https://www.itu.int/rec/T-REC-P.862/en" target="_blank" rel="noopener noreferrer">ITU-T P.862 PESQ ↗</a> · <a href="https://www.itu.int/rec/T-REC-P.863/en" target="_blank" rel="noopener noreferrer">ITU-T P.863 POLQA ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>6</td><td>LUFS 与真峰值</td><td><a href="https://www.itu.int/rec/T-REC-P.862/en" target="_blank" rel="noopener noreferrer">ITU-T P.862 PESQ ↗</a> · <a href="https://www.itu.int/rec/T-REC-P.863/en" target="_blank" rel="noopener noreferrer">ITU-T P.863 POLQA ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>7</td><td>主观听测 P.835</td><td><a href="https://www.itu.int/rec/T-REC-P.835/en" target="_blank" rel="noopener noreferrer">ITU-T P.835 ↗</a> · <a href="https://github.com/microsoft/DNS-Challenge/tree/master/DNSMOS" target="_blank" rel="noopener noreferrer">DNSMOS ↗</a></td><td>正文已覆盖</td></tr>
+<tr><td>8</td><td>评测集设计</td><td><a href="https://www.itu.int/rec/T-REC-P.862/en" target="_blank" rel="noopener noreferrer">ITU-T P.862 PESQ ↗</a> · <a href="https://www.itu.int/rec/T-REC-P.863/en" target="_blank" rel="noopener noreferrer">ITU-T P.863 POLQA ↗</a></td><td>正文已覆盖</td></tr>
+</tbody></table></section>
+<section id="s3-1"><h2><span class="sec-num">§3.1</span>指标族：每个都对应一个具体问法</h2>
+<p class="eq">ERLE = 10log₁₀(Σe²[n] / Σr²[n])　|　segSNR = mean_t 10log₁₀(Σd² / Σ(d−d̂)²)</p>
+<table><thead><tr><th style="width:18%">指标</th><th style="width:26%">问的是</th><th style="width:20%">需要干净参考吗</th><th style="width:36%">典型陷阱</th></tr></thead><tbody>
+<tr><td>ERLE</td><td>回声被消掉多少</td><td>需要回声 e[n]</td><td>双讲时含近端语音，会虚高或虚低</td></tr>
+<tr><td>segSNR / SI-SDR</td><td>整体失真有多大</td><td>需要 d[n]</td><td>AGC 改尺度后直接相减会误判</td></tr>
+<tr><td>PESQ / POLQA</td><td>人耳觉得像不像</td><td>需要 d[n]</td><td>对非语音噪声与非线性编解码不准</td></tr>
+<tr><td>STOI / ESTOI</td><td>可懂度还剩多少</td><td>需要 d[n]</td><td>不反映舒适度与音乐噪声</td></tr>
+<tr><td>DNSMOS</td><td>没参考时打个分</td><td>不需要</td><td>模型偏好可能奖励过度降噪</td></tr>
+<tr><td>LUFS / True Peak</td><td>响度与削波余量</td><td>不需要</td><td>响度合规不等于听感舒适</td></tr>
+</tbody></table>
+<p>ITU-T G.168 规定回声消除器的测试信号与 ERLE 口径；P.862 / P.863 是有参考感知质量，P.835 是带噪声语音的三维主观评分。<strong>工程上至少要同时报一个失真类、一个可懂度类、一个主观/无参考类指标</strong>。</p>
+</section>
+<section id="s3-2"><h2><span class="sec-num">§3.2</span>三个最常见的评测错误</h2>
+<ul>
+<li><strong>尺度错配</strong>：AGC 后信号整体变大，用原始 clean 相减会把增益差当成噪声；先做最小二乘尺度对齐，或改用尺度不变的 SI-SDR（本书 <code>scale_align()</code>）。</li>
+<li><strong>数据泄漏</strong>：用测试集挑阈值、调网络、选 checkpoint，得到的分数只是样本内成绩（下卷 <a href='../../part6/30-generalization/index.html'>第 30 章 · 泛化、鲁棒性与评测陷阱</a> 详述）。</li>
+<li><strong>指标单一</strong>：只报 segSNR 会奖励「把一切都压成静音」的策略；必须同时报语音失真或可懂度。</li>
+</ul>
+<div class="card note"><span class="card-label">可复现实验</span><p style="margin-bottom:0">每个指标都写下：信号长度、采样率、窗长、是否尺度对齐、退化类型与强度、随机种子。本书全部脚本固定 <code>random.seed(7)</code>，打印的数值可被逐行复算。</p></div>
+</section>
+<section id="lab"><h2><span class="sec-num">§</span>Python 实验</h2>
+<h3>实验 3-1 · 退化强度扫描下的指标族与尺度对齐陷阱</h3>
+<pre class="code" data-file="code/03-metrics.py" data-lang="Python 3 · 标准库"><code>#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""扫描噪声与回声强度，计算 ERLE / segSNR / SI-SDR / LUFS，并演示 AGC 尺度错配。
+
+全部语音 / 噪声 / 房间冲激响应均为代码合成信号，仅用于教学演示机制与量级。
+"""
+from __future__ import annotations
+
+import math
+import pathlib
+import random
+import statistics
+import sys
+import time
+
+_here = pathlib.Path(__file__).resolve()
+for _p in _here.parents:
+    if (_p / "tools" / "dsp.py").exists():
+        sys.path.insert(0, str(_p / "tools"))
+        break
+from dsp import (SAMPLE_RATE, fft, hann, stft, istft, magnitude_db, spectrum,
+                 white_noise, tone, chirp, synthetic_speech, rir, convolve,
+                 fft_convolve, delay, clip, normalize_peak, rms, rolling_rms,
+                 smooth, db, energy_db, snr_db, erle_db, seg_snr_db,
+                 scale_align, si_sdr_db, lufs_approx,
+                 write_wav, read_wav, wav_info)
+from chart import Chart, heatmap, BLUE, RED, GREEN, AMBER
+
+FIG = _here.parents[1] / "fig"
+AUDIO = _here.parents[1] / "audio"
+FIG.mkdir(exist_ok=True)
+AUDIO.mkdir(exist_ok=True)
+
+random.seed(7)
+
+# ---- 参数区 ----
+N = 8000
+AMPS = (0.004, 0.012, 0.030, 0.070)   # 噪声幅度扫描
+ECHO_GAINS = (0.3, 0.9, 1.8, 3.0)     # 回声强度扫描
+
+# ---- 计算与作图 ----
+rng = random.Random(7)
+clean = synthetic_speech(rng, N)
+h = rir(rng, 128, decay=0.006)
+far = synthetic_speech(rng, N)
+echo_ref = fft_convolve(far, h)[:N]      # 卷积只算一次，避免在循环/推导里重复 O(N log N)
+rows, noisy_samples = [], []
+for amp in AMPS:
+    nz = white_noise(rng, N, amp)
+    noisy = [clean[i] + nz[i] for i in range(N)]
+    noisy_samples.append(noisy)
+    rows.append([snr_db(clean, nz), seg_snr_db(clean, noisy),
+                 si_sdr_db(noisy, clean), lufs_approx(noisy)])
+erle_rows = []
+for g in ECHO_GAINS:
+    echo = [g * v for v in echo_ref]
+    mic = [clean[i] + echo[i] for i in range(N)]
+    # 理想 AEC 上界：减去真实回声，残余只剩近端语音，用回声/残余比衡量
+    erle_rows.append(erle_db(echo, clean))
+
+c = Chart(FIG / "03-metrics.svg", "噪声增强时四个指标的变化", xlabel="噪声幅度", ylabel="数值",
+          xticks=[(i, "%.3f" % a) for i, a in enumerate(AMPS)])
+c.line(range(len(AMPS)), [r[1] for r in rows], BLUE, label="分段 SNR (dB)")
+c.line(range(len(AMPS)), [r[2] for r in rows], GREEN, label="SI-SDR (dB)")
+c.line(range(len(AMPS)), [r[0] for r in rows], AMBER, label="全局 SNR (dB)")
+print("指标图:", c.save())
+heatmap(FIG / "03-heatmap.svg", [[round(v, 2) for v in r] for r in rows],
+        ["amp=%.3f" % a for a in AMPS], ["SNR", "segSNR", "SI-SDR", "LUFS"],
+        title="不同噪声强度下的指标矩阵", vmin=-25, vmax=30, annotate=True)
+print("矩阵图:", str(FIG / "03-heatmap.svg"))
+write_wav(AUDIO / "03-clean.wav", normalize_peak(clean))
+write_wav(AUDIO / "03-noisy.wav", normalize_peak(noisy_samples[2]))
+write_wav(AUDIO / "03-echo.wav", normalize_peak(
+    [clean[i] + 1.8 * echo_ref[i] for i in range(N)]))
+
+# 尺度错配：把 clean 放大 2.5 倍后再直接算 segSNR
+scaled = [2.5 * v for v in clean]
+before = seg_snr_db(clean, scaled)
+after = seg_snr_db(clean, scale_align(scaled, clean))
+print("ERLE(理想AEC): " + " ".join("g=%.1f→%.1fdB" % (g, e)
+                                  for g, e in zip(ECHO_GAINS, erle_rows)))
+print("噪声扫描 segSNR: " + " ".join("amp=%.3f→%.2f" % (a, r[1]) for a, r in zip(AMPS, rows)))
+print("噪声扫描 SI-SDR: " + " ".join("amp=%.3f→%.2f" % (a, r[2]) for a, r in zip(AMPS, rows)))
+print("噪声 amp=%.3f 时 segSNR=%.2f SI-SDR=%.2f LUFS≈%.1f" %
+      (AMPS[2], rows[2][1], rows[2][2], rows[2][3]))
+print("AGC 尺度错配演示：直接相减 segSNR=%.2f dB，尺度对齐后=%.2f dB" % (before, after))</code></pre>
+<p class="code-hint"><strong>操作：</strong>对照尺度对齐前后的 segSNR；把 <code>2.5</code> 改成 1.0 观察差值消失。　<strong>预期与判读：</strong>segSNR 与 SI-SDR 随噪声增强单调下降；把一个纯放大 2.5 倍的干净信号直接相减，segSNR 会<strong>虚低</strong>，尺度对齐后恢复。<strong>AGC 之后的评测必须先对齐尺度。</strong></p>
+<p class="code-hint"><strong>改参数看趋势：</strong>把 <code>AMPS</code> 增加一档 0.15，看 segSNR 的下限截断是否影响结论。　文件位置：<code>part0/03-metrics/code/03-metrics.py</code></p>
+<div class="chart-grid">
+<figure class="chart-figure"><img src="fig/03-metrics.svg" alt="四个指标随噪声强度的变化" loading="lazy"><figcaption>图 1　四个指标随噪声强度的变化（代码合成信号 / 教学示意）</figcaption></figure>
+<figure class="chart-figure"><img src="fig/03-heatmap.svg" alt="指标矩阵热力图" loading="lazy"><figcaption>图 2　指标矩阵热力图（代码合成信号 / 教学示意）</figcaption></figure>
+</div>
+<div class="audio-grid">
+<div class="audio-card"><h4>03-clean.wav</h4><audio controls preload="none" src="audio/03-clean.wav">浏览器不支持 audio 元素，请直接打开 audio/03-clean.wav。</audio><p>干净参考语音（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+<div class="audio-card"><h4>03-noisy.wav</h4><audio controls preload="none" src="audio/03-noisy.wav">浏览器不支持 audio 元素，请直接打开 audio/03-noisy.wav。</audio><p>中等强度加噪语音（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+<div class="audio-card"><h4>03-echo.wav</h4><audio controls preload="none" src="audio/03-echo.wav">浏览器不支持 audio 元素，请直接打开 audio/03-echo.wav。</audio><p>含强回声的麦克风信号（16 kHz / 16-bit 单声道，代码合成信号，不是真实录音）</p></div>
+</div>
+<div class="card note"><p style="margin-bottom:0">代码块右上角可一键复制；仓库里的 <code>code/*.py</code> 由 <code>tools/extract_code.py</code> 从这些代码块自动抽取。脚本只用标准库、固定 <code>random.seed(7)</code>，运行后写出 <code>fig/*.svg</code> 与 <code>audio/*.wav</code>；批量运行用 <code>./tools/run_python.sh</code>。</p></div>
+</section>
+<section id="commands"><h2><span class="sec-num">§</span>可选真机命令片段</h2>
+<div class="card note"><p style="margin-bottom:0">以下命令<strong>不参与批量运行</strong>，需要本机自行安装对应工具。滤镜是否可用取决于本机 ffmpeg 版本与编译选项，请先用 <code>ffmpeg -filters</code> / <code>ffmpeg -version</code> 自查，并以 https://ffmpeg.org/ffmpeg-filters.html 与各自官方文档为准；本书不假定任何特定版本具备某项能力。</p></div>
+<h3>用 ffmpeg 做客观电平与响度核对</h3>
+<pre class="cmd" data-lang="shell"><code>ffmpeg -hide_banner -i out.wav -af volumedetect -f null - 2&gt;&amp;1 | grep -E 'mean_volume|max_volume'
+ffmpeg -hide_banner -i out.wav -af ebur128=peak=true -f null - 2&gt;&amp;1 | tail -12
+ffmpeg -hide_banner -i out.wav -af astats=metadata=1:reset=0 -f null - 2&gt;&amp;1 | grep -E 'RMS|Peak|Number of samples'</code></pre>
+<p class="code-hint"><strong>说明：</strong>ebur128 输出 I/S/LRA 与 True Peak；astats 给出 RMS 与峰值统计。注意本书 <code>lufs_approx()</code> 只是教学近似，不是合规测量。</p>
+</section>
+<section id="highlights"><h2><span class="sec-num">§</span>本章参考资料</h2><p>按本章知识点挑选的精读资料；更多检索入口见 <a href="#extra-links">扩展学习</a>。</p><div class="repo-grid">
+<div class="repo-card"><h3><a href="https://www.itu.int/rec/T-REC-G.168/en" target="_blank" rel="noopener noreferrer">ITU-T G.168 ↗</a></h3><span class="tag">标准</span><p>网络回声消除器的测试标准，规定 ERLE 与双讲测试信号</p><p style="margin:0;color:var(--ink-faint)">推荐理由：ERLE 与回声消除器测试规范</p></div>
+<div class="repo-card"><h3><a href="https://www.itu.int/rec/T-REC-P.862/en" target="_blank" rel="noopener noreferrer">ITU-T P.862 PESQ ↗</a></h3><span class="tag">标准</span><p>感知语音质量评估，传统 3A 最常用的客观分（窄带/宽带）</p><p style="margin:0;color:var(--ink-faint)">推荐理由：PESQ 有参考感知质量</p></div>
+<div class="repo-card"><h3><a href="https://github.com/mpariente/pystoi" target="_blank" rel="noopener noreferrer">STOI / ESTOI ↗</a></h3><span class="tag">数据集</span><p>语音可懂度客观指标，与增强模型的相关性常优于 SNR</p><p style="margin:0;color:var(--ink-faint)">推荐理由：可懂度指标实现</p></div>
+<div class="repo-card"><h3><a href="https://github.com/microsoft/DNS-Challenge/tree/master/DNSMOS" target="_blank" rel="noopener noreferrer">DNSMOS ↗</a></h3><span class="tag">数据集</span><p>无需参考信号的神经语音质量评分模型（P.835 三维）</p><p style="margin:0;color:var(--ink-faint)">推荐理由：无参考神经 MOS 评分</p></div>
+</div></section>
+<section id="pitfalls"><h2><span class="sec-num">§</span>常见误区</h2><div class="card warn"><ul><li>AGC 后不做尺度对齐就报告 SNR 提升。</li>
+<li>只在安静背景、单讲条件下测 ERLE，忽略双讲。</li>
+<li>用测试集调完阈值再报告该测试集分数。</li>
+<li>把 DNSMOS 高分当成语音保真度高。</li></ul></div></section>
+<section id="exercises"><h2><span class="sec-num">§</span>习题与思考</h2><ol><li>构造一个「segSNR 很高但完全听不清」的信号，并解释原因。</li>
+<li>推导 scale_align 的最小二乘解，说明它与 SI-SDR 投影的关系。</li>
+<li>为一款实时通话 App 设计一份至少含 6 个场景的评测集。</li></ol></section>
+<section id="extra-links"><h2><span class="sec-num">§</span>扩展学习</h2>
+<div class="repo-grid">
+<div class="repo-card"><h3><a href="https://www.itu.int/rec/T-REC-P.862/en" target="_blank" rel="noopener noreferrer">ITU-T P.862 PESQ ↗</a></h3><span class="tag">标准</span><p>感知语音质量评估，传统 3A 最常用的客观分（窄带/宽带）</p></div>
+<div class="repo-card"><h3><a href="https://www.itu.int/rec/T-REC-P.863/en" target="_blank" rel="noopener noreferrer">ITU-T P.863 POLQA ↗</a></h3><span class="tag">标准</span><p>PESQ 后继标准，支持超宽带与更多失真类型</p></div>
+<div class="repo-card"><h3><a href="https://github.com/mpariente/pystoi" target="_blank" rel="noopener noreferrer">STOI / ESTOI ↗</a></h3><span class="tag">数据集</span><p>语音可懂度客观指标，与增强模型的相关性常优于 SNR</p></div>
+<div class="repo-card"><h3><a href="https://github.com/microsoft/DNS-Challenge/tree/master/DNSMOS" target="_blank" rel="noopener noreferrer">DNSMOS ↗</a></h3><span class="tag">数据集</span><p>无需参考信号的神经语音质量评分模型（P.835 三维）</p></div>
+<div class="repo-card"><h3><a href="https://www.itu.int/rec/T-REC-P.835/en" target="_blank" rel="noopener noreferrer">ITU-T P.835 ↗</a></h3><span class="tag">标准</span><p>带噪声语音的主观评分方法（语音/噪声/总体三维）</p></div>
+<div class="repo-card"><h3><a href="https://www.itu.int/rec/T-REC-G.168/en" target="_blank" rel="noopener noreferrer">ITU-T G.168 ↗</a></h3><span class="tag">标准</span><p>网络回声消除器的测试标准，规定 ERLE 与双讲测试信号</p></div>
+</div>
+<h3>继续检索</h3><ul>
+<li>Google Scholar：<a href='https://scholar.google.com/scholar?q=ERLE%20PESQ%20STOI%20DNSMOS%20speech%20quality%20metrics' target='_blank' rel='noopener noreferrer'>ERLE PESQ STOI DNSMOS speech quality metrics ↗</a></li>
+<li>arXiv：<a href='https://arxiv.org/search/?query=ERLE%20PESQ%20STOI%20DNSMOS%20speech%20quality%20metrics&searchtype=all' target='_blank' rel='noopener noreferrer'>ERLE PESQ STOI DNSMOS speech quality metrics ↗</a></li>
+<li>GitHub：<a href='https://github.com/search?q=ERLE%20PESQ%20STOI%20DNSMOS%20speech%20quality%20metrics&type=repositories' target='_blank' rel='noopener noreferrer'>ERLE PESQ STOI DNSMOS speech quality metrics ↗</a></li>
+</ul>
+<p class="code-hint">全书链接总表见 <a href="https://ffmpeg.org/ffmpeg-filters.html" target="_blank" rel="noopener noreferrer">FFmpeg Filters 文档 ↗</a> 与 <a href="../../appendix/index.html#sA-7">附录 A.7</a>；滤镜是否可用请以本机 <code>ffmpeg -filters</code> 为准。</p>
+</section>
+<section id="further"><h2><span class="sec-num">§</span>延伸阅读与内链</h2><ul><li><a href='../../part3/18-classic-eval/index.html'>第 18 章 · 上卷综合实验：完整传统 3A 链路与评测</a> 上卷综合评测；<a href='../../part6/30-generalization/index.html'>第 30 章 · 泛化、鲁棒性与评测陷阱</a> 下卷评测陷阱与数据泄漏。</li></ul></section>
+<footer class="pager" data-autofill></footer>
+<footer class="site-foot">
+<p class="credits"><strong>作者</strong>：汪亮（bertonwang）　<strong>联系邮箱</strong>：<a href="mailto:47608843@qq.com">47608843@qq.com</a></p>
+<p class="ai-note"><strong>AI 使用说明</strong>：本教材的知识框架、正文、Python 实验脚本与参考资料清单在 AI 辅助下整理生成，并经人工校订、实际运行与静态自检。公式、数值与运行结果请以Python 3 实际输出及权威教材、官方文档为准；发现错漏欢迎通过上方邮箱勘误。</p>
+<p class="imprint">音频 3A 处理：从自适应滤波到神经增强 · 每章一个 <code>code/*.py</code> 实验脚本、<code>fig/*.svg</code> 矢量图与 <code>audio/*.wav</code> 试听样本（由 <code>tools/extract_code.py</code> 与脚本运行同步） · 只用 Python 3 标准库 · 教学材料，信号全部由代码合成。</p>
+</footer>
+</main>
+</body>
+</html>
